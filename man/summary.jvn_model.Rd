@@ -2,44 +2,43 @@
 % Please edit documentation in R/jvn.R
 \name{summary.jvn_model}
 \alias{summary.jvn_model}
-\title{Summary Method for JVN Model}
+\title{Summary method for JVN model objects}
 \usage{
 \method{summary}{jvn_model}(object, ...)
 }
 \arguments{
 \item{object}{An object of class \code{jvn_model}.}
 
-\item{...}{Additional arguments passed to or from other methods.}
+\item{...}{Unused; included for method compatibility.}
 }
 \value{
-The function returns the input \code{object} invisibly.
+The input object, invisibly.
 }
 \description{
-Computes and displays a summary of the results from a
-Jacobs-Van Norden (JVN) model fit, including convergence status,
-information criteria, and parameter estimates.
+Print a compact summary of a fitted \code{jvn_model}, including convergence
+status, information criteria, and parameter estimates.
 }
 \examples{
+\donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id \%in\% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
 summary(result)
+}
 
 }
 \seealso{
