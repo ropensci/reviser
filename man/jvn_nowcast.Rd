@@ -2,7 +2,7 @@
 % Please edit documentation in R/jvn.R
 \name{jvn_nowcast}
 \alias{jvn_nowcast}
-\title{Jacobs-Van Norden Model for Data Revisions}
+\title{Jacobs-Van Norden model for data revisions}
 \usage{
 jvn_nowcast(
   df,
@@ -16,98 +16,137 @@ jvn_nowcast(
   spillover_noise = TRUE,
   method = "MLE",
   alpha = 0.05,
+  standardize = FALSE,
   solver_options = list()
 )
 }
 \arguments{
-\item{df}{A matrix or data frame where each column represents a different
-vintage estimate for the same time period. Rows are time periods.}
+\item{df}{A matrix, data frame, or single-ID vintages object. Each vintage
+must be stored in a separate column. If \code{df} is a matrix, a synthetic
+\code{time} index is created.}
 
-\item{e}{An integer indicating the number of data vintages to include in the
-model. Must be greater than 0.}
+\item{e}{A single integer giving the number of vintages used in estimation.
+The function uses the first \code{e} vintage columns after \code{time}, so \code{e} must
+be greater than \code{0} and no larger than the number of available vintage
+columns.}
 
-\item{ar_order}{Integer specifying AR order for true values (default = 1).}
+\item{ar_order}{A single integer giving the autoregressive order of the
+latent true-value process. Must be greater than \code{0}.}
 
-\item{h}{Integer specifying the forecast horizon (default = 0).}
+\item{h}{A single integer giving the forecast horizon. Must be greater than
+or equal to \code{0}.}
 
-\item{include_news}{Logical, whether to include news component in
-measurement error (default = TRUE).}
+\item{include_news}{Logical; whether to include a news component.}
 
-\item{include_noise}{Logical, whether to include noise component in
-measurement error (default = TRUE).}
+\item{include_noise}{Logical; whether to include a noise component.}
 
-\item{include_spillovers}{Logical, whether to include spillover effects
-(default = FALSE).}
+\item{include_spillovers}{Logical; whether to include spillover effects.}
 
-\item{spillover_news}{Logical, whether spillovers apply to news component
-(default = TRUE).}
+\item{spillover_news}{Logical; whether spillovers apply to the news
+component.}
 
-\item{spillover_noise}{Logical, whether spillovers apply to noise component
-(default = TRUE).}
+\item{spillover_noise}{Logical; whether spillovers apply to the noise
+component.}
 
-\item{method}{A string specifying the estimation method to use. Options are
-Maximum likelihood ("MLE") for now.}
+\item{method}{Estimation method. Currently only \code{"MLE"} is supported.}
 
-\item{alpha}{Significance level for confidence intervals (default = 0.05).}
+\item{alpha}{Significance level used for confidence intervals. Must lie in
+\verb{(0, 1)}.}
 
-\item{solver_options}{List of options for the optimizer:
+\item{standardize}{Logical; whether to standardize the vintage matrix before
+estimation using \code{jvn_standardize()}. If \code{TRUE}, scaling metadata are
+returned in the \code{scale} element of the output.}
+
+\item{solver_options}{A named list of solver options. Valid names are
+\code{trace}, \code{method}, \code{maxiter}, \code{transform_se}, \code{startvals}, \code{se_method},
+\code{n_starts}, \code{seed}, \code{return_states}, \code{qml_eps}, \code{qml_score_method},
+\code{qml_scale}, \code{sigma_lower}, \code{sigma_upper}, \code{kfas_init}, and \code{ic_n}.
+Supported entries are:
 \itemize{
-\item trace: Integer controlling output level (default = 0)
-\item maxiter: Maximum iterations (default = 1000)
-\item startvals: Named vector of starting values (optional)
-\item transform_se: T/F whether standard errors should be constrained to be
-positive in optimization.
-\item method: String specifying optimization method (default = "L-BFGS-B").
-\item se_method: Method for standard error calculation (default = "hessian")
-\item n_starts: Number of random starting points for multi-start optimization
+\item \code{trace}: integer controlling console output.
+\item \code{method}: optimization method; one of \code{"L-BFGS-B"}, \code{"BFGS"},
+\code{"Nelder-Mead"}, \code{"nlminb"}, or \code{"two-step"}.
+\item \code{maxiter}: maximum number of optimizer iterations.
+\item \code{transform_se}: logical; whether standard deviation parameters are
+optimized on the log scale.
+\item \code{startvals}: optional numeric vector of starting values.
+\item \code{se_method}: standard-error method; one of \code{"hessian"}, \code{"qml"},
+or \code{"none"}.
+\item \code{n_starts}: number of random starting points for multi-start
+optimization.
+\item \code{seed}: optional random seed used for multi-start perturbations.
+\item \code{return_states}: logical; whether filtered and smoothed state
+estimates should be returned.
+\item \code{qml_eps}: finite-difference step size used in QML covariance
+estimation.
+\item \code{qml_score_method}: score approximation method; \code{"forward"} or
+\code{"central"}.
+\item \code{qml_scale}: scaling convention for the QML covariance; \code{"sum"},
+\code{"mean"}, or \code{"hc"}.
+\item \code{sigma_lower}: lower bound for standard deviations on the natural
+scale.
+\item \code{sigma_upper}: upper bound for standard deviations on the natural
+scale.
+\item \code{kfas_init}: initialization used in the KFAS filtering/smoothing
+stage; \code{"stationary"} or \code{"diffuse"}. This affects state extraction,
+not the custom likelihood engine.
+\item \code{ic_n}: sample-size convention used for BIC; \code{"T"} for the paper
+convention or \code{"Tp"} for \code{T * n_vint}.
 }}
 }
 \value{
-A list of class 'jvn_model' with components:
+An object of class \code{"jvn_model"} with components:
 \describe{
-\item{filtered_true}{Filtered estimates of true values}
-\item{smoothed_true}{Smoothed estimates of true values}
-\item{forecast_true}{Forecasted true values (if h > 0)}
-\item{forecast_vintages}{Forecasted vintage values (if h > 0)}
-\item{jvn_model_mat}{Model matrices (Z, T, R, H, Q)}
-\item{params}{Estimated parameters with standard errors}
-\item{fit}{Optimization results}
-\item{loglik}{Log-likelihood value}
-\item{aic}{Akaike Information Criterion}
-\item{bic}{Bayesian Information Criterion}
-\item{data}{Input data}
+\item{states}{A tibble of filtered and smoothed state estimates. If
+\code{solver_options$return_states = FALSE}, this is \code{NULL}.}
+\item{jvn_model_mat}{A list containing the state-space matrices \code{Z},
+\code{Tmat}, \code{R}, \code{H}, and \code{Q}.}
+\item{params}{A data frame of parameter estimates and standard errors.}
+\item{fit}{The raw optimizer output.}
+\item{loglik}{The maximized log-likelihood.}
+\item{aic}{Akaike information criterion.}
+\item{bic}{Bayesian information criterion.}
+\item{convergence}{Optimizer convergence code.}
+\item{data}{The input data after preprocessing.}
+\item{scale}{Scaling metadata returned by \code{jvn_standardize()} when
+\code{standardize = TRUE}; otherwise \code{NULL}.}
+\item{se_method}{The standard-error method used.}
+\item{cov}{Estimated covariance matrix of the parameter estimates, if
+available; otherwise \code{NULL}.}
 }
 }
 \description{
-Implements the Jacobs & Van Norden (2011) state-space model for analyzing
-data revisions, allowing for news and noise components in measurement errors.
+Estimate the Jacobs and Van Norden (2011) state-space model for real-time
+data revisions, allowing for news and noise components and optional
+spillovers.
 }
 \examples{
+\donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id \%in\% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
+summary(result)
+}
 
 }
 \references{
-Jacobs, Jan P.A.M. and Van Norden, Simon, "Modeling Data
-Revisions: Measurement Error and Dynamics of 'True' Values", Journal of
-Econometrics, 2011.
+Jacobs, Jan P. A. M. and Van Norden, Simon (2011). Modeling data
+revisions: Measurement error and dynamics of "true" values. \emph{Journal
+of Econometrics}.
 }
 \seealso{
 Other revision nowcasting: 

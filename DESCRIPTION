@@ -33,7 +33,8 @@ Imports:
     tibble,
     lubridate,
     KFAS,
-    numDeriv
+    numDeriv,
+    srr
 Suggests:
     tsbox,
     testthat (>= 3.0.0),

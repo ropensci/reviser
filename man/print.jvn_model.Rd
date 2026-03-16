@@ -2,43 +2,43 @@
 % Please edit documentation in R/jvn.R
 \name{print.jvn_model}
 \alias{print.jvn_model}
-\title{Print Method for JVN Model}
+\title{Print method for JVN model objects}
 \usage{
 \method{print}{jvn_model}(x, ...)
 }
 \arguments{
 \item{x}{An object of class \code{jvn_model}.}
 
-\item{...}{Additional arguments passed to \code{summary.jvn_model}.}
+\item{...}{Additional arguments passed to \code{summary.jvn_model()}.}
 }
 \value{
-The function returns the input \code{x} invisibly.
+The input object, invisibly.
 }
 \description{
-Default print method for \code{jvn_model} objects.
-Wraps the \code{summary} method for a consistent output.
+Default print method for \code{jvn_model} objects. This method dispatches to
+\code{summary.jvn_model()} for a consistent console display.
 }
 \examples{
+\donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id \%in\% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
 result
+}
 
 }
 \seealso{

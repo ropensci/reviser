@@ -2,46 +2,48 @@
 % Please edit documentation in R/jvn.R
 \name{plot.jvn_model}
 \alias{plot.jvn_model}
-\title{Plot JVN Model Results}
+\title{Plot JVN model results}
 \usage{
 \method{plot}{jvn_model}(x, state = "true_lag_0", type = "filtered", ...)
 }
 \arguments{
-\item{x}{An object of class 'jvn_model'}
+\item{x}{An object of class \code{jvn_model}.}
 
-\item{state}{String. The name of the state to visualize.}
+\item{state}{Character scalar giving the state to visualize.}
 
-\item{type}{String. Type of estimate to plot: "filtered" or "smoothed".}
+\item{type}{Character scalar indicating whether \code{"filtered"} or \code{"smoothed"}
+estimates should be plotted.}
 
-\item{...}{Additional arguments passed to theme_reviser.}
+\item{...}{Additional arguments passed to \code{plot.revision_model()}.}
 }
 \value{
-A ggplot2 object visualizing the specified state estimates.
+A \code{ggplot2} object.
 }
 \description{
-Plot JVN Model Results
+Plot filtered or smoothed estimates for a selected state from a fitted
+\code{jvn_model}.
 }
 \examples{
+\donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id \%in\% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
 plot(result)
+}
 
 }
 \seealso{
