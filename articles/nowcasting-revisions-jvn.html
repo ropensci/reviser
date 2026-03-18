@@ -86,244 +86,207 @@
 
     
     
-<p>Having established that revisions are predictable, we can now apply
-nowcasting techniques to estimate the current state of the economy. This
-vignette demonstrates how to implement a nowcasting model using the
-Jacobs-Van Norden (JVN) framework (<span class="citation">Jacobs and Van
-Norden (<a href="#ref-jacobsModelingDataRevisions2011">2011</a>)</span>).</p>
+<p>This vignette illustrates how to estimate a Jacobs-Van Norden (JVN)
+model for data revisions using <code>reviser</code>. The framework
+follows the notation of <span class="citation">Jacobs and Van Norden (<a href="#ref-jacobsModelingDataRevisions2011">2011</a>)</span> as closely
+as possible, while documenting the specific restricted AR-based
+implementation currently provided by <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code>.</p>
+<p>The JVN model is useful when several vintages of the same
+macroeconomic series are available and revisions are systematic rather
+than purely random. It provides a state-space representation that
+decomposes revision errors into economically meaningful components and
+yields filtered and smoothed estimates of the latent “true” value.</p>
 <div class="section level2">
-<h2 id="the-jacobs-van-norden-model">The Jacobs-van Norden Model<a class="anchor" aria-label="anchor" href="#the-jacobs-van-norden-model"></a>
+<h2 id="notation-and-setup">Notation and setup<a class="anchor" aria-label="anchor" href="#notation-and-setup"></a>
 </h2>
-<p>The JVN model provides a flexible state-space framework for
-decomposing data revisions into economically meaningful components:
-<strong>news</strong> and <strong>noise</strong>. Unlike traditional
-approaches that treat all revisions as either pure information updates
-or pure measurement error, the JVN model allows for a mixture of both,
-providing a more realistic representation of the revision process.</p>
-<div class="section level3">
-<h3 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
-</h3>
+<p>Following <span class="citation">Jacobs and Van Norden (<a href="#ref-jacobsModelingDataRevisions2011">2011</a>)</span>,
+superscripts refer to <strong>vintages</strong> and subscripts to
+<strong>time periods</strong>. Thus, (y_t^{t+i}) denotes the estimate
+for period (t) that is available in vintage (t+i).</p>
+<p>For a fixed reference period (t), collect the first (l) estimates
+into the (l ) vector</p>
+<p>[ y_t = ]</p>
+<p>Let (y_t) denote the unobserved “true” value. The JVN framework
+writes the measurement error as the difference between the vintage
+vector and the true value replicated across vintages:</p>
+<p>[ u_t = y_t - _l y_t,]</p>
+<p>where (_l) is an (l ) vector of ones.</p>
+<p>A key feature of the JVN framework is that the measurement error is
+decomposed into a <strong>news</strong> component and a
+<strong>noise</strong> component:</p>
+<p>[ y_t = _l y_t + _t + _t.]</p>
+<p>Here:</p>
 <ul>
-<li>
-<strong>News component</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ν</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\nu_t</annotation></semantics></math>):
-Represents genuine new information about the true state of the economy
-that was not available at the time of the initial release</li>
-<li>
-<strong>Noise component</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ζ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\zeta_t</annotation></semantics></math>):
-Represents measurement error or temporary distortions in preliminary
-estimates that are corrected in subsequent revisions</li>
-<li>
-<strong>Spillover effects</strong>: Allow revisions to one vintage
-to affect revisions to other vintages, capturing the complex dynamics of
-the revision process</li>
-<li>
-<strong>Flexible dynamics</strong>: Accommodates autoregressive
-behavior in the true underlying series</li>
+<li>(_t) captures <strong>news</strong>, i.e. information that was not
+available at the time of earlier releases and is incorporated rationally
+in later vintages;</li>
+<li>(_t) captures <strong>noise</strong>, i.e. transitory measurement
+error that is later removed.</li>
 </ul>
+<p>As in the paper, the measurement equation is written with (H = 0), so
+all uncertainty enters through the state transition equation rather than
+through an additional observation disturbance.</p>
+</div>
+<div class="section level2">
+<h2 id="state-space-representation">State-space representation<a class="anchor" aria-label="anchor" href="#state-space-representation"></a>
+</h2>
+<p>The generic time-invariant state-space form is</p>
+<p>[ y_t = Z _t,]</p>
+<p>[ _{t+1} = T _t + R _t, _t N(0, I).]</p>
+<p>In the general JVN framework, the state vector is partitioned as</p>
+<p>[ _t = ]</p>
+<p>where (_t) governs the dynamics of the true value, (_t) is the vector
+of news states, and (_t) is the vector of noise states.</p>
+<p>The measurement matrix is</p>
+<p>[ Z = [Z_1, Z_2, Z_3, Z_4]]</p>
+<p>with (Z_1 = _l), (Z_2 = 0), (Z_3 = I_l), and (Z_4 = I_l), so that</p>
+<p>[ y_t = y_t + _t + _t.]</p>
+<p>This is the central decomposition in <span class="citation">Jacobs
+and Van Norden (<a href="#ref-jacobsModelingDataRevisions2011">2011</a>)</span>.</p>
+</div>
+<div class="section level2">
+<h2 id="the-implementation-in-reviser">The implementation in <code>reviser</code><a class="anchor" aria-label="anchor" href="#the-implementation-in-reviser"></a>
+</h2>
+<p>The current <code><a href="../reference/jvn_nowcast.html">reviser::jvn_nowcast()</a></code> function implements a
+restricted but practically useful version of the JVN model:</p>
+<ol style="list-style-type: decimal">
+<li>The latent true value (y_t) follows an <strong>AR(p)</strong>
+process.</li>
+<li>The user may include a <strong>news</strong> component, a
+<strong>noise</strong> component, or both.</li>
+<li>Optional spillovers are implemented as <strong>diagonal first-order
+persistence</strong> in the news and/or noise state blocks.</li>
+<li>Estimation is by <strong>maximum likelihood</strong>.</li>
+</ol>
+<p>This corresponds to the restricted AR-based specifications used in
+the empirical illustration of <span class="citation">Jacobs and Van
+Norden (<a href="#ref-jacobsModelingDataRevisions2011">2011</a>)</span>.
+In particular, when spillovers are included, the current implementation
+uses diagonal (T_3) and/or (T_4) blocks rather than unrestricted
+cross-vintage spillover matrices.</p>
+</div>
+<div class="section level2">
+<h2 id="arp-specification">AR(p) specification<a class="anchor" aria-label="anchor" href="#arp-specification"></a>
+</h2>
+<p>Suppose the true value follows an AR(p) process. Then the state
+vector used by <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> is</p>
+<p>[ _t = ]</p>
+<p>where the news and noise blocks are included only if requested.</p>
+<div class="section level3">
+<h3 id="observation-equation">Observation equation<a class="anchor" aria-label="anchor" href="#observation-equation"></a>
+</h3>
+<p>If both news and noise are included and (l) vintages are used, the
+observation equation is</p>
+[
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mspace width="0.222em"></mspace><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>2</mn></mrow></msubsup><mspace width="0.222em"></mspace><mi>⋮</mi><mspace width="0.222em"></mspace><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mi>l</mi></mrow></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+y_t^{t+1} \
+y_t^{t+2} \
+\vdots \
+y_t^{t+l}
+\end{bmatrix}</annotation></semantics></math><p><br>
+y_t^{t+l} \end{bmatrix} =============</p>
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn><mspace width="0.222em"></mspace><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn><mspace width="0.222em"></mspace><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi><mspace width="0.222em"></mspace><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+1 &amp; 0 &amp; \cdots &amp; 0 &amp; 1 &amp; 0 &amp; \cdots &amp; 0 &amp; 1 &amp; 0 &amp; \cdots &amp; 0 \
+1 &amp; 0 &amp; \cdots &amp; 0 &amp; 0 &amp; 1 &amp; \cdots &amp; 0 &amp; 0 &amp; 1 &amp; \cdots &amp; 0 \
+\vdots &amp; \vdots &amp;  &amp; \vdots &amp; \vdots &amp; \vdots &amp;  &amp; \vdots &amp; \vdots &amp; \vdots &amp;  &amp; \vdots \
+1 &amp; 0 &amp; \cdots &amp; 0 &amp; 0 &amp; 0 &amp; \cdots &amp; 1 &amp; 0 &amp; 0 &amp; \cdots &amp; 1
+\end{bmatrix}</annotation></semantics></math><p>s &amp; 0 &amp; 0 &amp; 1 &amp; &amp; 0 &amp; 0 &amp; 1 &amp; &amp;
+0<br>
+&amp; &amp; &amp; &amp; &amp; &amp; &amp; &amp; &amp; &amp; &amp; <br>
+1 &amp; 0 &amp; &amp; 0 &amp; 0 &amp; 0 &amp; &amp; 1 &amp; 0 &amp; 0
+&amp; &amp; 1 \end{bmatrix} _t. ]</p>
+<p>Thus each observed vintage loads on the current true value and, if
+included, on its corresponding news and noise state.</p>
 </div>
 <div class="section level3">
-<h3 id="model-structure">Model Structure<a class="anchor" aria-label="anchor" href="#model-structure"></a>
+<h3 id="transition-equation">Transition equation<a class="anchor" aria-label="anchor" href="#transition-equation"></a>
 </h3>
-<p>The JVN model is represented in state-space form (notation following
-<span class="citation">Durbin and Koopman (<a href="#ref-durbinTimeSeriesAnalysis2012">2012</a>)</span>) with two key
-equations:</p>
-<p><strong>1. The Observation Equation</strong></p>
-<p>The observation equation links the observed data vintages to the
-latent state variables:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Z</mi><msub><mi>α</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">
-y_t = Z \alpha_t
-</annotation></semantics></math></p>
-<p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>
-contains the different vintages of data available at time
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>,
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>α</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\alpha_t</annotation></semantics></math>
-is the state vector containing the true value, news, and noise
-components.</p>
-<p><strong>2. The State Equation</strong></p>
-<p>The state equation describes the dynamics of the latent states:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>α</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mi>T</mi><msub><mi>α</mi><mi>t</mi></msub><mo>+</mo><mi>R</mi><msub><mi>η</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">
-\alpha_{t+1} = T \alpha_t + R \eta_t
-</annotation></semantics></math></p>
-<p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>Q</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\eta_t \sim N(0, Q)</annotation></semantics></math>
-represents the structural shocks.</p>
-</div>
-<div class="section level3">
-<h3 id="example-ar2-model-with-three-releases">Example: AR(2) Model with Three Releases<a class="anchor" aria-label="anchor" href="#example-ar2-model-with-three-releases"></a>
-</h3>
-<p>Consider an AR(2) process for the true output growth with three data
-releases. The complete model can be written as:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>2</mn></mrow></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>3</mn></mrow></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mi>t</mi></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ν</mi><mrow><mn>1</mn><mi>t</mi></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ν</mi><mrow><mn>2</mn><mi>t</mi></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ν</mi><mrow><mn>3</mn><mi>t</mi></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ζ</mi><mrow><mn>1</mn><mi>t</mi></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ζ</mi><mrow><mn>2</mn><mi>t</mi></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ζ</mi><mrow><mn>3</mn><mi>t</mi></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">
-\begin{bmatrix}
-y_{t}^{t+1} \\
-y_{t}^{t+2} \\
-y_{t}^{t+3}
-\end{bmatrix}
-=
-\begin{bmatrix}
-1 &amp; 0 &amp; 1 &amp; 0 &amp; 0 &amp; 1 &amp; 0 &amp; 0 \\
-1 &amp; 0 &amp; 0 &amp; 1 &amp; 0 &amp; 0 &amp; 1 &amp; 0 \\
-1 &amp; 0 &amp; 0 &amp; 0 &amp; 1 &amp; 0 &amp; 0 &amp; 1
-\end{bmatrix}
-\begin{bmatrix}
-\tilde{y}_{t} \\
-\tilde{y}_{t-1} \\
-\nu_{1t} \\
-\nu_{2t} \\
-\nu_{3t} \\
-\zeta_{1t} \\
-\zeta_{2t} \\
-\zeta_{3t}
-\end{bmatrix}
-</annotation></semantics></math></p>
-<p>The state vector evolves according to:</p>
-<p><span class="math display">$$
-\begin{bmatrix}
-\tilde{y}_{t} \\
-\tilde{y}_{t-1} \\
-\nu_{1t} \\
-\nu_{2t} \\
-\nu_{3t} \\
-\zeta_{1t} \\
-\zeta_{2t} \\
-\zeta_{3t}
-\end{bmatrix}
-=
-\begin{bmatrix}
-\rho_1 &amp; \rho_2 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-1 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; \tau_{\nu 1} &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; \tau_{\nu 2} &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; \tau_{\nu 3} &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; \tau_{\zeta 1} &amp; 0 &amp; 0
-\\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; \tau_{\zeta 2} &amp; 0
-\\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; \tau_{\zeta 3}
-\end{bmatrix}
-\begin{bmatrix}
-\tilde{y}_{t-1} \\
-\tilde{y}_{t-2} \\
-\nu_{1,t-1} \\
-\nu_{2,t-1} \\
-\nu_{3,t-1} \\
-\zeta_{1,t-1} \\
-\zeta_{2,t-1} \\
-\zeta_{3,t-1}
-\end{bmatrix}
-+ \\
-\begin{bmatrix}
-\sigma_{e} &amp; \sigma_{\nu 1} &amp; \sigma_{\nu 2} &amp; \sigma_{\nu
-3} &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; -\sigma_{\nu 1} &amp; -\sigma_{\nu 2} &amp; -\sigma_{\nu 3}
-&amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; -\sigma_{\nu 2} &amp; -\sigma_{\nu 3} &amp; 0 &amp; 0
-&amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; -\sigma_{\nu 3} &amp; 0 &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; \sigma_{\zeta 1} &amp; 0 &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; \sigma_{\zeta 2} &amp; 0 \\
-0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; 0 &amp; \sigma_{\zeta 3} \\
-\end{bmatrix}
-\cdot
-\begin{bmatrix}
-\eta_{et} \\
-\eta_{\nu_{1}t} \\
-\eta_{\nu_{2}t} \\
-\eta_{\nu_{3}t} \\
-\eta_{\zeta_{1}t} \\
-\eta_{\zeta_{2}t} \\
-\eta_{\zeta_{3}t} \\
-\end{bmatrix}
-$$</span></p>
-<p>The error loading matrix
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>R</mi><annotation encoding="application/x-tex">R</annotation></semantics></math>
-and shock vector
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>η</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\eta_t</annotation></semantics></math>
-capture how structural innovations affect each component. The true value
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mi>t</mi></msub><annotation encoding="application/x-tex">\tilde{y}_t</annotation></semantics></math>
-is affected by all news shocks (cumulative information), while
-individual news and noise components receive their own independent
-shocks.</p>
-</div>
-<div class="section level3">
-<h3 id="parameters-to-estimate">Parameters to Estimate<a class="anchor" aria-label="anchor" href="#parameters-to-estimate"></a>
-</h3>
-<p>For this example, the model has 15 free parameters:</p>
+<p>For the AR(p) block, <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> uses a companion
+form:</p>
+<p>[ y_{t+1} ==============</p>
+<p>_1 y_t + <em>2 y</em>{t-1} + + <em>p y</em>{t-p+1}</p>
 <ul>
-<li>
-<strong>AR coefficients</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ρ</mi><mn>1</mn></msub><mo>,</mo><msub><mi>ρ</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">\rho_1, \rho_2</annotation></semantics></math>
-(dynamics of true value)</li>
-<li>
-<strong>Standard deviations</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mi>e</mi></msub><annotation encoding="application/x-tex">\sigma_e</annotation></semantics></math>
-(AR shock),
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mrow><mi>ν</mi><mn>1</mn></mrow></msub><mo>,</mo><msub><mi>σ</mi><mrow><mi>ν</mi><mn>2</mn></mrow></msub><mo>,</mo><msub><mi>σ</mi><mrow><mi>ν</mi><mn>3</mn></mrow></msub></mrow><annotation encoding="application/x-tex">\sigma_{\nu 1}, \sigma_{\nu 2}, \sigma_{\nu 3}</annotation></semantics></math>
-(news),
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mrow><mi>ζ</mi><mn>1</mn></mrow></msub><mo>,</mo><msub><mi>σ</mi><mrow><mi>ζ</mi><mn>2</mn></mrow></msub><mo>,</mo><msub><mi>σ</mi><mrow><mi>ζ</mi><mn>3</mn></mrow></msub></mrow><annotation encoding="application/x-tex">\sigma_{\zeta 1}, \sigma_{\zeta 2}, \sigma_{\zeta 3}</annotation></semantics></math>
-(noise)</li>
-<li>
-<strong>Spillover parameters</strong>:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mrow><mi>ν</mi><mn>1</mn></mrow></msub><mo>,</mo><msub><mi>τ</mi><mrow><mi>ν</mi><mn>2</mn></mrow></msub><mo>,</mo><msub><mi>τ</mi><mrow><mi>ν</mi><mn>3</mn></mrow></msub></mrow><annotation encoding="application/x-tex">\tau_{\nu 1}, \tau_{\nu 2}, \tau_{\nu 3}</annotation></semantics></math>
-(news persistence),
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mrow><mi>ζ</mi><mn>1</mn></mrow></msub><mo>,</mo><msub><mi>τ</mi><mrow><mi>ζ</mi><mn>2</mn></mrow></msub><mo>,</mo><msub><mi>τ</mi><mrow><mi>ζ</mi><mn>3</mn></mrow></msub></mrow><annotation encoding="application/x-tex">\tau_{\zeta 1}, \tau_{\zeta 2}, \tau_{\zeta 3}</annotation></semantics></math>
-(noise persistence)</li>
+<li>. ]</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="nested-models">Nested Models<a class="anchor" aria-label="anchor" href="#nested-models"></a>
-</h3>
-<p>The JVN framework is highly flexible and nests several special
-cases:</p>
-<ul>
-<li>
-<strong>News-only model</strong>: Set
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mrow><mi>ζ</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma_{\zeta j} = 0</annotation></semantics></math>
-for all
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
-(all revisions are information)</li>
-<li>
-<strong>Noise-only model</strong>: Set
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mrow><mi>ν</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\sigma_{\nu j} = 0</annotation></semantics></math>
-for all
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>
-(all revisions are measurement error)</li>
-<li>
-<strong>No spillovers</strong>: Set
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mrow><mi>ν</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\tau_{\nu j} = 0</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mrow><mi>ζ</mi><mi>j</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\tau_{\zeta j} = 0</annotation></semantics></math>
-(revisions are i.i.d.)</li>
-</ul>
+<p>If news is included, the innovation to the true value also loads on
+the news shocks, as in the JVN framework. If noise is included, each
+noise state receives its own shock.</p>
+<p>If spillovers are included, the implementation adds diagonal
+persistence parameters to the corresponding state block:</p>
+<p>[ <em>{j,t+1} = T</em>{,j} _{j,t} + ,]</p>
+<p>[ <em>{j,t+1} = T</em>{,j} _{j,t} + .]</p>
+<p>These are <strong>restricted diagonal spillover effects</strong>.
+They should not be interpreted as the most general spillover dynamics
+discussed in the paper.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="nowcasting-with-the-jvn-model">Nowcasting with the JVN Model<a class="anchor" aria-label="anchor" href="#nowcasting-with-the-jvn-model"></a>
+<h2 id="example-ar2-with-four-vintages">Example: AR(2) with four vintages<a class="anchor" aria-label="anchor" href="#example-ar2-with-four-vintages"></a>
 </h2>
-<p>We demonstrate nowcasting Euro Area GDP using the JVN model. The
-procedure follows these steps:</p>
-<ul>
-<li>Identify the efficient release (the first release that is not
-systematically revised)</li>
-<li>Estimate the JVN model using Maximum Likelihood</li>
-<li>Examine model fit and parameters</li>
-</ul>
-<div class="section level3">
-<h3 id="identify-efficient-release">Identify Efficient Release<a class="anchor" aria-label="anchor" href="#identify-efficient-release"></a>
-</h3>
+<p>The paper’s empirical illustration considers an AR(2) specification
+with four vintages. In that case, the pure news model can be written
+as</p>
+[
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msubsup><mspace width="0.222em"></mspace><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>2</mn></mrow></msubsup><mspace width="0.222em"></mspace><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>3</mn></mrow></msubsup><mspace width="0.222em"></mspace><msubsup><mi>y</mi><mi>t</mi><mrow><mi>t</mi><mo>+</mo><mn>4</mn></mrow></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+y_t^{t+1} \
+y_t^{t+2} \
+y_t^{t+3} \
+y_t^{t+4}
+\end{bmatrix}</annotation></semantics></math><p>y_t^{t+3}<br>
+y_t^{t+4} \end{bmatrix} =============</p>
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ι</mi><mn>4</mn></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mn>0</mn><mrow><mn>4</mn><mo>×</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>I</mi><mn>4</mn></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mi>t</mi></msub><mspace width="0.222em"></mspace><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mspace width="0.222em"></mspace><msub><mi>ν</mi><mi>t</mi></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+\iota_4 &amp; 0_{4 \times 1} &amp; I_4
+\end{bmatrix}
+\begin{bmatrix}
+\tilde y_t \
+\tilde y_{t-1} \
+\nu_t
+\end{bmatrix}</annotation></semantics></math><p>}<br>
+_t \end{bmatrix}, ]</p>
+<p>with transition equation</p>
+[
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mi>t</mi></msub><mspace width="0.222em"></mspace><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mspace width="0.222em"></mspace><msub><mi>ν</mi><mi>t</mi></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+\tilde y_t \
+\tilde y_{t-1} \
+\nu_t
+\end{bmatrix}</annotation></semantics></math><p>}<br>
+_t \end{bmatrix} =============</p>
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ρ</mi><mn>1</mn></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>ρ</mi><mn>2</mn></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mn>0</mn><mrow><mn>1</mn><mo>×</mo><mn>4</mn></mrow></msub><mspace width="0.222em"></mspace><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><msub><mn>0</mn><mrow><mn>1</mn><mo>×</mo><mn>4</mn></mrow></msub><mspace width="0.222em"></mspace><msub><mn>0</mn><mrow><mn>4</mn><mo>×</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mn>0</mn><mrow><mn>4</mn><mo>×</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>T</mi><mn>3</mn></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+\rho_1 &amp; \rho_2 &amp; 0_{1 \times 4} \
+1 &amp; 0 &amp; 0_{1 \times 4} \
+0_{4 \times 1} &amp; 0_{4 \times 1} &amp; T_3
+\end{bmatrix}</annotation></semantics></math>
+}<br>
+0_{4 } &amp; 0_{4 } &amp; T_3 \end{bmatrix}
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mspace width="0.222em"></mspace><msub><mover><mi>y</mi><mo accent="true">̃</mo></mover><mrow><mi>t</mi><mo>−</mo><mn>2</mn></mrow></msub><mspace width="0.222em"></mspace><msub><mi>ν</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\begin{bmatrix}
+\tilde y_{t-1} \
+\tilde y_{t-2} \
+\nu_{t-1}
+\end{bmatrix}</annotation></semantics></math><p>}<br>
+_{t-1} \end{bmatrix} + R _t. ]</p>
+<p>Likewise, the pure noise model replaces (_t) by (_t) and (T_3) by
+(T_4). The most general model used in the paper’s Table 1 includes both
+(_t) and (_t), with diagonal (T_3) and (T_4) blocks.</p>
+<p>In <code>reviser</code>, the same broad structure is available
+through <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code>, with the restriction that the
+true-value dynamics are AR(p) and spillovers, if included, are
+diagonal.</p>
+</div>
+<div class="section level2">
+<h2 id="preparing-the-data">Preparing the data<a class="anchor" aria-label="anchor" href="#preparing-the-data"></a>
+</h2>
+<p>We illustrate the use of <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> with Euro Area
+GDP growth data from <code><a href="../reference/gdp.html">reviser::gdp</a></code>. We first compute
+quarter-on-quarter growth rates, then construct a wide vintage
+matrix.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://p-wegmueller.github.io/reviser/">reviser</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lubridate.tidyverse.org" class="external-link">lubridate</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/tsbox/" class="external-link">tsbox</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Prepare GDP data</span></span>
-<span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span><span class="va">gdp_growth</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
 <span>    <span class="va">id</span> <span class="op">==</span> <span class="st">"EA"</span>,</span>
@@ -332,242 +295,492 @@ systematically revised)</li>
 <span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/drop_na.html" class="external-link">drop_na</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Get first 15 releases</span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">14</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Get final release (4 years after initial)</span></span>
-<span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Test for efficient release</span></span>
-<span><span class="va">efficient_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span></span>
-<span>  <span class="va">df</span>,</span>
-<span>  <span class="va">final_release</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">e</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">efficient_release</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Efficient release:  2 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; stats::lm(formula = formula, data = df_wide)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residuals:</span></span>
-<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
-<span><span class="co">#&gt; -0.34873 -0.08185 -0.00706  0.10475  0.31533 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)  0.03276    0.01775   1.846   0.0692 .  </span></span>
-<span><span class="co">#&gt; release_2    1.01446    0.02440  41.577   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residual standard error: 0.1428 on 68 degrees of freedom</span></span>
-<span><span class="co">#&gt; Multiple R-squared:  0.9622, Adjusted R-squared:  0.9616 </span></span>
-<span><span class="co">#&gt; F-statistic:  1729 on 1 and 68 DF,  p-value: &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Test summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Linear hypothesis test:</span></span>
-<span><span class="co">#&gt; (Intercept) = 0</span></span>
-<span><span class="co">#&gt; release_2 = 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model 1: restricted model</span></span>
-<span><span class="co">#&gt; Model 2: final ~ release_2</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Note: Coefficient covariance matrix supplied.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   Res.Df Df     F  Pr(&gt;F)  </span></span>
-<span><span class="co">#&gt; 1     70                   </span></span>
-<span><span class="co">#&gt; 2     68  2 2.743 0.07151 .</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span></code></pre></div>
-<p>The efficient release test identifies that
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">e = 2</annotation></semantics></math>,
-meaning the 3th release is an efficient estimate of the final value.</p>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp_growth</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">df</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Vintages data (release format):</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Format:                         long</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Time periods:                   70</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># Releases:                       4</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># IDs:                            1</span></span></span>
+<span><span class="co">#&gt;    time       pub_date      value id    release  </span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> 2002-10-01 2003-01-01  0.169   EA    release_0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> 2002-10-01 2003-04-01  0.124   EA    release_1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> 2002-10-01 2003-07-01  0.105   EA    release_2</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> 2002-10-01 2003-10-01  0.057<span style="text-decoration: underline;">7</span>  EA    release_3</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> 2003-01-01 2003-04-01  0.014<span style="text-decoration: underline;">9</span>  EA    release_0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> 2003-01-01 2003-07-01 -<span style="color: #BB0000;">0.013</span><span style="color: #BB0000; text-decoration: underline;">3</span>  EA    release_1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> 2003-01-01 2003-10-01 -<span style="color: #BB0000;">0.055</span><span style="color: #BB0000; text-decoration: underline;">8</span>  EA    release_2</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> 2003-01-01 2004-01-01 -<span style="color: #BB0000;">0.006</span><span style="color: #BB0000; text-decoration: underline;">01</span> EA    release_3</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> 2003-04-01 2003-07-01  0.005<span style="text-decoration: underline;">03</span> EA    release_0</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> 2003-04-01 2003-10-01 -<span style="color: #BB0000;">0.061</span><span style="color: #BB0000; text-decoration: underline;">6</span>  EA    release_1</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 270 more rows</span></span></span></code></pre></div>
+<p>The resulting object contains one row per reference period and one
+column per vintage, in the format expected by
+<code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code>.</p>
 </div>
-<div class="section level3">
-<h3 id="estimate-the-jvn-model">Estimate the JVN Model<a class="anchor" aria-label="anchor" href="#estimate-the-jvn-model"></a>
-</h3>
-<p>The <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> function estimates the model using
-Maximum Likelihood Estimation (MLE). You can specify:</p>
+<div class="section level2">
+<h2 id="estimation">Estimation<a class="anchor" aria-label="anchor" href="#estimation"></a>
+</h2>
+<p>The main arguments of <code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> are:</p>
 <ul>
 <li>
-<strong>AR order</strong>: The order of the autoregressive process
-for the true value</li>
+<code>df</code>: a vintage matrix or data frame;</li>
 <li>
-<strong>Model components</strong>: Whether to include news, noise,
-and/or spillovers</li>
+<code>e</code>: the number of vintage columns used in
+estimation;</li>
 <li>
-<strong>Optimization method</strong>: L-BFGS-B (default), two-step,
-nlminb, and more</li>
+<code>ar_order</code>: the autoregressive order (p) of the latent
+true-value process;</li>
 <li>
-<strong>Standard error calculation</strong>: Hessian-based
-(default)</li>
+<code>h</code>: optional forecast horizon;</li>
+<li>
+<code>include_news</code>: whether to include a news component;</li>
+<li>
+<code>include_noise</code>: whether to include a noise
+component;</li>
+<li>
+<code>include_spillovers</code>: whether to include diagonal
+spillover persistence;</li>
+<li>
+<code>spillover_news</code>, <code>spillover_noise</code>: which
+block(s) receive spillover persistence;</li>
+<li>
+<code>standardize</code>: whether to standardize the vintage matrix
+before estimation.</li>
 </ul>
+<p>The argument <code>method</code> currently only accepts
+<code>"MLE"</code>. Numerical optimization is controlled through
+<code>solver_options</code>, where the user may choose among optimizers
+such as <code>"L-BFGS-B"</code>, <code>"BFGS"</code>,
+<code>"Nelder-Mead"</code>, <code>"nlminb"</code>, or
+<code>"two-step"</code>.</p>
+<div class="section level3">
+<h3 id="news-and-noise-model-without-spillovers">News and noise model without spillovers<a class="anchor" aria-label="anchor" href="#news-and-noise-model-without-spillovers"></a>
+</h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Estimate JVN model with news and noise</span></span>
-<span><span class="va">nowcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
-<span>  df <span class="op">=</span> <span class="va">data</span>,</span>
-<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
-<span>  ar_order <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  h <span class="op">=</span> <span class="fl">4</span>,  <span class="co"># 4-period ahead forecast</span></span>
+<code class="sourceCode R"><span><span class="va">fit_nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  h <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  include_spillovers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"L-BFGS-B"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="examine-model-fit-and-parameter">Examine Model Fit and Parameter<a class="anchor" aria-label="anchor" href="#examine-model-fit-and-parameter"></a>
-</h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Model diagnostics</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">nowcast</span><span class="op">)</span></span>
+<span>  method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>    se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_nn</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Jacobs-Van Norden Model ===</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Convergence: Success </span></span>
-<span><span class="co">#&gt; Log-likelihood: 20.72 </span></span>
-<span><span class="co">#&gt; AIC: -29.44 </span></span>
-<span><span class="co">#&gt; BIC: -11.79 </span></span>
+<span><span class="co">#&gt; Log-likelihood: 256.22 </span></span>
+<span><span class="co">#&gt; AIC: -490.44 </span></span>
+<span><span class="co">#&gt; BIC: -465.7 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Parameter Estimates:</span></span>
 <span><span class="co">#&gt;     Parameter Estimate Std.Error</span></span>
-<span><span class="co">#&gt;         rho_1    0.596     0.139</span></span>
-<span><span class="co">#&gt;       sigma_e    0.001     0.426</span></span>
-<span><span class="co">#&gt;    sigma_nu_1    1.023     0.257</span></span>
-<span><span class="co">#&gt;    sigma_nu_2    0.001     0.023</span></span>
-<span><span class="co">#&gt;  sigma_zeta_1    0.001     0.045</span></span>
-<span><span class="co">#&gt;  sigma_zeta_2    0.070     0.006</span></span></code></pre></div>
+<span><span class="co">#&gt;         rho_1    0.900     0.278</span></span>
+<span><span class="co">#&gt;         rho_2   -0.236     0.234</span></span>
+<span><span class="co">#&gt;       sigma_e    0.001     0.540</span></span>
+<span><span class="co">#&gt;    sigma_nu_1    0.070     0.006</span></span>
+<span><span class="co">#&gt;    sigma_nu_2    0.052     0.004</span></span>
+<span><span class="co">#&gt;    sigma_nu_3    0.001     0.036</span></span>
+<span><span class="co">#&gt;    sigma_nu_4    0.633     0.210</span></span>
+<span><span class="co">#&gt;  sigma_zeta_1    0.001     0.021</span></span>
+<span><span class="co">#&gt;  sigma_zeta_2    0.001     0.009</span></span>
+<span><span class="co">#&gt;  sigma_zeta_3    0.001     0.017</span></span>
+<span><span class="co">#&gt;  sigma_zeta_4    0.042     0.004</span></span></code></pre></div>
+<p>This specification estimates a model with both news and noise
+components, but no persistence in the measurement-error states.</p>
 </div>
 <div class="section level3">
-<h3 id="extract-state-estimates">Extract State Estimates<a class="anchor" aria-label="anchor" href="#extract-state-estimates"></a>
+<h3 id="adding-spillovers">Adding spillovers<a class="anchor" aria-label="anchor" href="#adding-spillovers"></a>
 </h3>
-<p>The model provides both filtered and smoothed estimates:</p>
-<ul>
-<li>
-<strong>Filtered estimates</strong>: Use only information available
-up to time
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
-</li>
-<li>
-<strong>Smoothed estimates</strong>: Use the full sample (better for
-historical analysis)</li>
-</ul>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Extract filtered states</span></span>
-<span><span class="va">filtered_states</span> <span class="op">&lt;-</span> <span class="va">nowcast</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">filter</span> <span class="op">==</span> <span class="st">"filtered"</span>, <span class="va">state</span> <span class="op">==</span> <span class="st">"true_lag_0"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  h <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  spillover_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  spillover_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>  standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>    se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># View recent estimates</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">filtered_states</span>, <span class="fl">8</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 7</span></span></span>
-<span><span class="co">#&gt;   time       state      estimate lower  upper filter   sample       </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 2019-04-01 true_lag_0    0.200 -<span style="color: #BB0000;">1.81</span>  2.21  filtered in_sample    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2019-07-01 true_lag_0    0.235 -<span style="color: #BB0000;">1.77</span>  2.24  filtered in_sample    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2019-10-01 true_lag_0    0.114 -<span style="color: #BB0000;">1.89</span>  2.12  filtered in_sample    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2020-01-01 true_lag_0   -<span style="color: #BB0000;">3.59</span>  -<span style="color: #BB0000;">5.59</span> -<span style="color: #BB0000;">1.58</span>  filtered in_sample    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2020-04-01 true_lag_0   -<span style="color: #BB0000;">2.14</span>  -<span style="color: #BB0000;">4.47</span>  0.196 filtered out_of_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2020-07-01 true_lag_0   -<span style="color: #BB0000;">1.28</span>  -<span style="color: #BB0000;">3.72</span>  1.17  filtered out_of_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> 2020-10-01 true_lag_0   -<span style="color: #BB0000;">0.761</span> -<span style="color: #BB0000;">3.24</span>  1.72  filtered out_of_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> 2021-01-01 true_lag_0   -<span style="color: #BB0000;">0.454</span> -<span style="color: #BB0000;">2.95</span>  2.04  filtered out_of_sample</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="visualize-results">Visualize Results<a class="anchor" aria-label="anchor" href="#visualize-results"></a>
-</h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">nowcast</span><span class="op">)</span></span></code></pre></div>
-<p><img src="nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="700"></p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Compare news and noise components</span></span>
-<span><span class="va">nowcast</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">filter</span> <span class="op">==</span> <span class="st">"smoothed"</span>, <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"news|noise"</span>, <span class="va">state</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">estimate</span>, color <span class="op">=</span> <span class="va">state</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="st">"News and Noise Components"</span>,</span>
-<span>    x <span class="op">=</span> <span class="st">"Time"</span>,</span>
-<span>    y <span class="op">=</span> <span class="st">"Contribution"</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><img src="nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-6-2.png" class="r-plt" alt="" width="700"></p>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_full</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; === Jacobs-Van Norden Model ===</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Convergence: Success </span></span>
+<span><span class="co">#&gt; Log-likelihood: 267.95 </span></span>
+<span><span class="co">#&gt; AIC: -497.91 </span></span>
+<span><span class="co">#&gt; BIC: -455.18 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Parameter Estimates:</span></span>
+<span><span class="co">#&gt;     Parameter Estimate Std.Error</span></span>
+<span><span class="co">#&gt;         rho_1    0.252     0.103</span></span>
+<span><span class="co">#&gt;         rho_2    0.101     0.096</span></span>
+<span><span class="co">#&gt;       sigma_e    0.376     0.126</span></span>
+<span><span class="co">#&gt;    sigma_nu_1    0.001     0.022</span></span>
+<span><span class="co">#&gt;    sigma_nu_2    0.043     0.005</span></span>
+<span><span class="co">#&gt;    sigma_nu_3    0.006     0.000</span></span>
+<span><span class="co">#&gt;    sigma_nu_4    3.978     4.439</span></span>
+<span><span class="co">#&gt;  sigma_zeta_1    0.053     0.007</span></span>
+<span><span class="co">#&gt;  sigma_zeta_2    0.004     0.000</span></span>
+<span><span class="co">#&gt;  sigma_zeta_3    0.016     0.006</span></span>
+<span><span class="co">#&gt;  sigma_zeta_4    0.037     0.002</span></span>
+<span><span class="co">#&gt;        T_nu_1    0.188     0.092</span></span>
+<span><span class="co">#&gt;        T_nu_2    0.177     0.095</span></span>
+<span><span class="co">#&gt;        T_nu_3    0.173     0.096</span></span>
+<span><span class="co">#&gt;        T_nu_4    0.172     0.096</span></span>
+<span><span class="co">#&gt;      T_zeta_1   -0.020     0.171</span></span>
+<span><span class="co">#&gt;      T_zeta_2   -0.900     0.000</span></span>
+<span><span class="co">#&gt;      T_zeta_3   -0.386     0.294</span></span>
+<span><span class="co">#&gt;      T_zeta_4    0.147     0.143</span></span></code></pre></div>
+<p>When <code>include_spillovers = TRUE</code>, the model adds diagonal
+persistence parameters for the selected measurement-error blocks. These
+correspond to restricted spillover effects.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="advanced-features">Advanced Features<a class="anchor" aria-label="anchor" href="#advanced-features"></a>
+<h2 id="standardization">Standardization<a class="anchor" aria-label="anchor" href="#standardization"></a>
 </h2>
-<div class="section level3">
-<h3 id="multi-start-optimization">Multi-Start Optimization<a class="anchor" aria-label="anchor" href="#multi-start-optimization"></a>
-</h3>
-<p>For complex models, it’s recommended to use multi-start optimization
-to avoid local optima:</p>
+<p>In the paper’s empirical illustration, vintages are approximately
+standardized using the mean and standard deviation of the final vintage
+before estimation. The package provides an optional argument for this
+purpose:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_std</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  standardize <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>If <code>standardize = TRUE</code>, scaling metadata are returned in
+the <code>scale</code> element of the fitted object.</p>
+</div>
+<div class="section level2">
+<h2 id="model-output">Model output<a class="anchor" aria-label="anchor" href="#model-output"></a>
+</h2>
+<p>A fitted <code>jvn_model</code> object contains:</p>
+<ul>
+<li>
+<code>states</code>: filtered and smoothed state estimates;</li>
+<li>
+<code>jvn_model_mat</code>: estimated state-space matrices;</li>
+<li>
+<code>params</code>: parameter estimates and standard errors;</li>
+<li>
+<code>fit</code>: raw optimizer output;</li>
+<li>
+<code>loglik</code>, <code>aic</code>, <code>bic</code>: fit
+statistics;</li>
+<li>
+<code>data</code>: the preprocessed input data;</li>
+<li>
+<code>scale</code>: scaling metadata, if standardization was
+used;</li>
+<li>
+<code>cov</code>: estimated covariance matrix of the parameters, if
+available.</li>
+</ul>
+<p>The parameter table includes:</p>
+<ul>
+<li>
+<code>rho_1, ..., rho_p</code> for the AR coefficients;</li>
+<li>
+<code>sigma_e</code> for the innovation standard deviation of the
+true-value process;</li>
+<li>
+<code>sigma_nu_j</code> for news shocks;</li>
+<li>
+<code>sigma_zeta_j</code> for noise shocks;</li>
+<li>
+<code>T_nu_j</code> and/or <code>T_zeta_j</code> for diagonal
+spillover persistence parameters.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="filtered-and-smoothed-estimates">Filtered and smoothed estimates<a class="anchor" aria-label="anchor" href="#filtered-and-smoothed-estimates"></a>
+</h2>
+<p>The <code>states</code> element is returned as a tidy tibble. The
+state named <code>true_lag_0</code> corresponds to the current latent
+true value (y_t).</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_full</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op">==</span> <span class="st">"true_lag_0"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_tail</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 7</span></span></span>
+<span><span class="co">#&gt;   time       state      estimate    lower upper filter   sample   </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 2018-04-01 true_lag_0    0.460  -<span style="color: #BB0000;">3.90</span>    4.82 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2018-07-01 true_lag_0    2.60   -<span style="color: #BB0000;">1.76</span>    6.96 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2018-10-01 true_lag_0    1.59   -<span style="color: #BB0000;">2.77</span>    5.95 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2019-01-01 true_lag_0   -<span style="color: #BB0000;">0.625</span>  -<span style="color: #BB0000;">4.99</span>    3.74 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2019-04-01 true_lag_0    4.34   -<span style="color: #BB0000;">0.020</span><span style="color: #BB0000; text-decoration: underline;">6</span>  8.71 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2019-07-01 true_lag_0  -<span style="color: #BB0000;">10.5</span>   -<span style="color: #BB0000;">14.9</span>    -<span style="color: #BB0000;">6.08</span> smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> 2019-10-01 true_lag_0  -<span style="color: #BB0000;">13.4</span>   -<span style="color: #BB0000;">18.7</span>    -<span style="color: #BB0000;">8.15</span> smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> 2020-01-01 true_lag_0   -<span style="color: #BB0000;">6.08</span>  -<span style="color: #BB0000;">13.9</span>     1.77 smoothed in_sample</span></span></code></pre></div>
+<p>Filtered estimates use only information available up to time (t),
+while smoothed estimates use the full sample and are therefore more
+appropriate for ex post historical analysis.</p>
+</div>
+<div class="section level2">
+<h2 id="plotting">Plotting<a class="anchor" aria-label="anchor" href="#plotting"></a>
+</h2>
+<p>The default plot method displays one selected state. By default, it
+plots the filtered estimate of <code>true_lag_0</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit_full</span><span class="op">)</span></span></code></pre></div>
+<p><img src="nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
+<p>To inspect the smoothed estimate of the latent true value:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nowcast_robust</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
-<span>  df <span class="op">=</span> <span class="va">data</span>,</span>
-<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit_full</span>, state <span class="op">=</span> <span class="st">"true_lag_0"</span>, type <span class="op">=</span> <span class="st">"smoothed"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="700"></p>
+<p>We can also visualize the news and noise states directly.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_full</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="va">filter</span> <span class="op">==</span> <span class="st">"smoothed"</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"news|noise"</span>, <span class="va">state</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">estimate</span>, color <span class="op">=</span> <span class="va">state</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    title <span class="op">=</span> <span class="st">"Smoothed news and noise states"</span>,</span>
+<span>    x <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"State estimate"</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-9-1.png" class="r-plt" alt="" width="700"></p>
+</div>
+<div class="section level2">
+<h2 id="comparing-nested-specifications">Comparing nested specifications<a class="anchor" aria-label="anchor" href="#comparing-nested-specifications"></a>
+</h2>
+<p>The JVN framework nests several empirically relevant cases.</p>
+<div class="section level3">
+<h3 id="pure-noise">Pure noise<a class="anchor" aria-label="anchor" href="#pure-noise"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_noise</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pure-news">Pure news<a class="anchor" aria-label="anchor" href="#pure-news"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_news</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="news-with-spillovers">News with spillovers<a class="anchor" aria-label="anchor" href="#news-with-spillovers"></a>
+</h3>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_news_spill</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  spillover_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  spillover_noise <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="noise-with-spillovers">Noise with spillovers<a class="anchor" aria-label="anchor" href="#noise-with-spillovers"></a>
+</h3>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_noise_spill</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  spillover_news <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  spillover_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="information-criteria">Information criteria<a class="anchor" aria-label="anchor" href="#information-criteria"></a>
+</h3>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="st">"Pure noise"</span>,</span>
+<span>    loglik <span class="op">=</span> <span class="va">fit_noise</span><span class="op">$</span><span class="va">loglik</span>,</span>
+<span>    aic <span class="op">=</span> <span class="va">fit_noise</span><span class="op">$</span><span class="va">aic</span>,</span>
+<span>    bic <span class="op">=</span> <span class="va">fit_noise</span><span class="op">$</span><span class="va">bic</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="st">"Pure news"</span>,</span>
+<span>    loglik <span class="op">=</span> <span class="va">fit_news</span><span class="op">$</span><span class="va">loglik</span>,</span>
+<span>    aic <span class="op">=</span> <span class="va">fit_news</span><span class="op">$</span><span class="va">aic</span>,</span>
+<span>    bic <span class="op">=</span> <span class="va">fit_news</span><span class="op">$</span><span class="va">bic</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="st">"Noise + spillovers"</span>,</span>
+<span>    loglik <span class="op">=</span> <span class="va">fit_noise_spill</span><span class="op">$</span><span class="va">loglik</span>,</span>
+<span>    aic <span class="op">=</span> <span class="va">fit_noise_spill</span><span class="op">$</span><span class="va">aic</span>,</span>
+<span>    bic <span class="op">=</span> <span class="va">fit_noise_spill</span><span class="op">$</span><span class="va">bic</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="st">"News + spillovers"</span>,</span>
+<span>    loglik <span class="op">=</span> <span class="va">fit_news_spill</span><span class="op">$</span><span class="va">loglik</span>,</span>
+<span>    aic <span class="op">=</span> <span class="va">fit_news_spill</span><span class="op">$</span><span class="va">aic</span>,</span>
+<span>    bic <span class="op">=</span> <span class="va">fit_news_spill</span><span class="op">$</span><span class="va">bic</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    model <span class="op">=</span> <span class="st">"News + noise + spillovers"</span>,</span>
+<span>    loglik <span class="op">=</span> <span class="va">fit_full</span><span class="op">$</span><span class="va">loglik</span>,</span>
+<span>    aic <span class="op">=</span> <span class="va">fit_full</span><span class="op">$</span><span class="va">aic</span>,</span>
+<span>    bic <span class="op">=</span> <span class="va">fit_full</span><span class="op">$</span><span class="va">bic</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                       model   loglik       aic       bic</span></span>
+<span><span class="co">#&gt; 1                Pure noise 232.0056 -450.0113 -434.2718</span></span>
+<span><span class="co">#&gt; 2                 Pure news 255.0923 -496.1846 -480.4451</span></span>
+<span><span class="co">#&gt; 3        Noise + spillovers 236.9075 -451.8151 -427.0816</span></span>
+<span><span class="co">#&gt; 4         News + spillovers 265.2135 -508.4270 -483.6935</span></span>
+<span><span class="co">#&gt; 5 News + noise + spillovers 267.9527 -497.9055 -455.1841</span></span></code></pre></div>
+<p>These comparisons are often useful in practice, but they should be
+interpreted with care when parameters are on the boundary of the
+parameter space, for example when some standard deviations are estimated
+close to zero.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="forecasting-and-extension-of-the-state-estimates">Forecasting and extension of the state estimates<a class="anchor" aria-label="anchor" href="#forecasting-and-extension-of-the-state-estimates"></a>
+</h2>
+<p>The argument <code>h</code> extends the state estimates out of sample
+by appending (h) periods with missing observations and running the
+Kalman filter and smoother on the augmented system.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_fc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  h <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_spillovers <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"L-BFGS-B"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit_fc</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op">==</span> <span class="st">"true_lag_0"</span>, <span class="va">filter</span> <span class="op">==</span> <span class="st">"filtered"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_tail</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 7</span></span></span>
+<span><span class="co">#&gt;   time       state      estimate  lower  upper filter   sample       </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 2019-04-01 true_lag_0   0.147  -<span style="color: #BB0000;">1.09</span>   1.39  filtered in_sample    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2019-07-01 true_lag_0   0.299  -<span style="color: #BB0000;">0.941</span>  1.54  filtered in_sample    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2019-10-01 true_lag_0   0.053<span style="text-decoration: underline;">0</span> -<span style="color: #BB0000;">1.19</span>   1.29  filtered in_sample    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2020-01-01 true_lag_0  -<span style="color: #BB0000;">3.73</span>   -<span style="color: #BB0000;">4.97</span>  -<span style="color: #BB0000;">2.49</span>  filtered in_sample    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2020-04-01 true_lag_0  -<span style="color: #BB0000;">2.43</span>   -<span style="color: #BB0000;">4.11</span>  -<span style="color: #BB0000;">0.752</span> filtered out_of_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2020-07-01 true_lag_0  -<span style="color: #BB0000;">1.31</span>   -<span style="color: #BB0000;">3.14</span>   0.521 filtered out_of_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> 2020-10-01 true_lag_0  -<span style="color: #BB0000;">0.604</span>  -<span style="color: #BB0000;">2.47</span>   1.27  filtered out_of_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> 2021-01-01 true_lag_0  -<span style="color: #BB0000;">0.236</span>  -<span style="color: #BB0000;">2.11</span>   1.64  filtered out_of_sample</span></span></code></pre></div>
+<p>The <code>sample</code> column distinguishes between in-sample and
+out-of-sample periods.</p>
+</div>
+<div class="section level2">
+<h2 id="numerical-options">Numerical options<a class="anchor" aria-label="anchor" href="#numerical-options"></a>
+</h2>
+<p>The function exposes several useful numerical controls through
+<code>solver_options</code>.</p>
+<div class="section level3">
+<h3 id="optimizer-choice">Optimizer choice<a class="anchor" aria-label="anchor" href="#optimizer-choice"></a>
+</h3>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_alt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    method <span class="op">=</span> <span class="st">"nlminb"</span>,</span>
+<span>    maxiter <span class="op">=</span> <span class="fl">2000</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="multi-start-optimization">Multi-start optimization<a class="anchor" aria-label="anchor" href="#multi-start-optimization"></a>
+</h3>
+<p>For more difficult specifications, multi-start optimization may help
+avoid poor local optima.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    n_starts <span class="op">=</span> <span class="fl">5</span>,      <span class="co"># Try 5 different starting points</span></span>
-<span>    trace <span class="op">=</span> <span class="fl">1</span>,         <span class="co"># Show progress</span></span>
-<span>    maxiter <span class="op">=</span> <span class="fl">2000</span>     <span class="co"># Increase max iterations</span></span>
+<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>    n_starts <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>    seed <span class="op">=</span> <span class="fl">123</span>,</span>
+<span>    maxiter <span class="op">=</span> <span class="fl">2000</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="model-comparison">Model Comparison<a class="anchor" aria-label="anchor" href="#model-comparison"></a>
+<h3 id="standard-error-estimation">Standard-error estimation<a class="anchor" aria-label="anchor" href="#standard-error-estimation"></a>
 </h3>
-<p>Compare different specifications to find the best fit:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># News-only model</span></span>
-<span><span class="va">model_news</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">e</span>, include_news <span class="op">=</span> <span class="cn">TRUE</span>, include_noise <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Noise-only model</span></span>
-<span><span class="va">model_noise</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">e</span>, include_news <span class="op">=</span> <span class="cn">FALSE</span>, include_noise <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Full model with spillovers</span></span>
-<span><span class="va">model_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
-<span>  <span class="va">data</span>, <span class="va">e</span>,</span>
+<p>The package currently supports:</p>
+<ul>
+<li>Hessian-based standard errors;</li>
+<li>QML sandwich covariance estimates;</li>
+<li>no standard-error calculation.</li>
+</ul>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_qml</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>  e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  include_spillovers <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compare BIC (lower is better)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  Model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"News Only"</span>, <span class="st">"Noise Only"</span>, <span class="st">"Full with Spillovers"</span><span class="op">)</span>,</span>
-<span>  BIC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">model_news</span><span class="op">$</span><span class="va">bic</span>, <span class="va">model_noise</span><span class="op">$</span><span class="va">bic</span>, <span class="va">model_full</span><span class="op">$</span><span class="va">bic</span><span class="op">)</span>,</span>
-<span>  AIC <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">model_news</span><span class="op">$</span><span class="va">aic</span>, <span class="va">model_noise</span><span class="op">$</span><span class="va">aic</span>, <span class="va">model_full</span><span class="op">$</span><span class="va">aic</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="custom-starting-values">Custom Starting Values<a class="anchor" aria-label="anchor" href="#custom-starting-values"></a>
-</h3>
-<p>For difficult optimization problems, you can provide custom starting
-values:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Get the number of parameters</span></span>
-<span><span class="va">n_params</span> <span class="op">&lt;-</span> <span class="va">nowcast</span><span class="op">$</span><span class="va">jvn_model_mat</span><span class="op">$</span><span class="va">param_info</span><span class="op">$</span><span class="va">n_params</span></span>
-<span></span>
-<span><span class="co"># Provide custom starting values</span></span>
-<span><span class="va">custom_starts</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="va">n_params</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">nowcast_custom</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
-<span>  df <span class="op">=</span> <span class="va">data</span>,</span>
-<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
 <span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    startvals <span class="op">=</span> <span class="va">custom_starts</span>,</span>
-<span>    transform_se <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>    se_method <span class="op">=</span> <span class="st">"qml"</span>,</span>
+<span>    qml_score_method <span class="op">=</span> <span class="st">"central"</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -575,51 +788,60 @@ values:</p>
 <div class="section level2">
 <h2 id="interpretation">Interpretation<a class="anchor" aria-label="anchor" href="#interpretation"></a>
 </h2>
+<p>The JVN model helps distinguish different sources of revisions.</p>
 <div class="section level3">
-<h3 id="news-vs-noise">News vs Noise<a class="anchor" aria-label="anchor" href="#news-vs-noise"></a>
+<h3 id="news">News<a class="anchor" aria-label="anchor" href="#news"></a>
 </h3>
-<p>The key insight from the JVN model is the decomposition of
-revisions:</p>
-<ul>
-<li>
-<strong>Large news variances</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mrow><mi>ν</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">\sigma_{\nu j}</annotation></semantics></math>):
-Initial releases understate the true value; revisions contain important
-information</li>
-<li>
-<strong>Large noise variances</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>σ</mi><mrow><mi>ζ</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">\sigma_{\zeta j}</annotation></semantics></math>):
-Initial releases are noisy; revisions mainly remove measurement
-error</li>
-<li>
-<strong>AR dynamics</strong>
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ρ</mi><mn>1</mn></msub><mo>,</mo><msub><mi>ρ</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">\rho_1, \rho_2</annotation></semantics></math>):
-Persistence in the true underlying series</li>
-</ul>
+<p>Large estimated values of (_{j}) indicate that early releases omit
+information that is incorporated in subsequent vintages. In that case,
+revisions are informative updates rather than corrections of transitory
+noise.</p>
 </div>
 <div class="section level3">
-<h3 id="forecasting-implications">Forecasting Implications<a class="anchor" aria-label="anchor" href="#forecasting-implications"></a>
+<h3 id="noise">Noise<a class="anchor" aria-label="anchor" href="#noise"></a>
 </h3>
-<ul>
-<li>If revisions are mainly <strong>news</strong>: Initial releases
-should be given less weight; wait for revisions</li>
-<li>If revisions are mainly <strong>noise</strong>: Initial releases
-already contain most information; revisions are less informative</li>
-<li>
-<strong>Spillovers</strong> indicate that information in one
-revision affects expectations about other revisions</li>
-</ul>
+<p>Large estimated values of (_{j}) indicate that early releases are
+contaminated by measurement error that is later removed. In that case,
+revisions are partly predictable.</p>
 </div>
+<div class="section level3">
+<h3 id="spillovers">Spillovers<a class="anchor" aria-label="anchor" href="#spillovers"></a>
+</h3>
+<p>Nonzero (T_{,j}) or (T_{,j}) indicate persistence in the
+corresponding news or noise states. In the current implementation these
+are <strong>restricted own-state persistence parameters</strong>, not
+unrestricted cross-vintage spillover coefficients.</p>
+</div>
+<div class="section level3">
+<h3 id="true-value-dynamics">True-value dynamics<a class="anchor" aria-label="anchor" href="#true-value-dynamics"></a>
+</h3>
+<p>The AR coefficients (_1, , _p) capture the persistence of the latent
+true series.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="remarks-on-scope">Remarks on scope<a class="anchor" aria-label="anchor" href="#remarks-on-scope"></a>
+</h2>
+<p>The original paper presents a broad state-space framework that can
+accommodate richer dynamics for the true value and measurement errors.
+The current <code>reviser</code> implementation is intentionally
+narrower:</p>
+<ul>
+<li>the true value follows an AR((p)) process;</li>
+<li>the observation equation uses the JVN decomposition into truth,
+news, and noise;</li>
+<li>spillovers are implemented through diagonal persistence in the news
+and/or noise blocks.</li>
+</ul>
+<p>This restricted specification is still rich enough to replicate the
+main empirical model class used in the paper’s illustration and to
+support practical revision modeling, filtering, smoothing, and
+forecasting.</p>
 </div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
-<div id="ref-durbinTimeSeriesAnalysis2012" class="csl-entry">
-Durbin, James, and Siem Jan Koopman. 2012. <em>Time <span>Series
-Analysis</span> by <span>State Space Methods</span>: <span>Second
-Edition</span></em>. Oxford University Press. <a href="https://doi.org/10.1093/acprof:oso/9780199641178.001.0001" class="external-link">https://doi.org/10.1093/acprof:oso/9780199641178.001.0001</a>.
-</div>
 <div id="ref-jacobsModelingDataRevisions2011" class="csl-entry">
 Jacobs, Jan P. A. M., and Simon Van Norden. 2011. <span>“Modeling Data
 Revisions: <span>Measurement</span> Error and Dynamics of

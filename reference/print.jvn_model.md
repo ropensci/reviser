@@ -1,7 +1,8 @@
-# Print Method for JVN Model
+# Print method for JVN model objects
 
-Default print method for `jvn_model` objects. Wraps the `summary` method
-for a consistent output.
+Default print method for `jvn_model` objects. This method dispatches to
+[`summary.jvn_model()`](https://p-wegmueller.github.io/reviser/reference/summary.jvn_model.md)
+for a consistent console display.
 
 ## Usage
 
@@ -18,11 +19,12 @@ print(x, ...)
 
 - ...:
 
-  Additional arguments passed to `summary.jvn_model`.
+  Additional arguments passed to
+  [`summary.jvn_model()`](https://p-wegmueller.github.io/reviser/reference/summary.jvn_model.md).
 
 ## Value
 
-The function returns the input `x` invisibly.
+The input object, invisibly.
 
 ## See also
 
@@ -38,45 +40,46 @@ Other revision nowcasting:
 ## Examples
 
 ``` r
+# \donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id %in% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
-#> Warning: 2 parameter(s) have problematic SEs
 result
 #> 
 #> === Jacobs-Van Norden Model ===
 #> 
 #> Convergence: Success 
-#> Log-likelihood: 123.32 
-#> AIC: -228.65 
-#> BIC: -198.52 
+#> Log-likelihood: 256.22 
+#> AIC: -490.44 
+#> BIC: -465.7 
 #> 
 #> Parameter Estimates:
 #>     Parameter Estimate Std.Error
-#>         rho_1    0.737     0.171
-#>         rho_2   -0.117     0.174
-#>       sigma_e    0.610        NA
-#>    sigma_nu_1    0.101        NA
-#>    sigma_nu_2    0.001     0.027
-#>    sigma_nu_3    0.003     0.035
-#>  sigma_zeta_1    0.070     0.006
-#>  sigma_zeta_2    0.001     0.010
-#>  sigma_zeta_3    0.053     0.005
+#>         rho_1    0.900     0.278
+#>         rho_2   -0.236     0.234
+#>       sigma_e    0.001     0.540
+#>    sigma_nu_1    0.070     0.006
+#>    sigma_nu_2    0.052     0.004
+#>    sigma_nu_3    0.001     0.036
+#>    sigma_nu_4    0.633     0.210
+#>  sigma_zeta_1    0.001     0.021
+#>  sigma_zeta_2    0.001     0.009
+#>  sigma_zeta_3    0.001     0.017
+#>  sigma_zeta_4    0.042     0.004
 #> 
+# }
 ```

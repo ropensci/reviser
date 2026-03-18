@@ -45,19 +45,19 @@ Utility functions for working with revisions of time series.
 Functions for nowcasting revisions of time series.
 
 - [`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
-  : Jacobs-Van Norden Model for Data Revisions
+  : Jacobs-Van Norden model for data revisions
 - [`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md)
   : Generalized Kishor-Koenig Model for Nowcasting
 - [`plot(`*`<jvn_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/plot.jvn_model.md)
-  : Plot JVN Model Results
+  : Plot JVN model results
 - [`plot(`*`<kk_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/plot.kk_model.md)
   : Plot Kishor-Koenig Model Results
 - [`print(`*`<jvn_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/print.jvn_model.md)
-  : Print Method for JVN Model
+  : Print method for JVN model objects
 - [`print(`*`<kk_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/print.kk_model.md)
   : Print Method for KK Model
 - [`summary(`*`<jvn_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/summary.jvn_model.md)
-  : Summary Method for JVN Model
+  : Summary method for JVN model objects
 - [`summary(`*`<kk_model>`*`)`](https://p-wegmueller.github.io/reviser/reference/summary.kk_model.md)
   : Summary Method for KK Model
 

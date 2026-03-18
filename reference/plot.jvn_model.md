@@ -1,6 +1,7 @@
-# Plot JVN Model Results
+# Plot JVN model results
 
-Plot JVN Model Results
+Plot filtered or smoothed estimates for a selected state from a fitted
+`jvn_model`.
 
 ## Usage
 
@@ -13,23 +14,24 @@ plot(x, state = "true_lag_0", type = "filtered", ...)
 
 - x:
 
-  An object of class 'jvn_model'
+  An object of class `jvn_model`.
 
 - state:
 
-  String. The name of the state to visualize.
+  Character scalar giving the state to visualize.
 
 - type:
 
-  String. Type of estimate to plot: "filtered" or "smoothed".
+  Character scalar indicating whether `"filtered"` or `"smoothed"`
+  estimates should be plotted.
 
 - ...:
 
-  Additional arguments passed to theme_reviser.
+  Additional arguments passed to `plot.revision_model()`.
 
 ## Value
 
-A ggplot2 object visualizing the specified state estimates.
+A `ggplot2` object.
 
 ## See also
 
@@ -45,26 +47,25 @@ Other revision nowcasting:
 ## Examples
 
 ``` r
+# \donttest{
 gdp_growth <- dplyr::filter(
-  tsbox::ts_pc(
-    reviser::gdp
-  ), id %in% c("EA"),
+  tsbox::ts_pc(reviser::gdp),
+  id == "EA",
   time >= min(pub_date),
   time <= as.Date("2020-01-01")
 )
 gdp_growth <- tidyr::drop_na(gdp_growth)
-df <- get_nth_release(gdp_growth, n = 0:4)
+df <- get_nth_release(gdp_growth, n = 0:3)
 
-# Estimate model
 result <- jvn_nowcast(
   df = df,
-  e = 3,
+  e = 4,
   ar_order = 2,
-  h = 4,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE
 )
-#> Warning: 2 parameter(s) have problematic SEs
 plot(result)
 
+# }
 ```

@@ -1,155 +1,230 @@
 # Nowcasting revisions using the Jacobs-Van Norden model
 
-Having established that revisions are predictable, we can now apply
-nowcasting techniques to estimate the current state of the economy. This
-vignette demonstrates how to implement a nowcasting model using the
-Jacobs-Van Norden (JVN) framework (Jacobs and Van Norden
-([2011](#ref-jacobsModelingDataRevisions2011))).
+This vignette illustrates how to estimate a Jacobs-Van Norden (JVN)
+model for data revisions using `reviser`. The framework follows the
+notation of Jacobs and Van Norden
+([2011](#ref-jacobsModelingDataRevisions2011)) as closely as possible,
+while documenting the specific restricted AR-based implementation
+currently provided by
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md).
 
-## The Jacobs-van Norden Model
+The JVN model is useful when several vintages of the same macroeconomic
+series are available and revisions are systematic rather than purely
+random. It provides a state-space representation that decomposes
+revision errors into economically meaningful components and yields
+filtered and smoothed estimates of the latent “true” value.
 
-The JVN model provides a flexible state-space framework for decomposing
-data revisions into economically meaningful components: **news** and
-**noise**. Unlike traditional approaches that treat all revisions as
-either pure information updates or pure measurement error, the JVN model
-allows for a mixture of both, providing a more realistic representation
-of the revision process.
+## Notation and setup
 
-### Key Features
+Following Jacobs and Van Norden
+([2011](#ref-jacobsModelingDataRevisions2011)), superscripts refer to
+**vintages** and subscripts to **time periods**. Thus, (y_t^{t+i})
+denotes the estimate for period (t) that is available in vintage (t+i).
 
-- **News component** ($\nu_{t}$): Represents genuine new information
-  about the true state of the economy that was not available at the time
-  of the initial release
-- **Noise component** ($\zeta_{t}$): Represents measurement error or
-  temporary distortions in preliminary estimates that are corrected in
-  subsequent revisions
-- **Spillover effects**: Allow revisions to one vintage to affect
-  revisions to other vintages, capturing the complex dynamics of the
-  revision process
-- **Flexible dynamics**: Accommodates autoregressive behavior in the
-  true underlying series
+For a fixed reference period (t), collect the first (l) estimates into
+the (l ) vector
 
-### Model Structure
+\[ y_t = \]
 
-The JVN model is represented in state-space form (notation following
-Durbin and Koopman ([2012](#ref-durbinTimeSeriesAnalysis2012))) with two
-key equations:
+Let (y_t) denote the unobserved “true” value. The JVN framework writes
+the measurement error as the difference between the vintage vector and
+the true value replicated across vintages:
 
-**1. The Observation Equation**
+\[ u_t = y_t - \_l y_t,\]
 
-The observation equation links the observed data vintages to the latent
-state variables:
+where (\_l) is an (l ) vector of ones.
 
-$$y_{t} = Z\alpha_{t}$$
+A key feature of the JVN framework is that the measurement error is
+decomposed into a **news** component and a **noise** component:
 
-where $y_{t}$ contains the different vintages of data available at time
-$t$, and $\alpha_{t}$ is the state vector containing the true value,
-news, and noise components.
+\[ y_t = \_l y_t + \_t + \_t.\]
 
-**2. The State Equation**
+Here:
 
-The state equation describes the dynamics of the latent states:
+- (\_t) captures **news**, i.e. information that was not available at
+  the time of earlier releases and is incorporated rationally in later
+  vintages;
+- (\_t) captures **noise**, i.e. transitory measurement error that is
+  later removed.
 
-$$\alpha_{t + 1} = T\alpha_{t} + R\eta_{t}$$
+As in the paper, the measurement equation is written with (H = 0), so
+all uncertainty enters through the state transition equation rather than
+through an additional observation disturbance.
 
-where $\eta_{t} \sim N(0,Q)$ represents the structural shocks.
+## State-space representation
 
-### Example: AR(2) Model with Three Releases
+The generic time-invariant state-space form is
 
-Consider an AR(2) process for the true output growth with three data
-releases. The complete model can be written as:
+\[ y_t = Z \_t,\]
 
-$$\begin{bmatrix}
-y_{t}^{t + 1} \\
-y_{t}^{t + 2} \\
-y_{t}^{t + 3}
-\end{bmatrix} = \begin{bmatrix}
-1 & 0 & 1 & 0 & 0 & 1 & 0 & 0 \\
-1 & 0 & 0 & 1 & 0 & 0 & 1 & 0 \\
-1 & 0 & 0 & 0 & 1 & 0 & 0 & 1
-\end{bmatrix}\begin{bmatrix}
-{\widetilde{y}}_{t} \\
-{\widetilde{y}}_{t - 1} \\
-\nu_{1t} \\
-\nu_{2t} \\
-\nu_{3t} \\
-\zeta_{1t} \\
-\zeta_{2t} \\
-\zeta_{3t}
+\[ \_{t+1} = T \_t + R \_t, \_t N(0, I).\]
+
+In the general JVN framework, the state vector is partitioned as
+
+\[ \_t = \]
+
+where (\_t) governs the dynamics of the true value, (\_t) is the vector
+of news states, and (\_t) is the vector of noise states.
+
+The measurement matrix is
+
+\[ Z = \[Z_1, Z_2, Z_3, Z_4\]\]
+
+with (Z_1 = \_l), (Z_2 = 0), (Z_3 = I_l), and (Z_4 = I_l), so that
+
+\[ y_t = y_t + \_t + \_t.\]
+
+This is the central decomposition in Jacobs and Van Norden
+([2011](#ref-jacobsModelingDataRevisions2011)).
+
+## The implementation in `reviser`
+
+The current
+[`reviser::jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
+function implements a restricted but practically useful version of the
+JVN model:
+
+1.  The latent true value (y_t) follows an **AR(p)** process.
+2.  The user may include a **news** component, a **noise** component, or
+    both.
+3.  Optional spillovers are implemented as **diagonal first-order
+    persistence** in the news and/or noise state blocks.
+4.  Estimation is by **maximum likelihood**.
+
+This corresponds to the restricted AR-based specifications used in the
+empirical illustration of Jacobs and Van Norden
+([2011](#ref-jacobsModelingDataRevisions2011)). In particular, when
+spillovers are included, the current implementation uses diagonal (T_3)
+and/or (T_4) blocks rather than unrestricted cross-vintage spillover
+matrices.
+
+## AR(p) specification
+
+Suppose the true value follows an AR(p) process. Then the state vector
+used by
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
+is
+
+\[ \_t = \]
+
+where the news and noise blocks are included only if requested.
+
+### Observation equation
+
+If both news and noise are included and (l) vintages are used, the
+observation equation is
+
+\[ $$\begin{bmatrix}
+{y_{t}^{t + 1}\ y_{t}^{t + 2}\ \vdots\ y_{t}^{t + l}}
 \end{bmatrix}$$
 
-The state vector evolves according to:
+  
+y_t^{t+l} \end{bmatrix} =============
 
-\$\$ \begin{bmatrix} \tilde{y}\_{t} \\ \tilde{y}\_{t-1} \\ \nu\_{1t} \\
-\nu\_{2t} \\ \nu\_{3t} \\ \zeta\_{1t} \\ \zeta\_{2t} \\ \zeta\_{3t}
-\end{bmatrix} = \begin{bmatrix} \rho_1 & \rho_2 & 0 & 0 & 0 & 0 & 0 & 0
-\\ 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & \tau\_{\nu 1} & 0 & 0 & 0 &
-0 & 0 \\ 0 & 0 & 0 & \tau\_{\nu 2} & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 &
-\tau\_{\nu 3} & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & \tau\_{\zeta 1} & 0 & 0
-\\ 0 & 0 & 0 & 0 & 0 & 0 & \tau\_{\zeta 2} & 0 \\ 0 & 0 & 0 & 0 & 0 & 0
-& 0 & \tau\_{\zeta 3} \end{bmatrix} \begin{bmatrix} \tilde{y}\_{t-1} \\
-\tilde{y}\_{t-2} \\ \nu\_{1,t-1} \\ \nu\_{2,t-1} \\ \nu\_{3,t-1} \\
-\zeta\_{1,t-1} \\ \zeta\_{2,t-1} \\ \zeta\_{3,t-1} \end{bmatrix} + \\
-\begin{bmatrix} \sigma\_{e} & \sigma\_{\nu 1} & \sigma\_{\nu 2} &
-\sigma\_{\nu 3} & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 &
--\sigma\_{\nu 1} & -\sigma\_{\nu 2} & -\sigma\_{\nu 3} & 0 & 0 & 0 \\ 0
-& 0 & -\sigma\_{\nu 2} & -\sigma\_{\nu 3} & 0 & 0 & 0 \\ 0 & 0 & 0 &
--\sigma\_{\nu 3} & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & \sigma\_{\zeta 1} & 0 &
-0 \\ 0 & 0 & 0 & 0 & 0 & \sigma\_{\zeta 2} & 0 \\ 0 & 0 & 0 & 0 & 0 & 0
-& \sigma\_{\zeta 3} \\ \end{bmatrix} \cdot \begin{bmatrix} \eta\_{et} \\
-\eta\_{\nu\_{1}t} \\ \eta\_{\nu\_{2}t} \\ \eta\_{\nu\_{3}t} \\
-\eta\_{\zeta\_{1}t} \\ \eta\_{\zeta\_{2}t} \\ \eta\_{\zeta\_{3}t} \\
-\end{bmatrix} \$\$
+$$\begin{bmatrix}
+1 & 0 & \cdots & 0 & 1 & 0 & \cdots & 0 & 1 & 0 & \cdots & {0\ 1} & 0 & \cdots & 0 & 0 & 1 & \cdots & 0 & 0 & 1 & \cdots & {0\ \vdots} & \vdots & & \vdots & \vdots & \vdots & & \vdots & \vdots & \vdots & & {\vdots\ 1} & 0 & \cdots & 0 & 0 & 0 & \cdots & 1 & 0 & 0 & \cdots & 1
+\end{bmatrix}$$
 
-The error loading matrix $R$ and shock vector $\eta_{t}$ capture how
-structural innovations affect each component. The true value
-${\widetilde{y}}_{t}$ is affected by all news shocks (cumulative
-information), while individual news and noise components receive their
-own independent shocks.
+s & 0 & 0 & 1 & & 0 & 0 & 1 & & 0  
+& & & & & & & & & & &  
+1 & 0 & & 0 & 0 & 0 & & 1 & 0 & 0 & & 1 \end{bmatrix} \_t. \]
 
-### Parameters to Estimate
+Thus each observed vintage loads on the current true value and, if
+included, on its corresponding news and noise state.
 
-For this example, the model has 15 free parameters:
+### Transition equation
 
-- **AR coefficients**: $\rho_{1},\rho_{2}$ (dynamics of true value)
-- **Standard deviations**: $\sigma_{e}$ (AR shock),
-  $\sigma_{\nu 1},\sigma_{\nu 2},\sigma_{\nu 3}$ (news),
-  $\sigma_{\zeta 1},\sigma_{\zeta 2},\sigma_{\zeta 3}$ (noise)
-- **Spillover parameters**: $\tau_{\nu 1},\tau_{\nu 2},\tau_{\nu 3}$
-  (news persistence), $\tau_{\zeta 1},\tau_{\zeta 2},\tau_{\zeta 3}$
-  (noise persistence)
+For the AR(p) block,
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
+uses a companion form:
 
-### Nested Models
+\[ y\_{t+1} ==============
 
-The JVN framework is highly flexible and nests several special cases:
+\_1 y_t + *2 y*{t-1} + + *p y*{t-p+1}
 
-- **News-only model**: Set $\sigma_{\zeta j} = 0$ for all $j$ (all
-  revisions are information)
-- **Noise-only model**: Set $\sigma_{\nu j} = 0$ for all $j$ (all
-  revisions are measurement error)
-- **No spillovers**: Set $\tau_{\nu j} = 0$ and $\tau_{\zeta j} = 0$
-  (revisions are i.i.d.)
+- . \]
 
-## Nowcasting with the JVN Model
+If news is included, the innovation to the true value also loads on the
+news shocks, as in the JVN framework. If noise is included, each noise
+state receives its own shock.
 
-We demonstrate nowcasting Euro Area GDP using the JVN model. The
-procedure follows these steps:
+If spillovers are included, the implementation adds diagonal persistence
+parameters to the corresponding state block:
 
-- Identify the efficient release (the first release that is not
-  systematically revised)
-- Estimate the JVN model using Maximum Likelihood
-- Examine model fit and parameters
+\[ *{j,t+1} = T*{,j} \_{j,t} + ,\]
 
-### Identify Efficient Release
+\[ *{j,t+1} = T*{,j} \_{j,t} + .\]
+
+These are **restricted diagonal spillover effects**. They should not be
+interpreted as the most general spillover dynamics discussed in the
+paper.
+
+## Example: AR(2) with four vintages
+
+The paper’s empirical illustration considers an AR(2) specification with
+four vintages. In that case, the pure news model can be written as
+
+\[ $$\begin{bmatrix}
+{y_{t}^{t + 1}\ y_{t}^{t + 2}\ y_{t}^{t + 3}\ y_{t}^{t + 4}}
+\end{bmatrix}$$
+
+y_t^{t+3}  
+y_t^{t+4} \end{bmatrix} =============
+
+$$\begin{bmatrix}
+\iota_{4} & 0_{4 \times 1} & I_{4}
+\end{bmatrix}\begin{bmatrix}
+{{\widetilde{y}}_{t}\ {\widetilde{y}}_{t - 1}\ \nu_{t}}
+\end{bmatrix}$$
+
+}  
+\_t \end{bmatrix}, \]
+
+with transition equation
+
+\[ $$\begin{bmatrix}
+{{\widetilde{y}}_{t}\ {\widetilde{y}}_{t - 1}\ \nu_{t}}
+\end{bmatrix}$$
+
+}  
+\_t \end{bmatrix} =============
+
+$$\begin{bmatrix}
+\rho_{1} & \rho_{2} & {0_{1 \times 4}\ 1} & 0 & {0_{1 \times 4}\ 0_{4 \times 1}} & 0_{4 \times 1} & T_{3}
+\end{bmatrix}$$ }  
+0\_{4 } & 0\_{4 } & T_3 \end{bmatrix} $$\begin{bmatrix}
+{{\widetilde{y}}_{t - 1}\ {\widetilde{y}}_{t - 2}\ \nu_{t - 1}}
+\end{bmatrix}$$
+
+}  
+\_{t-1} \end{bmatrix} + R \_t. \]
+
+Likewise, the pure noise model replaces (\_t) by (\_t) and (T_3) by
+(T_4). The most general model used in the paper’s Table 1 includes both
+(\_t) and (\_t), with diagonal (T_3) and (T_4) blocks.
+
+In `reviser`, the same broad structure is available through
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md),
+with the restriction that the true-value dynamics are AR(p) and
+spillovers, if included, are diagonal.
+
+## Preparing the data
+
+We illustrate the use of
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
+with Euro Area GDP growth data from
+[`reviser::gdp`](https://p-wegmueller.github.io/reviser/reference/gdp.md).
+We first compute quarter-on-quarter growth rates, then construct a wide
+vintage matrix.
 
 ``` r
 library(reviser)
 library(dplyr)
-library(lubridate)
+library(tidyr)
+library(tsbox)
 library(ggplot2)
 
-# Prepare GDP data
-gdp <- reviser::gdp %>%
+gdp_growth <- reviser::gdp %>%
   tsbox::ts_pc() %>%
   dplyr::filter(
     id == "EA",
@@ -158,270 +233,531 @@ gdp <- reviser::gdp %>%
   ) %>%
   tidyr::drop_na()
 
-# Get first 15 releases
-df <- get_nth_release(gdp, n = 0:14)
-
-# Get final release (4 years after initial)
-final_release <- get_nth_release(gdp, n = 15)
-
-# Test for efficient release
-efficient_release <- get_first_efficient_release(
-  df,
-  final_release
-)
-
-data <- efficient_release$data
-e <- efficient_release$e
-
-summary(efficient_release)
-#> Efficient release:  2 
-#> 
-#> Model summary: 
-#> 
-#> Call:
-#> stats::lm(formula = formula, data = df_wide)
-#> 
-#> Residuals:
-#>      Min       1Q   Median       3Q      Max 
-#> -0.34873 -0.08185 -0.00706  0.10475  0.31533 
-#> 
-#> Coefficients:
-#>             Estimate Std. Error t value Pr(>|t|)    
-#> (Intercept)  0.03276    0.01775   1.846   0.0692 .  
-#> release_2    1.01446    0.02440  41.577   <2e-16 ***
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
-#> Residual standard error: 0.1428 on 68 degrees of freedom
-#> Multiple R-squared:  0.9622, Adjusted R-squared:  0.9616 
-#> F-statistic:  1729 on 1 and 68 DF,  p-value: < 2.2e-16
-#> 
-#> 
-#> Test summary: 
-#> 
-#> Linear hypothesis test:
-#> (Intercept) = 0
-#> release_2 = 1
-#> 
-#> Model 1: restricted model
-#> Model 2: final ~ release_2
-#> 
-#> Note: Coefficient covariance matrix supplied.
-#> 
-#>   Res.Df Df     F  Pr(>F)  
-#> 1     70                   
-#> 2     68  2 2.743 0.07151 .
-#> ---
-#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+df <- get_nth_release(gdp_growth, n = 0:3)
+df
+#> # Vintages data (release format):
+#> # Format:                         long
+#> # Time periods:                   70
+#> # Releases:                       4
+#> # IDs:                            1
+#>    time       pub_date      value id    release  
+#>    <date>     <date>        <dbl> <chr> <chr>    
+#>  1 2002-10-01 2003-01-01  0.169   EA    release_0
+#>  2 2002-10-01 2003-04-01  0.124   EA    release_1
+#>  3 2002-10-01 2003-07-01  0.105   EA    release_2
+#>  4 2002-10-01 2003-10-01  0.0577  EA    release_3
+#>  5 2003-01-01 2003-04-01  0.0149  EA    release_0
+#>  6 2003-01-01 2003-07-01 -0.0133  EA    release_1
+#>  7 2003-01-01 2003-10-01 -0.0558  EA    release_2
+#>  8 2003-01-01 2004-01-01 -0.00601 EA    release_3
+#>  9 2003-04-01 2003-07-01  0.00503 EA    release_0
+#> 10 2003-04-01 2003-10-01 -0.0616  EA    release_1
+#> # ℹ 270 more rows
 ```
 
-The efficient release test identifies that $e = 2$, meaning the 3th
-release is an efficient estimate of the final value.
+The resulting object contains one row per reference period and one
+column per vintage, in the format expected by
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md).
 
-### Estimate the JVN Model
+## Estimation
 
-The
+The main arguments of
 [`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
-function estimates the model using Maximum Likelihood Estimation (MLE).
-You can specify:
+are:
 
-- **AR order**: The order of the autoregressive process for the true
-  value
-- **Model components**: Whether to include news, noise, and/or
-  spillovers
-- **Optimization method**: L-BFGS-B (default), two-step, nlminb, and
-  more
-- **Standard error calculation**: Hessian-based (default)
+- `df`: a vintage matrix or data frame;
+- `e`: the number of vintage columns used in estimation;
+- `ar_order`: the autoregressive order (p) of the latent true-value
+  process;
+- `h`: optional forecast horizon;
+- `include_news`: whether to include a news component;
+- `include_noise`: whether to include a noise component;
+- `include_spillovers`: whether to include diagonal spillover
+  persistence;
+- `spillover_news`, `spillover_noise`: which block(s) receive spillover
+  persistence;
+- `standardize`: whether to standardize the vintage matrix before
+  estimation.
+
+The argument `method` currently only accepts `"MLE"`. Numerical
+optimization is controlled through `solver_options`, where the user may
+choose among optimizers such as `"L-BFGS-B"`, `"BFGS"`, `"Nelder-Mead"`,
+`"nlminb"`, or `"two-step"`.
+
+### News and noise model without spillovers
 
 ``` r
-# Estimate JVN model with news and noise
-nowcast <- jvn_nowcast(
-  df = data,
-  e = e,
-  ar_order = 1,
-  h = 4,  # 4-period ahead forecast
+fit_nn <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  h = 0,
   include_news = TRUE,
   include_noise = TRUE,
   include_spillovers = FALSE,
-  method = "L-BFGS-B"
+  method = "MLE",
+  standardize = FALSE,
+  solver_options = list(
+    method = "L-BFGS-B",
+    se_method = "hessian"
+  )
 )
-```
 
-### Examine Model Fit and Parameter
-
-``` r
-# Model diagnostics
-summary(nowcast)
+summary(fit_nn)
 #> 
 #> === Jacobs-Van Norden Model ===
 #> 
 #> Convergence: Success 
-#> Log-likelihood: 20.72 
-#> AIC: -29.44 
-#> BIC: -11.79 
+#> Log-likelihood: 256.22 
+#> AIC: -490.44 
+#> BIC: -465.7 
 #> 
 #> Parameter Estimates:
 #>     Parameter Estimate Std.Error
-#>         rho_1    0.596     0.139
-#>       sigma_e    0.001     0.426
-#>    sigma_nu_1    1.023     0.257
-#>    sigma_nu_2    0.001     0.023
-#>  sigma_zeta_1    0.001     0.045
-#>  sigma_zeta_2    0.070     0.006
+#>         rho_1    0.900     0.278
+#>         rho_2   -0.236     0.234
+#>       sigma_e    0.001     0.540
+#>    sigma_nu_1    0.070     0.006
+#>    sigma_nu_2    0.052     0.004
+#>    sigma_nu_3    0.001     0.036
+#>    sigma_nu_4    0.633     0.210
+#>  sigma_zeta_1    0.001     0.021
+#>  sigma_zeta_2    0.001     0.009
+#>  sigma_zeta_3    0.001     0.017
+#>  sigma_zeta_4    0.042     0.004
 ```
 
-### Extract State Estimates
+This specification estimates a model with both news and noise
+components, but no persistence in the measurement-error states.
 
-The model provides both filtered and smoothed estimates:
-
-- **Filtered estimates**: Use only information available up to time $t$
-- **Smoothed estimates**: Use the full sample (better for historical
-  analysis)
+### Adding spillovers
 
 ``` r
-# Extract filtered states
-filtered_states <- nowcast$states %>%
-  filter(filter == "filtered", state == "true_lag_0")
+fit_full <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  h = 0,
+  include_news = TRUE,
+  include_noise = TRUE,
+  include_spillovers = TRUE,
+  spillover_news = TRUE,
+  spillover_noise = TRUE,
+  method = "MLE",
+  standardize = FALSE,
+  solver_options = list(
+    method = "L-BFGS-B",
+    se_method = "hessian"
+  )
+)
 
-# View recent estimates
-tail(filtered_states, 8)
+summary(fit_full)
+#> 
+#> === Jacobs-Van Norden Model ===
+#> 
+#> Convergence: Success 
+#> Log-likelihood: 267.95 
+#> AIC: -497.91 
+#> BIC: -455.18 
+#> 
+#> Parameter Estimates:
+#>     Parameter Estimate Std.Error
+#>         rho_1    0.252     0.103
+#>         rho_2    0.101     0.096
+#>       sigma_e    0.376     0.126
+#>    sigma_nu_1    0.001     0.022
+#>    sigma_nu_2    0.043     0.005
+#>    sigma_nu_3    0.006     0.000
+#>    sigma_nu_4    3.978     4.439
+#>  sigma_zeta_1    0.053     0.007
+#>  sigma_zeta_2    0.004     0.000
+#>  sigma_zeta_3    0.016     0.006
+#>  sigma_zeta_4    0.037     0.002
+#>        T_nu_1    0.188     0.092
+#>        T_nu_2    0.177     0.095
+#>        T_nu_3    0.173     0.096
+#>        T_nu_4    0.172     0.096
+#>      T_zeta_1   -0.020     0.171
+#>      T_zeta_2   -0.900     0.000
+#>      T_zeta_3   -0.386     0.294
+#>      T_zeta_4    0.147     0.143
+```
+
+When `include_spillovers = TRUE`, the model adds diagonal persistence
+parameters for the selected measurement-error blocks. These correspond
+to restricted spillover effects.
+
+## Standardization
+
+In the paper’s empirical illustration, vintages are approximately
+standardized using the mean and standard deviation of the final vintage
+before estimation. The package provides an optional argument for this
+purpose:
+
+``` r
+fit_std <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = TRUE,
+  include_noise = TRUE,
+  include_spillovers = TRUE,
+  standardize = TRUE
+)
+```
+
+If `standardize = TRUE`, scaling metadata are returned in the `scale`
+element of the fitted object.
+
+## Model output
+
+A fitted `jvn_model` object contains:
+
+- `states`: filtered and smoothed state estimates;
+- `jvn_model_mat`: estimated state-space matrices;
+- `params`: parameter estimates and standard errors;
+- `fit`: raw optimizer output;
+- `loglik`, `aic`, `bic`: fit statistics;
+- `data`: the preprocessed input data;
+- `scale`: scaling metadata, if standardization was used;
+- `cov`: estimated covariance matrix of the parameters, if available.
+
+The parameter table includes:
+
+- `rho_1, ..., rho_p` for the AR coefficients;
+- `sigma_e` for the innovation standard deviation of the true-value
+  process;
+- `sigma_nu_j` for news shocks;
+- `sigma_zeta_j` for noise shocks;
+- `T_nu_j` and/or `T_zeta_j` for diagonal spillover persistence
+  parameters.
+
+## Filtered and smoothed estimates
+
+The `states` element is returned as a tidy tibble. The state named
+`true_lag_0` corresponds to the current latent true value (y_t).
+
+``` r
+fit_full$states %>%
+  dplyr::filter(state == "true_lag_0") %>%
+  dplyr::slice_tail(n = 8)
 #> # A tibble: 8 × 7
-#>   time       state      estimate lower  upper filter   sample       
-#>   <date>     <chr>         <dbl> <dbl>  <dbl> <chr>    <chr>        
-#> 1 2019-04-01 true_lag_0    0.200 -1.81  2.21  filtered in_sample    
-#> 2 2019-07-01 true_lag_0    0.235 -1.77  2.24  filtered in_sample    
-#> 3 2019-10-01 true_lag_0    0.114 -1.89  2.12  filtered in_sample    
-#> 4 2020-01-01 true_lag_0   -3.59  -5.59 -1.58  filtered in_sample    
-#> 5 2020-04-01 true_lag_0   -2.14  -4.47  0.196 filtered out_of_sample
-#> 6 2020-07-01 true_lag_0   -1.28  -3.72  1.17  filtered out_of_sample
-#> 7 2020-10-01 true_lag_0   -0.761 -3.24  1.72  filtered out_of_sample
-#> 8 2021-01-01 true_lag_0   -0.454 -2.95  2.04  filtered out_of_sample
+#>   time       state      estimate    lower upper filter   sample   
+#>   <date>     <chr>         <dbl>    <dbl> <dbl> <chr>    <chr>    
+#> 1 2018-04-01 true_lag_0    0.460  -3.90    4.82 smoothed in_sample
+#> 2 2018-07-01 true_lag_0    2.60   -1.76    6.96 smoothed in_sample
+#> 3 2018-10-01 true_lag_0    1.59   -2.77    5.95 smoothed in_sample
+#> 4 2019-01-01 true_lag_0   -0.625  -4.99    3.74 smoothed in_sample
+#> 5 2019-04-01 true_lag_0    4.34   -0.0206  8.71 smoothed in_sample
+#> 6 2019-07-01 true_lag_0  -10.5   -14.9    -6.08 smoothed in_sample
+#> 7 2019-10-01 true_lag_0  -13.4   -18.7    -8.15 smoothed in_sample
+#> 8 2020-01-01 true_lag_0   -6.08  -13.9     1.77 smoothed in_sample
 ```
 
-### Visualize Results
+Filtered estimates use only information available up to time (t), while
+smoothed estimates use the full sample and are therefore more
+appropriate for ex post historical analysis.
+
+## Plotting
+
+The default plot method displays one selected state. By default, it
+plots the filtered estimate of `true_lag_0`.
 
 ``` r
-plot(nowcast)
+plot(fit_full)
 ```
 
-![](nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-6-1.png)
+![](nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-7-1.png)
+
+To inspect the smoothed estimate of the latent true value:
 
 ``` r
+plot(fit_full, state = "true_lag_0", type = "smoothed")
+```
 
-# Compare news and noise components
-nowcast$states %>%
-  filter(filter == "smoothed", grepl("news|noise", state)) %>%
+![](nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-8-1.png)
+
+We can also visualize the news and noise states directly.
+
+``` r
+fit_full$states %>%
+  dplyr::filter(
+    filter == "smoothed",
+    grepl("news|noise", state)
+  ) %>%
   ggplot(aes(x = time, y = estimate, color = state)) +
   geom_line() +
   labs(
-    title = "News and Noise Components",
-    x = "Time",
-    y = "Contribution"
+    title = "Smoothed news and noise states",
+    x = NULL,
+    y = "State estimate"
   ) +
   theme_minimal()
 ```
 
-![](nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-6-2.png)
+![](nowcasting-revisions-jvn_files/figure-html/unnamed-chunk-9-1.png)
 
-## Advanced Features
+## Comparing nested specifications
 
-### Multi-Start Optimization
+The JVN framework nests several empirically relevant cases.
 
-For complex models, it’s recommended to use multi-start optimization to
-avoid local optima:
+### Pure noise
 
 ``` r
-nowcast_robust <- jvn_nowcast(
-  df = data,
-  e = e,
+fit_noise <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = FALSE,
+  include_noise = TRUE,
+  include_spillovers = FALSE,
+  solver_options = list(method = "L-BFGS-B")
+)
+```
+
+### Pure news
+
+``` r
+fit_news <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = TRUE,
+  include_noise = FALSE,
+  include_spillovers = FALSE,
+  solver_options = list(method = "L-BFGS-B")
+)
+```
+
+### News with spillovers
+
+``` r
+fit_news_spill <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = TRUE,
+  include_noise = FALSE,
+  include_spillovers = TRUE,
+  spillover_news = TRUE,
+  spillover_noise = FALSE,
+  solver_options = list(method = "L-BFGS-B")
+)
+```
+
+### Noise with spillovers
+
+``` r
+fit_noise_spill <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = FALSE,
+  include_noise = TRUE,
+  include_spillovers = TRUE,
+  spillover_news = FALSE,
+  spillover_noise = TRUE,
+  solver_options = list(method = "L-BFGS-B")
+)
+```
+
+### Information criteria
+
+``` r
+dplyr::bind_rows(
+  data.frame(
+    model = "Pure noise",
+    loglik = fit_noise$loglik,
+    aic = fit_noise$aic,
+    bic = fit_noise$bic
+  ),
+  data.frame(
+    model = "Pure news",
+    loglik = fit_news$loglik,
+    aic = fit_news$aic,
+    bic = fit_news$bic
+  ),
+  data.frame(
+    model = "Noise + spillovers",
+    loglik = fit_noise_spill$loglik,
+    aic = fit_noise_spill$aic,
+    bic = fit_noise_spill$bic
+  ),
+  data.frame(
+    model = "News + spillovers",
+    loglik = fit_news_spill$loglik,
+    aic = fit_news_spill$aic,
+    bic = fit_news_spill$bic
+  ),
+  data.frame(
+    model = "News + noise + spillovers",
+    loglik = fit_full$loglik,
+    aic = fit_full$aic,
+    bic = fit_full$bic
+  )
+)
+#>                       model   loglik       aic       bic
+#> 1                Pure noise 232.0056 -450.0113 -434.2718
+#> 2                 Pure news 255.0923 -496.1846 -480.4451
+#> 3        Noise + spillovers 236.9075 -451.8151 -427.0816
+#> 4         News + spillovers 265.2135 -508.4270 -483.6935
+#> 5 News + noise + spillovers 267.9527 -497.9055 -455.1841
+```
+
+These comparisons are often useful in practice, but they should be
+interpreted with care when parameters are on the boundary of the
+parameter space, for example when some standard deviations are estimated
+close to zero.
+
+## Forecasting and extension of the state estimates
+
+The argument `h` extends the state estimates out of sample by appending
+(h) periods with missing observations and running the Kalman filter and
+smoother on the augmented system.
+
+``` r
+fit_fc <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  h = 4,
+  include_news = TRUE,
+  include_noise = TRUE,
+  include_spillovers = FALSE,
+  solver_options = list(method = "L-BFGS-B")
+)
+
+fit_fc$states %>%
+  dplyr::filter(state == "true_lag_0", filter == "filtered") %>%
+  dplyr::slice_tail(n = 8)
+#> # A tibble: 8 × 7
+#>   time       state      estimate  lower  upper filter   sample       
+#>   <date>     <chr>         <dbl>  <dbl>  <dbl> <chr>    <chr>        
+#> 1 2019-04-01 true_lag_0   0.147  -1.09   1.39  filtered in_sample    
+#> 2 2019-07-01 true_lag_0   0.299  -0.941  1.54  filtered in_sample    
+#> 3 2019-10-01 true_lag_0   0.0530 -1.19   1.29  filtered in_sample    
+#> 4 2020-01-01 true_lag_0  -3.73   -4.97  -2.49  filtered in_sample    
+#> 5 2020-04-01 true_lag_0  -2.43   -4.11  -0.752 filtered out_of_sample
+#> 6 2020-07-01 true_lag_0  -1.31   -3.14   0.521 filtered out_of_sample
+#> 7 2020-10-01 true_lag_0  -0.604  -2.47   1.27  filtered out_of_sample
+#> 8 2021-01-01 true_lag_0  -0.236  -2.11   1.64  filtered out_of_sample
+```
+
+The `sample` column distinguishes between in-sample and out-of-sample
+periods.
+
+## Numerical options
+
+The function exposes several useful numerical controls through
+`solver_options`.
+
+### Optimizer choice
+
+``` r
+fit_alt <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
+  include_news = TRUE,
+  include_noise = TRUE,
+  solver_options = list(
+    method = "nlminb",
+    maxiter = 2000
+  )
+)
+```
+
+### Multi-start optimization
+
+For more difficult specifications, multi-start optimization may help
+avoid poor local optima.
+
+``` r
+fit_ms <- jvn_nowcast(
+  df = df,
+  e = 4,
   ar_order = 2,
   include_news = TRUE,
   include_noise = TRUE,
   include_spillovers = TRUE,
   solver_options = list(
-    n_starts = 5,      # Try 5 different starting points
-    trace = 1,         # Show progress
-    maxiter = 2000     # Increase max iterations
+    method = "L-BFGS-B",
+    n_starts = 5,
+    seed = 123,
+    maxiter = 2000
   )
 )
 ```
 
-### Model Comparison
+### Standard-error estimation
 
-Compare different specifications to find the best fit:
+The package currently supports:
+
+- Hessian-based standard errors;
+- QML sandwich covariance estimates;
+- no standard-error calculation.
 
 ``` r
-# News-only model
-model_news <- jvn_nowcast(data, e, include_news = TRUE, include_noise = FALSE)
-
-# Noise-only model
-model_noise <- jvn_nowcast(data, e, include_news = FALSE, include_noise = TRUE)
-
-# Full model with spillovers
-model_full <- jvn_nowcast(
-  data, e,
+fit_qml <- jvn_nowcast(
+  df = df,
+  e = 4,
+  ar_order = 2,
   include_news = TRUE,
   include_noise = TRUE,
-  include_spillovers = TRUE
-)
-
-# Compare BIC (lower is better)
-data.frame(
-  Model = c("News Only", "Noise Only", "Full with Spillovers"),
-  BIC = c(model_news$bic, model_noise$bic, model_full$bic),
-  AIC = c(model_news$aic, model_noise$aic, model_full$aic)
-)
-```
-
-### Custom Starting Values
-
-For difficult optimization problems, you can provide custom starting
-values:
-
-``` r
-# Get the number of parameters
-n_params <- nowcast$jvn_model_mat$param_info$n_params
-
-# Provide custom starting values
-custom_starts <- rep(0.1, n_params)
-
-nowcast_custom <- jvn_nowcast(
-  df = data,
-  e = e,
   solver_options = list(
-    startvals = custom_starts,
-    transform_se = TRUE
+    method = "L-BFGS-B",
+    se_method = "qml",
+    qml_score_method = "central"
   )
 )
 ```
 
 ## Interpretation
 
-### News vs Noise
+The JVN model helps distinguish different sources of revisions.
 
-The key insight from the JVN model is the decomposition of revisions:
+### News
 
-- **Large news variances** ($\sigma_{\nu j}$): Initial releases
-  understate the true value; revisions contain important information
-- **Large noise variances** ($\sigma_{\zeta j}$): Initial releases are
-  noisy; revisions mainly remove measurement error
-- **AR dynamics** ($\rho_{1},\rho_{2}$): Persistence in the true
-  underlying series
+Large estimated values of (\_{j}) indicate that early releases omit
+information that is incorporated in subsequent vintages. In that case,
+revisions are informative updates rather than corrections of transitory
+noise.
 
-### Forecasting Implications
+### Noise
 
-- If revisions are mainly **news**: Initial releases should be given
-  less weight; wait for revisions
-- If revisions are mainly **noise**: Initial releases already contain
-  most information; revisions are less informative
-- **Spillovers** indicate that information in one revision affects
-  expectations about other revisions
+Large estimated values of (\_{j}) indicate that early releases are
+contaminated by measurement error that is later removed. In that case,
+revisions are partly predictable.
+
+### Spillovers
+
+Nonzero (T\_{,j}) or (T\_{,j}) indicate persistence in the corresponding
+news or noise states. In the current implementation these are
+**restricted own-state persistence parameters**, not unrestricted
+cross-vintage spillover coefficients.
+
+### True-value dynamics
+
+The AR coefficients (\_1, , \_p) capture the persistence of the latent
+true series.
+
+## Remarks on scope
+
+The original paper presents a broad state-space framework that can
+accommodate richer dynamics for the true value and measurement errors.
+The current `reviser` implementation is intentionally narrower:
+
+- the true value follows an AR((p)) process;
+- the observation equation uses the JVN decomposition into truth, news,
+  and noise;
+- spillovers are implemented through diagonal persistence in the news
+  and/or noise blocks.
+
+This restricted specification is still rich enough to replicate the main
+empirical model class used in the paper’s illustration and to support
+practical revision modeling, filtering, smoothing, and forecasting.
 
 ## References
-
-Durbin, James, and Siem Jan Koopman. 2012. *Time Series Analysis by
-State Space Methods: Second Edition*. Oxford University Press.
-<https://doi.org/10.1093/acprof:oso/9780199641178.001.0001>.
 
 Jacobs, Jan P. A. M., and Simon Van Norden. 2011. “Modeling Data
 Revisions: Measurement Error and Dynamics of ‘True’ Values.” *Journal of
