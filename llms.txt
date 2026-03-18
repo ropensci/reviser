@@ -353,7 +353,7 @@ GDP data used in the package.
 - [Identifying an Efficient Release in Data Subject to
   Revisions](https://p-wegmueller.github.io/reviser/articles/efficient-release.md):
 - [Nowcasting revisions using the generalized Kishor-Koenig
-  model](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-kk.md):
+  family](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-kk.md):
 - [Nowcasting revisions using the Jacobs-Van Norden
   model](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-jvn.md):
 

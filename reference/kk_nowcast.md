@@ -22,9 +22,10 @@ kk_nowcast(
 
 - df:
 
-  A data frame containing the time series data in either "long" or
-  "wide" format. It must include columns for the time index and the
-  different release vintages.
+  A data frame or single-ID vintages object in either long or wide
+  format. Long-format vintages data are converted internally. After
+  preprocessing, the data must contain a `time` column and at least
+  `e + 1` releases.
 
 - e:
 
@@ -57,46 +58,71 @@ kk_nowcast(
 
 - solver_options:
 
-  An optional list to control the behaviour of the underlying
-  [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html),
-  [`stats::optim()`](https://rdrr.io/r/stats/optim.html) and
-  [`stats::nlm()`](https://rdrr.io/r/stats/nlm.html) solvers:
+  A named list controlling the SUR and MLE routines. Valid names are
+  `trace`, `maxiter`, `startvals`, `solvtol`, `gradtol`, `steptol`,
+  `transform_se`, `method`, `se_method`, `n_starts`, `seed`,
+  `return_states`, `qml_eps`, `qml_score_method`, `qml_scale`,
+  `sigma_lower`, `sigma_upper`, and `ic_n`. Supported entries are:
 
-  - **trace**: An integer controlling the level of output for the
-    optimization procedure. Default is 0 (minimal output).
+  - `trace`: integer controlling console output.
 
-  - **maxiter**: An integer specifying the maximum number of iterations
-    for the optimization procedure. Default is 1000.
+  - `maxiter`: maximum number of optimizer iterations.
 
-  - **startvals**: A list of starting values for the optimization
-    procedure (must match the number of parameters of the model).
+  - `startvals`: optional numeric vector of starting values. Unnamed
+    vectors are interpreted in the canonical internal order returned by
+    `kk_matrices(e, model, type = "character")$params`. Named vectors
+    are reordered to that same canonical order.
 
-  - **solvtol**: Tolerance for detecting linear dependencies in the
-    columns of X in the qr function calls (See
-    [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html)).
-    Default is .Machine\$double.eps.
+  - `solvtol`: tolerance passed to
+    [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html)
+    in the SUR estimator.
 
-  - **gradtol**: A a positive scalar giving the tolerance at which the
-    scaled gradient is considered close enough to zero to terminate the
-    algorithm (See [`stats::nlm()`](https://rdrr.io/r/stats/nlm.html)).
-    Default is 1e-6.
+  - `gradtol`: gradient tolerance passed to
+    [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html)
+    in the SUR estimator.
 
-  - **steptol**: A positive scalar providing the minimum allowable
-    relative step length (See
-    [`stats::nlm()`](https://rdrr.io/r/stats/nlm.html)). Default is
-    1e-6.
+  - `steptol`: step-length tolerance passed to
+    [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html)
+    in the SUR estimator.
 
-  - **transform_se**: T/F whether standard errors should be constrained
-    to be positive in optimization.
+  - `transform_se`: logical; whether variance parameters are optimized
+    on the log scale in MLE.
 
-  - **method**: String specifying optimization method (default =
-    "L-BFGS-B").
+  - `method`: optimization method for MLE; one of `"L-BFGS-B"`,
+    `"BFGS"`, `"Nelder-Mead"`, `"nlminb"`, or `"two-step"`.
 
-  - **se_method**: Method for standard error calculation (default =
-    "hessian")
+  - `se_method`: standard-error method for MLE; one of `"hessian"`,
+    `"qml"`, or `"none"`.
 
-  - **n_starts**: Number of random starting points for multi-start
-    optimization
+  - `n_starts`: number of random starting points used by the MLE
+    multi-start routine.
+
+  - `seed`: optional random seed used for the MLE multi-start
+    perturbations.
+
+  - `return_states`: logical; whether filtered and smoothed states and
+    the fitted KFAS model should be returned.
+
+  - `qml_eps`: finite-difference step size used in QML covariance
+    estimation.
+
+  - `qml_score_method`: score approximation method; `"forward"` or
+    `"central"`.
+
+  - `qml_scale`: scaling convention for the QML covariance; `"sum"`,
+    `"mean"`, or `"hc"`.
+
+  - `sigma_lower`: lower bound for variance parameters on the natural
+    scale when `transform_se = TRUE`.
+
+  - `sigma_upper`: upper bound for variance parameters on the natural
+    scale when `transform_se = TRUE`.
+
+  - `ic_n`: sample-size convention used for BIC; `"T"` or `"Tp"`.
+
+  For backward compatibility, the legacy aliases `score_method` and
+  `score_eps` are also accepted and mapped to `qml_score_method` and
+  `qml_eps`.
 
 ## Value
 
@@ -104,7 +130,8 @@ A list with the following components:
 
 - states:
 
-  A tibble containing filtered and smoothed state estimates.
+  A tibble containing filtered and smoothed state estimates. If
+  `solver_options$return_states = FALSE`, this is `NULL`.
 
 - kk_model_mat:
 
@@ -117,7 +144,9 @@ A list with the following components:
 
 - model:
 
-  The KFAS state-space model object.
+  The fitted
+  [`KFAS::SSModel`](https://rdrr.io/pkg/KFAS/man/SSModel.html) object.
+  If `solver_options$return_states = FALSE`, this is `NULL`.
 
 - params:
 
@@ -125,19 +154,19 @@ A list with the following components:
 
 - fit:
 
-  The fitted model object from the estimation procedure.
+  The raw fit object returned by the selected estimator.
 
 - loglik:
 
-  Log-likelihood value (MLE only).
+  Log-likelihood value for MLE fits; otherwise `NULL`.
 
 - aic:
 
-  Akaike Information Criterion (MLE only).
+  Akaike information criterion for MLE fits; otherwise `NULL`.
 
 - bic:
 
-  Bayesian Information Criterion (MLE only).
+  Bayesian information criterion for MLE fits; otherwise `NULL`.
 
 - convergence:
 
@@ -149,7 +178,16 @@ A list with the following components:
 
 - data:
 
-  The input data in wide format.
+  The input data after preprocessing to wide format.
+
+- se_method:
+
+  The standard-error method used by MLE; otherwise `NULL`.
+
+- cov:
+
+  Estimated covariance matrix of the parameter estimates, if available;
+  otherwise `NULL`.
 
 ## Details
 

@@ -28,9 +28,10 @@ jvn_nowcast(
 
 - df:
 
-  A matrix, data frame, or single-ID vintages object. Each vintage must
-  be stored in a separate column. If `df` is a matrix, a synthetic
-  `time` index is created.
+  A matrix, data frame, or single-ID vintages object. Wide data should
+  store one vintage per column. Long-format vintages data are also
+  accepted and are converted internally. If `df` is a matrix, or a data
+  frame without a `time` column, a synthetic `time` index is created.
 
 - e:
 
@@ -102,7 +103,12 @@ jvn_nowcast(
   - `transform_se`: logical; whether standard deviation parameters are
     optimized on the log scale.
 
-  - `startvals`: optional numeric vector of starting values.
+  - `startvals`: optional numeric vector of starting values. The vector
+    must have length equal to the number of estimated parameters and
+    must follow the internal parameter order used by
+    `jvn_param_table()`: AR coefficients `rho_*`, `sigma_e`, optional
+    `sigma_nu_*`, optional `sigma_zeta_*`, and optional spillover
+    parameters `T_nu_*` and `T_zeta_*`.
 
   - `se_method`: standard-error method; one of `"hessian"`, `"qml"`, or
     `"none"`.
@@ -137,6 +143,10 @@ jvn_nowcast(
   - `ic_n`: sample-size convention used for BIC; `"T"` for the paper
     convention or `"Tp"` for `T * n_vint`.
 
+  For backward compatibility, the legacy aliases `score_method` and
+  `score_eps` are also accepted and mapped to `qml_score_method` and
+  `qml_eps`.
+
 ## Value
 
 An object of class `"jvn_model"` with components:
@@ -157,7 +167,7 @@ An object of class `"jvn_model"` with components:
 
 - fit:
 
-  The raw optimizer output.
+  The raw optimizer output returned by the selected numerical optimizer.
 
 - loglik:
 
@@ -244,7 +254,7 @@ summary(result)
 #>     Parameter Estimate Std.Error
 #>         rho_1    0.900     0.278
 #>         rho_2   -0.236     0.234
-#>       sigma_e    0.001     0.540
+#>       sigma_e    0.001     0.497
 #>    sigma_nu_1    0.070     0.006
 #>    sigma_nu_2    0.052     0.004
 #>    sigma_nu_3    0.001     0.036

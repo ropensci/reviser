@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Nowcasting revisions using the generalized Kishor-Koenig model • reviser</title>
+<title>Nowcasting revisions using the generalized Kishor-Koenig family • reviser</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,9 +15,9 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Nowcasting revisions using the generalized Kishor-Koenig model">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Nowcasting revisions using the generalized Kishor-Koenig family">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body, {delimiters: [{left: '$', right: '$', display: true}, {left: '\\\\[', right: '\\\\]', display: true}, {left: '\\\\(', right: '\\\\)', display: false}], throwOnError: false});"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -44,7 +44,7 @@
 <li><a class="dropdown-item" href="../articles/understanding-revisions.html">Understanding Data Revisions</a></li>
     <li><a class="dropdown-item" href="../articles/revision-analysis.html">Revision Patterns and Statistics</a></li>
     <li><a class="dropdown-item" href="../articles/efficient-release.html">Identifying an Efficient Release in Data Subject to Revisions</a></li>
-    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig model</a></li>
+    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig family</a></li>
     <li><a class="dropdown-item" href="../articles/nowcasting-revisions-jvn.html">Nowcasting revisions using the Jacobs-Van Norden model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -77,7 +77,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Nowcasting revisions using the generalized Kishor-Koenig model</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Nowcasting revisions using the generalized Kishor-Koenig family</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/p-wegmueller/reviser/blob/main/vignettes/nowcasting-revisions-kk.Rmd" class="external-link"><code>vignettes/nowcasting-revisions-kk.Rmd</code></a></small>
@@ -86,192 +86,229 @@
 
     
     
-<p>Having some evidence that the revisions are predictable, we can now
-move to the next step: <strong>nowcasting</strong>. Nowcasting refers to
-the process of estimating the current state of the economy using timely
-indicators. In the context of revisions, nowcasting involves predicting
-the final (or efficient) value of an economic variable before all
-revisions are available. This vignette demonstrates how to implement a
-nowcasting model using the generalized Kishor-Koenig (KK) framework
-<span class="citation">(<a href="#ref-kishorVAREstimationForecasting2012">Kishor and Koenig
+<p>This vignette describes the generalized Kishor-Koenig (KK) revision
+model and its nested variants as implemented in
+<code><a href="../reference/kk_nowcast.html">reviser::kk_nowcast()</a></code>. The exposition uses the same
+Durbin-Koopman state-space notation that appears throughout the package
+documentation: observation matrices are denoted by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Z</mi><annotation encoding="application/x-tex">Z</annotation></semantics></math>,
+transition matrices by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>,
+shock-loading matrices by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>R</mi><annotation encoding="application/x-tex">R</annotation></semantics></math>,
+and disturbance covariance matrices by
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>Q</mi><annotation encoding="application/x-tex">Q</annotation></semantics></math><span class="citation">(<a href="#ref-durbinTimeSeriesAnalysis2012">Durbin and Koopman
 2012</a>)</span>.</p>
+<p>The motivation is straightforward. Early releases of macroeconomic
+series are often revised several times before they settle near a stable
+value. Rather than ignoring that revision process, the KK family models
+the vector of releases directly and uses the Kalman filter to infer the
+latent efficient estimate.</p>
 <div class="section level2">
-<h2 id="the-generalized-kishor-koenig-model">The Generalized Kishor-Koenig Model<a class="anchor" aria-label="anchor" href="#the-generalized-kishor-koenig-model"></a>
+<h2 id="revision-system">Revision system<a class="anchor" aria-label="anchor" href="#revision-system"></a>
 </h2>
-<p>The KK model extends the traditional Vector Autoregression (VAR)
-framework to account for data revisions explicitly. Unlike conventional
-models that treat data as final and accurate, the KK model recognizes
-that initial releases are subject to revisions, leading to biased and
-inefficient forecasts. By incorporating the revision process into a
-state-space framework, the KK model provides a reliable approach to
-nowcasting economic variables. Moreover, it nests several nowcasting
-models, such as the classical textbook measurement error model or the
-<span class="citation">Howrey (<a href="#ref-howreyUsePreliminaryData1978">1978</a>)</span> model.</p>
-<p>The procedure is based on the assumption that there exists an
-efficient estimate
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>y</mi><mi>t</mi><mi>e</mi></msubsup><annotation encoding="application/x-tex">y_t^e</annotation></semantics></math>
-of the final release that becomes available
+<p>Suppose that an efficient estimate becomes available after
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>e</mi><annotation encoding="application/x-tex">e</annotation></semantics></math>
-periods after the initial release
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>y</mi><mi>t</mi><mn>0</mn></msubsup><annotation encoding="application/x-tex">y_t^0</annotation></semantics></math>.
-We show in vignette <a href="efficient-release.html">Efficient Release
-Identification</a> how the number of the efficient release can be
-empirically tested. We follow <span class="citation">Strohsal and Wolf
-(<a href="#ref-strohsalDataRevisionsGerman2020">2020</a>)</span> and
-assume that
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>e</mi><annotation encoding="application/x-tex">e</annotation></semantics></math>th
-revision data follows an autoregressive model of order one (AR(1)). The
-KK model is represented by the following equations:</p>
-<p><strong>1. The State Equation</strong>
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><mi>t</mi></msub><mo>=</mo><mi>F</mi><msub><mi>z</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>ν</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex"> z_t = F z_{t-1} + \nu_t </annotation></semantics></math></p>
-<p><strong>2. The Observation Equation</strong>
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>F</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>G</mi><msub><mi>z</mi><mi>t</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">y_t = (I - G) F y_{t-1} + G z_t + \epsilon_t</annotation></semantics></math></p>
-<p>where
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><msub><mi>′</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi></mrow><mi>e</mi></msubsup><mo>,</mo><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi><mo>+</mo><mn>1</mn></mrow><mi>e</mi></msubsup><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><msubsup><mi>y</mi><mi>t</mi><mi>e</mi></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>′</mi></mrow><annotation encoding="application/x-tex"> z'_t = \begin{bmatrix} y_{t-e}^e, y_{t-e +1}^e, ...,  y_t^e \end{bmatrix}' </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><msub><mi>′</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi></mrow><mi>e</mi></msubsup><mo>,</mo><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msubsup><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><msubsup><mi>y</mi><mi>t</mi><mn>0</mn></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>′</mi></mrow><annotation encoding="application/x-tex"> y'_t = \begin{bmatrix} y_{t-e}^e, y_{t-e +1}^{e-1}, ...,  y_t^0 \end{bmatrix}' </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ν</mi><msub><mi>′</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><msub><mi>ν</mi><mrow><mn>0</mn><mo>,</mo><mi>t</mi></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>′</mi></mrow><annotation encoding="application/x-tex"> \nu'_t = \begin{bmatrix} 0, 0, ...,  \nu_{0,t} \end{bmatrix}' </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϵ</mi><msub><mi>′</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn><mo>,</mo><msub><mi>ϵ</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><msub><mi>ϵ</mi><mrow><mn>1</mn><mo>,</mo><mi>t</mi></mrow></msub><mo>,</mo><msub><mi>ϵ</mi><mrow><mn>0</mn><mo>,</mo><mi>t</mi></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>′</mi></mrow><annotation encoding="application/x-tex"> \epsilon'_t = \begin{bmatrix} 0, \epsilon_{e-1,t}, ...,  \epsilon_{1,t}, \epsilon_{0,t} \end{bmatrix}' </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mo>⋱</mo></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>F</mi><mn>0</mn></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">
-F = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; \dots &amp; 0 \\
-                      0 &amp; 0 &amp; 1 &amp; \dots &amp; 0 \\
-                      \vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
-                      0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 \\
-                      0 &amp; 0 &amp; 0 &amp; \dots &amp; F_0 \end{bmatrix}
-</annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mo>⋱</mo></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>…</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">
-G = \begin{bmatrix} 1 &amp; 0 &amp; \dots &amp; 0 \\
-                      G_{e-1,e} &amp; G_{e-1,e-1} &amp; \dots &amp; G_{e-1,0} \\
-                      G_{e-2,e} &amp; G_{e-2,e-1} &amp; \dots &amp; G_{e-2,0} \\
-                      \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
-                      G_{0,e} &amp; G_{0,e-1} &amp; \dots &amp; G_{0,0} \end{bmatrix}
-</annotation></semantics></math><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>G</mi><annotation encoding="application/x-tex">G</annotation></semantics></math>
-is a gain matrix capturing the weight placed on new information,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>
-determines the AR coefficient, and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ν</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\nu_t</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ϵ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\epsilon_t</annotation></semantics></math>
-are error vectors. The state-equation and observation-equation error
-vectors are assumed to be uncorrelated with one another at all leads and
-lags, and to be serially uncorrelated.</p>
-<p>Because
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ν</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\nu_t</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ϵ</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\epsilon_t</annotation></semantics></math>
-are serially uncorrelated, and uncorrelated with one another at all
-leads and lags, estimation of the model equations is unproblematic apart
-from the crossequation restrictions on
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>.
-Therefore, it is recommended to estimate this system using seemingly
-unrelated regression (SUR). The SUR estimation is based on the
-[systemfit::nlsystemfit()] function. The parameter space of the KK model
-increases exponentially with the number of the efficient release. This
-leads to long computation times and potential convergence issues. As a
-fast, but potentially biased alternative, the package also allows to
-estimate the models parameters equation by equation using ordinary least
-squares (OLS).</p>
-<div class="section level3">
-<h3 id="howrey-and-classical-measurement-error-model">Howrey and Classical Measurement Error Model<a class="anchor" aria-label="anchor" href="#howrey-and-classical-measurement-error-model"></a>
-</h3>
-<p>It is easy to see that the KK model nests the classical measurement
-error model and the <span class="citation">Howrey (<a href="#ref-howreyUsePreliminaryData1978">1978</a>)</span> model.
-measurement error model treats published data
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>y</mi><mi>t</mi></msub><annotation encoding="application/x-tex">y_t</annotation></semantics></math>)
-as a noisy measure of the true economic variable
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>z</mi><mi>t</mi></msub><annotation encoding="application/x-tex">z_t</annotation></semantics></math>),
+revisions. Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>y</mi><mi>t</mi><mi>j</mi></msubsup><annotation encoding="application/x-tex">y_t^j</annotation></semantics></math>
+denote the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>-th
+release for reference period
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>,
 where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>z</mi><mi>t</mi></msub><mo>+</mo><msub><mi>η</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">y_t = z_t + \eta_t</annotation></semantics></math>.
-It addresses uncertainty in interpreting recent data by optimally
-updating forecasts, considering both potential economic shocks and
-measurement errors. This model is obtained by setting
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">G = I</annotation></semantics></math>.</p>
-<p>As an extension to the classical measurement error mode, <span class="citation">Howrey (<a href="#ref-howreyUsePreliminaryData1978">1978</a>)</span> proposed a
-model that allows the revisions to be autocorrelated. Setting the
-entries
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi><mo>=</mo><mn>0</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>e</mi></mrow><annotation encoding="application/x-tex">j = 0, \dots, e</annotation></semantics></math>.
+Following <span class="citation">Strohsal and Wolf (<a href="#ref-strohsalDataRevisionsGerman2020">2020</a>)</span>, stack the
+efficient estimates and the observed real-time releases as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi></mrow><mi>e</mi></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi><mo>+</mo><mn>1</mn></mrow><mi>e</mi></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mi>e</mi></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi></mrow><mi>e</mi></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>e</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msubsup></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msubsup><mi>y</mi><mi>t</mi><mn>0</mn></msubsup></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+z_t =
+\begin{bmatrix}
+y_{t-e}^{e} \\
+y_{t-e+1}^{e} \\
+\vdots \\
+y_t^{e}
+\end{bmatrix},
+\qquad
+y_t =
+\begin{bmatrix}
+y_{t-e}^{e} \\
+y_{t-e+1}^{e-1} \\
+\vdots \\
+y_t^{0}
+\end{bmatrix}.
+</annotation></semantics></math></p>
+<p>The generalized KK model is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>z</mi><mi>t</mi></msub><mo>=</mo><mi>F</mi><msub><mi>z</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>ν</mi><mi>t</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>ν</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>V</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">
+z_t = F z_{t-1} + \nu_t,
+\qquad
+\nu_t \sim N(0, V),
+</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>F</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>G</mi><msub><mi>z</mi><mi>t</mi></msub><mo>+</mo><msub><mi>ϵ</mi><mi>t</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>ϵ</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+y_t = (I - G) F y_{t-1} + G z_t + \epsilon_t,
+\qquad
+\epsilon_t \sim N(0, W).
+</annotation></semantics></math></p>
+<p>The companion-form transition matrix is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>F</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mo>⋱</mo></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>F</mi><mn>0</mn></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">
+F =
+\begin{bmatrix}
+0 &amp; 1 &amp; 0 &amp; \cdots &amp; 0 \\
+0 &amp; 0 &amp; 1 &amp; \cdots &amp; 0 \\
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+0 &amp; 0 &amp; 0 &amp; \cdots &amp; 1 \\
+0 &amp; 0 &amp; 0 &amp; \cdots &amp; F_0
+\end{bmatrix},
+</annotation></semantics></math></p>
+<p>and the gain matrix is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mn>1</mn></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>1</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mn>2</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd><mtd columnalign="center" style="text-align: center"><mo>⋱</mo></mtd><mtd columnalign="center" style="text-align: center"><mi>⋮</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mi>e</mi></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow></msub></mtd><mtd columnalign="center" style="text-align: center"><mi>⋯</mi></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mn>0</mn></mrow></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+G =
+\begin{bmatrix}
+1 &amp; 0 &amp; \cdots &amp; 0 \\
+G_{e-1,e} &amp; G_{e-1,e-1} &amp; \cdots &amp; G_{e-1,0} \\
+G_{e-2,e} &amp; G_{e-2,e-1} &amp; \cdots &amp; G_{e-2,0} \\
+\vdots &amp; \vdots &amp; \ddots &amp; \vdots \\
+G_{0,e} &amp; G_{0,e-1} &amp; \cdots &amp; G_{0,0}
+\end{bmatrix}.
+</annotation></semantics></math></p>
+<p>Intuitively,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>F</mi><annotation encoding="application/x-tex">F</annotation></semantics></math>
+governs the dynamics of the efficient estimate, while
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>G</mi><annotation encoding="application/x-tex">G</annotation></semantics></math>
+controls how quickly incoming releases absorb new information. The
+covariance matrices
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>V</mi><annotation encoding="application/x-tex">V</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>W</mi><annotation encoding="application/x-tex">W</annotation></semantics></math>
+describe uncertainty in the latent efficient estimate and the published
+releases, respectively.</p>
+</div>
+<div class="section level2">
+<h2 id="nested-models">Nested models<a class="anchor" aria-label="anchor" href="#nested-models"></a>
+</h2>
+<p>The generalized KK setup nests two useful special cases.</p>
+<ul>
+<li>The <strong>Classical measurement-error model</strong> is obtained
+by setting
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo>=</mo><mi>I</mi></mrow><annotation encoding="application/x-tex">G = I</annotation></semantics></math>.
+In that case, published data are noisy measurements of the latent
+efficient estimate, with no revision persistence beyond the state
+dynamics.</li>
+<li>The <strong>Howrey model</strong> <span class="citation">(<a href="#ref-howreyUsePreliminaryData1978">Howrey 1978</a>)</span> allows
+revision persistence but restricts the gain matrix by imposing
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mrow><mi>e</mi><mo>−</mo><mi>i</mi><mo>,</mo><mn>0</mn></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">G_{e-i,0} = 0</annotation></semantics></math>
 for
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>.</mi><mi>.</mi><mi>.</mi><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">i = 1,...,e-1</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>e</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">i = 1, \dots, e-1</annotation></semantics></math>
 and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mn>0</mn></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">G_{0,0} = 1</annotation></semantics></math>
-results in the Howrey model.</p>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mrow><mn>0</mn><mo>,</mo><mn>0</mn></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">G_{0,0} = 1</annotation></semantics></math>.</li>
+</ul>
+<p>The <code>model</code> argument in <code><a href="../reference/kk_nowcast.html">kk_nowcast()</a></code> selects
+among these specifications: <code>"KK"</code>, <code>"Howrey"</code>,
+and <code>"Classical"</code>.</p>
 </div>
-<div class="section level3">
-<h3 id="state-space-representation">State Space Representation<a class="anchor" aria-label="anchor" href="#state-space-representation"></a>
-</h3>
-<p>Then, armed with estimates of F and K, one can apply the Kalman
-filter to the following state-space model (notation following <span class="citation">Durbin and Koopman (<a href="#ref-durbinTimeSeriesAnalysis2012">2012</a>)</span>)</p>
-<p><strong>1. The Observation Equation</strong>
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Z</mi><msub><mi>α</mi><mi>t</mi></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex"> y_t = Z \alpha_{t} + \varepsilon_t </annotation></semantics></math></p>
-<p>where <span class="math inline">$\varepsilon_t \dist N(0,H)$</span>.
-<span class="citation">Durbin and Koopman (<a href="#ref-durbinTimeSeriesAnalysis2012">2012</a>)</span> assumed that
-both error terms are iid and orthogonal to one another. However, we
-write the model in the form where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ε</mi><mi>t</mi></msub><annotation encoding="application/x-tex">\varepsilon_t</annotation></semantics></math>,
-and therefore also
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>H</mi><annotation encoding="application/x-tex">H</annotation></semantics></math>
-are equal to zero and may be omitted, so this equation becomes</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Z</mi><msub><mi>α</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex"> y_t = Z \alpha_{t} </annotation></semantics></math></p>
-<p><strong>2. The State Equation</strong>
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>α</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mi>T</mi><msub><mi>α</mi><mi>t</mi></msub><mo>+</mo><mi>R</mi><msub><mi>η</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex"> \alpha_{t+1} = T \alpha_{t} + R \eta_{t} </annotation></semantics></math></p>
-<p>where
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>α</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>z</mi><mi>t</mi></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>z</mi><mi>t</mi></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex"> \alpha_t = \begin{bmatrix} z_t \\ y_t - z_t  \end{bmatrix} </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Z</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mi>I</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>I</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex"> Z = \begin{bmatrix} I &amp; I \end{bmatrix} </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mi>F</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>F</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex"> T = \begin{bmatrix} F &amp; 0 \\ 0 &amp; (I-G)F \end{bmatrix} </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo>=</mo><mi>I</mi></mrow><annotation encoding="application/x-tex"> R = I </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ν</mi><mi>t</mi></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ϵ</mi><mi>t</mi></msub><mo>−</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>ν</mi><mi>t</mi></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex"> \eta_t = \begin{bmatrix} \nu_t \\ \epsilon_t - (I-G) \nu_t \end{bmatrix} </annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>Q</mi><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex"> \eta_t \sim N(0, Q) </annotation></semantics></math></p>
-<p>The analyst sees truth and the revisions. Both truth and revisions
-are included in the state vector. Importantly, when calculating the gain
-matrix, the model requires that one allow for the possibility that the
-off-diagonal matrix elements of
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mo>≡</mo><mi>E</mi><mrow><mo stretchy="true" form="prefix">[</mo><msub><mi>η</mi><mi>t</mi></msub><mi>η</mi><msub><mi>′</mi><mi>t</mi></msub><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex">Q \equiv E[\eta_t \eta'_t]</annotation></semantics></math>
-are nonzero. In particular, our model implies that
-<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>ν</mi><mi>t</mi></msub><mi>ν</mi><msub><mi>′</mi><mi>t</mi></msub></mtd><mtd columnalign="center" style="text-align: center"><mo>−</mo><msub><mi>ν</mi><mi>t</mi></msub><mi>ν</mi><msub><mi>′</mi><mi>t</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>′</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mo>−</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>ν</mi><mi>t</mi></msub><mi>ν</mi><msub><mi>′</mi><mi>t</mi></msub></mtd><mtd columnalign="center" style="text-align: center"><msub><mi>ε</mi><mi>t</mi></msub><mi>ε</mi><msub><mi>′</mi><mi>t</mi></msub><mo>+</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>ν</mi><mi>t</mi></msub><mi>ν</mi><msub><mi>′</mi><mi>t</mi></msub><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>′</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow></mrow><annotation encoding="application/x-tex"> Q = \begin{bmatrix} \nu_t \nu'_t &amp; -\nu_t \nu'_t (I-G)'\\ - (I-G) \nu_t \nu'_t &amp; \varepsilon_t \varepsilon'_t + (I-G) \nu_t \nu'_t (I-G)' \end{bmatrix} </annotation></semantics></math></p>
+<div class="section level2">
+<h2 id="durbin-koopman-state-space-form">Durbin-Koopman state-space form<a class="anchor" aria-label="anchor" href="#durbin-koopman-state-space-form"></a>
+</h2>
+<p>To run filtering and smoothing, <code>reviser</code> casts the KK
+system into the standard time-invariant state-space form</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>Z</mi><msub><mi>α</mi><mi>t</mi></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>ε</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>H</mi><mo stretchy="true" form="postfix">)</mo></mrow><mo>,</mo></mrow><annotation encoding="application/x-tex">
+y_t = Z \alpha_t + \varepsilon_t,
+\qquad
+\varepsilon_t \sim N(0, H),
+</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>α</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><mi>T</mi><msub><mi>α</mi><mi>t</mi></msub><mo>+</mo><mi>R</mi><msub><mi>η</mi><mi>t</mi></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>η</mi><mi>t</mi></msub><mo>∼</mo><mi>N</mi><mrow><mo stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><mi>Q</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\alpha_{t+1} = T \alpha_t + R \eta_t,
+\qquad
+\eta_t \sim N(0, Q).
+</annotation></semantics></math></p>
+<p>Define the augmented state as</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>α</mi><mi>t</mi></msub><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>z</mi><mi>t</mi></msub></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><msub><mi>r</mi><mi>t</mi></msub></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>r</mi><mi>t</mi></msub><mo>=</mo><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>z</mi><mi>t</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\alpha_t =
+\begin{bmatrix}
+z_t \\
+r_t
+\end{bmatrix},
+\qquad
+r_t = y_t - z_t.
+</annotation></semantics></math></p>
+<p>With this choice of state vector, the implementation in
+<code>kk_to_ss()</code> uses</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Z</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mi>I</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>I</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><mi>T</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mi>F</mi></mtd><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mn>0</mn></mtd><mtd columnalign="center" style="text-align: center"><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>F</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mo>,</mo><mspace width="2.0em"></mspace><mi>R</mi><mo>=</mo><mi>I</mi><mi>.</mi></mrow><annotation encoding="application/x-tex">
+Z = \begin{bmatrix} I &amp; I \end{bmatrix},
+\qquad
+T =
+\begin{bmatrix}
+F &amp; 0 \\
+0 &amp; (I - G) F
+\end{bmatrix},
+\qquad
+R = I.
+</annotation></semantics></math></p>
+<p>The observation disturbance is set to zero, so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H = 0</annotation></semantics></math>.
+All uncertainty is collected in the state disturbance covariance
+matrix</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mo>=</mo><mrow><mo stretchy="true" form="prefix">[</mo><mtable><mtr><mtd columnalign="center" style="text-align: center"><mi>V</mi></mtd><mtd columnalign="center" style="text-align: center"><mo>−</mo><mi>V</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>′</mi></mtd></mtr><mtr><mtd columnalign="center" style="text-align: center"><mo>−</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>V</mi></mtd><mtd columnalign="center" style="text-align: center"><mi>W</mi><mo>+</mo><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>V</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>I</mi><mo>−</mo><mi>G</mi><mo stretchy="true" form="postfix">)</mo></mrow><mi>′</mi></mtd></mtr></mtable><mo stretchy="true" form="postfix">]</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+Q =
+\begin{bmatrix}
+V &amp; -V (I - G)' \\
+-(I - G) V &amp; W + (I - G) V (I - G)'
+\end{bmatrix}.
+</annotation></semantics></math></p>
+<p>This is exactly the Durbin-Koopman representation used internally by
+<code>reviser</code>: the Kalman filter and smoother operate on
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>Z</mi><mo>,</mo><mi>T</mi><mo>,</mo><mi>R</mi><mo>,</mo><mi>H</mi><mo>,</mo><mi>Q</mi><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(Z, T, R, H, Q)</annotation></semantics></math>,
+while the KK-specific parameters
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="true" form="prefix">(</mo><mi>F</mi><mo>,</mo><mi>G</mi><mo>,</mo><mi>V</mi><mo>,</mo><mi>W</mi><mo stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(F, G, V, W)</annotation></semantics></math>
+remain the economically interpretable layer.</p>
 </div>
-<div class="section level3">
-<h3 id="forecasting">Forecasting<a class="anchor" aria-label="anchor" href="#forecasting"></a>
-</h3>
-<p>Kalman filter forecasts are generated by projecting the estimated
-state vector forward in time using the model’s estimated transition
-equation
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">⟨</mo><mi>T</mi><mo stretchy="false" form="postfix">⟩</mo></mrow><annotation encoding="application/x-tex">\langle T \rangle</annotation></semantics></math>.
-Given the Kalman filter’s state estimate
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">⟨</mo><msub><mi>α</mi><mi>t</mi></msub><msub><mo stretchy="false" form="postfix">⟩</mo><mi>T</mi></msub></mrow><annotation encoding="application/x-tex">\langle \alpha_t \rangle_T</annotation></semantics></math>
-at time
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>T</mi><annotation encoding="application/x-tex">T</annotation></semantics></math>,
-forecasts for future periods
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo>+</mo><mi>i</mi></mrow><annotation encoding="application/x-tex">T+i</annotation></semantics></math>
-are calculated as:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">⟨</mo><msub><mi>α</mi><mrow><mi>T</mi><mo>+</mo><mi>i</mi></mrow></msub><msub><mo stretchy="false" form="postfix">⟩</mo><mi>T</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">⟨</mo><mi>T</mi><msubsup><mo stretchy="false" form="postfix">⟩</mo><mi>T</mi><mi>i</mi></msubsup><mo stretchy="false" form="prefix">⟨</mo><msub><mi>α</mi><mi>T</mi></msub><msub><mo stretchy="false" form="postfix">⟩</mo><mi>T</mi></msub></mrow><annotation encoding="application/x-tex">\langle \alpha_{T+i} \rangle_T = \langle T \rangle_T^i \langle \alpha_T \rangle_T</annotation></semantics></math></p>
+<div class="section level2">
+<h2 id="estimation-in-reviser">Estimation in <code>reviser</code><a class="anchor" aria-label="anchor" href="#estimation-in-reviser"></a>
+</h2>
+<p><code><a href="../reference/kk_nowcast.html">kk_nowcast()</a></code> supports three estimators.</p>
+<ul>
+<li>
+<code>method = "SUR"</code> estimates the original revision
+equations jointly by seemingly unrelated regression using
+<code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code>.</li>
+<li>
+<code>method = "OLS"</code> estimates the equations one by one. This
+is fast, but the cross-equation restrictions are not fully
+efficient.</li>
+<li>
+<code>method = "MLE"</code> estimates the state-space model by
+maximum likelihood using the Kalman filter.</li>
+</ul>
+<p>For applied work, the MLE route is usually the most flexible because
+it supports information criteria, Hessian- or QML-based standard errors,
+and filtered or smoothed states directly from the state-space model.</p>
 </div>
-<div class="section level3">
-<h3 id="nowcasting-using-the-reviser-package">Nowcasting using the <code>reviser</code> package<a class="anchor" aria-label="anchor" href="#nowcasting-using-the-reviser-package"></a>
-</h3>
-<p>As a demonstration, we nowcast the Euro Area GDP using the KK model.
-We use the <code><a href="../reference/gdp.html">reviser::gdp</a></code> dataset, which contains the Euro
-Area GDP data. As a first step we test which release (among the first
-15) is efficient. As final release, we use the value published 4 years
-after the initial value, allowing for a 4-year revision period. It turns
-out that
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>e</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">e=2</annotation></semantics></math>
-meaning that the third release is an efficient estimate of the final
-release.</p>
+<div class="section level2">
+<h2 id="example-euro-area-gdp-revisions">Example: Euro Area GDP revisions<a class="anchor" aria-label="anchor" href="#example-euro-area-gdp-revisions"></a>
+</h2>
+<p>We illustrate the workflow with Euro Area GDP growth from
+<code><a href="../reference/gdp.html">reviser::gdp</a></code>. We first identify an efficient release among
+the first 15 vintages, then estimate the full KK model.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://p-wegmueller.github.io/reviser/">reviser</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lubridate.tidyverse.org" class="external-link">lubridate</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/tsbox/" class="external-link">tsbox</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="st">"EA"</span>,</span>
-<span>      <span class="va">time</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">pub_date</span><span class="op">)</span>,</span>
-<span>      <span class="va">time</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="va">id</span> <span class="op">==</span> <span class="st">"EA"</span>,</span>
+<span>    <span class="va">time</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">pub_date</span><span class="op">)</span>,</span>
+<span>    <span class="va">time</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/drop_na.html" class="external-link">drop_na</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">14</span><span class="op">)</span></span>
-<span></span>
 <span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">efficient_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span></span>
-<span>    <span class="va">df</span>,</span>
-<span>    <span class="va">final_release</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">e</span></span>
-<span></span>
+<span><span class="va">efficient_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">final_release</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">efficient_release</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Efficient release:  2 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -311,52 +348,109 @@ release.</p>
 <span><span class="co">#&gt; 1     70                   </span></span>
 <span><span class="co">#&gt; 2     68  2 2.743 0.07151 .</span></span>
 <span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span></code></pre></div>
-<p>We then use the <code><a href="../reference/kk_nowcast.html">kk_nowcast()</a></code> function to nowcast the
-Euro Area GDP using the KK model. The function requires a
-<code>df</code> with columns <code>time</code>, <code>value</code>,
-<code>release#</code> and <code>final</code>. The function
-<code><a href="../reference/get_first_efficient_release.html">get_first_efficient_release()</a></code> returns a dataset in this
-format.</p>
+<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
+<span></span>
+<span><span class="va">data_kk</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="va">efficient_release</span><span class="op">$</span><span class="va">e</span></span></code></pre></div>
+<p>The selected value of <code>e</code> tells us how many revision
+rounds are needed before a release is statistically close to the final
+benchmark.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nowcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
-<span>    df <span class="op">=</span> <span class="va">data</span>,</span>
-<span>    e <span class="op">=</span> <span class="va">e</span>,</span>
-<span>    model <span class="op">=</span> <span class="st">"KK"</span>,</span>
-<span>    method <span class="op">=</span> <span class="st">"MLE"</span></span>
+<code class="sourceCode R"><span><span class="va">fit_kk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">data_kk</span>,</span>
+<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"KK"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>    maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>    se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
 <span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Estimated parameters</span></span>
-<span><span class="va">nowcast</span><span class="op">$</span><span class="va">params</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_kk</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; === Kishor-Koenig Model ===</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Convergence: Success </span></span>
+<span><span class="co">#&gt; Log-likelihood: 125.7 </span></span>
+<span><span class="co">#&gt; AIC: -231.41 </span></span>
+<span><span class="co">#&gt; BIC: -198.23 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Parameter Estimates:</span></span>
+<span><span class="co">#&gt;  Parameter Estimate Std.Error</span></span>
+<span><span class="co">#&gt;         F0    0.633     0.131</span></span>
+<span><span class="co">#&gt;       G0_0    0.950     0.031</span></span>
+<span><span class="co">#&gt;       G0_1   -0.037     0.152</span></span>
+<span><span class="co">#&gt;       G0_2   -0.181     0.220</span></span>
+<span><span class="co">#&gt;       G1_0   -0.009     0.011</span></span>
+<span><span class="co">#&gt;       G1_1    0.594     0.061</span></span>
+<span><span class="co">#&gt;       G1_2    0.194     0.092</span></span>
+<span><span class="co">#&gt;         v0    0.380     0.068</span></span>
+<span><span class="co">#&gt;       eps0    0.008     0.001</span></span>
+<span><span class="co">#&gt;       eps1    0.001     0.000</span></span></code></pre></div>
+<p>The parameter table reports the estimated transition coefficient
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>F</mi><mn>0</mn></msub><annotation encoding="application/x-tex">F_0</annotation></semantics></math>,
+the gain-matrix elements
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>G</mi><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">G_{i,j}</annotation></semantics></math>,
+and the state and observation variances.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_kk</span><span class="op">$</span><span class="va">params</span></span>
 <span><span class="co">#&gt;    Parameter     Estimate    Std.Error</span></span>
-<span><span class="co">#&gt; 1         F0  0.632965129 0.1313810220</span></span>
-<span><span class="co">#&gt; 2       G0_0  0.950076221 0.0109883048</span></span>
-<span><span class="co">#&gt; 3       G0_1 -0.036659893 0.0915496644</span></span>
-<span><span class="co">#&gt; 4       G0_2 -0.180788245 0.0612311984</span></span>
-<span><span class="co">#&gt; 5       G1_0 -0.008913728 0.0308311086</span></span>
-<span><span class="co">#&gt; 6       G1_1  0.594486477 0.2201158840</span></span>
-<span><span class="co">#&gt; 7       G1_2  0.194005618 0.1517555758</span></span>
-<span><span class="co">#&gt; 8         v0  0.379874535 0.0683792003</span></span>
-<span><span class="co">#&gt; 9       eps0  0.007785909 0.0002435071</span></span>
-<span><span class="co">#&gt; 10      eps1  0.001397110 0.0014196291</span></span>
-<span></span>
-<span><span class="co"># Filtered states</span></span>
-<span><span class="va">filt_states</span> <span class="op">&lt;-</span> <span class="va">nowcast</span><span class="op">$</span><span class="va">states</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">filt_states</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
+<span><span class="co">#&gt; 1         F0  0.632979835 0.1313817784</span></span>
+<span><span class="co">#&gt; 2       G0_0  0.950098244 0.0308323494</span></span>
+<span><span class="co">#&gt; 3       G0_1 -0.036686671 0.1517593622</span></span>
+<span><span class="co">#&gt; 4       G0_2 -0.180711861 0.2201164710</span></span>
+<span><span class="co">#&gt; 5       G1_0 -0.008925158 0.0109885896</span></span>
+<span><span class="co">#&gt; 6       G1_1  0.594482135 0.0612322466</span></span>
+<span><span class="co">#&gt; 7       G1_2  0.194091379 0.0915492332</span></span>
+<span><span class="co">#&gt; 8         v0  0.379854209 0.0683748040</span></span>
+<span><span class="co">#&gt; 9       eps0  0.007786103 0.0014196929</span></span>
+<span><span class="co">#&gt; 10      eps1  0.001397091 0.0002435022</span></span></code></pre></div>
+<p>The <code>states</code> element contains filtered and smoothed
+estimates of the latent state vector in tidy format.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_kk</span><span class="op">$</span><span class="va">states</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">filter</span> <span class="op">==</span> <span class="st">"smoothed"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/slice.html" class="external-link">slice_tail</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 7</span></span></span>
 <span><span class="co">#&gt;   time       state           estimate lower upper filter   sample   </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 2018-10-01 release_2_lag_2    0.414 0.412 0.416 smoothed in_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2019-01-01 release_2_lag_2    0.136 0.134 0.138 smoothed in_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2019-04-01 release_2_lag_2    0.307 0.305 0.309 smoothed in_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2019-07-01 release_2_lag_2    0.441 0.439 0.443 smoothed in_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2019-10-01 release_2_lag_2    0.147 0.146 0.149 smoothed in_sample</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2020-01-01 release_2_lag_2    0.299 0.297 0.301 smoothed in_sample</span></span></code></pre></div>
-<p>Now we can plot the forecast.</p>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> 2018-04-01 release_2_lag_2    0.654 0.652 0.656 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> 2018-07-01 release_2_lag_2    0.370 0.368 0.372 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> 2018-10-01 release_2_lag_2    0.414 0.412 0.416 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> 2019-01-01 release_2_lag_2    0.136 0.134 0.138 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> 2019-04-01 release_2_lag_2    0.307 0.305 0.309 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> 2019-07-01 release_2_lag_2    0.441 0.439 0.443 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> 2019-10-01 release_2_lag_2    0.147 0.146 0.149 smoothed in_sample</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> 2020-01-01 release_2_lag_2    0.299 0.297 0.301 smoothed in_sample</span></span></code></pre></div>
+<p>The default plot method shows the filtered estimate of the efficient
+release and its confidence interval.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit_kk</span><span class="op">)</span></span></code></pre></div>
+<p><img src="nowcasting-revisions-kk_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="700"></p>
 </div>
-<div class="section level3 unnumbered">
-<h3 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h3>
+<div class="section level2">
+<h2 id="other-kk-family-specifications">Other KK-family specifications<a class="anchor" aria-label="anchor" href="#other-kk-family-specifications"></a>
+</h2>
+<p>The same data can be estimated under the nested Howrey and Classical
+restrictions.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_howrey</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">data_kk</span>,</span>
+<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"Howrey"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"MLE"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit_classical</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
+<span>  df <span class="op">=</span> <span class="va">data_kk</span>,</span>
+<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
+<span>  model <span class="op">=</span> <span class="st">"Classical"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"MLE"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Those alternatives are useful when the unrestricted gain matrix of
+the full KK model is too parameter rich for the available sample.</p>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-durbinTimeSeriesAnalysis2012" class="csl-entry">
 Durbin, James, and Siem Jan Koopman. 2012. <em>Time <span>Series
@@ -369,18 +463,11 @@ Howrey, E. Philip. 1978. <span>“The <span>Use</span> of
 Forecasting</span>.”</span> <em>The Review of Economics and
 Statistics</em> 60 (2): 193. <a href="https://doi.org/10.2307/1924972" class="external-link">https://doi.org/10.2307/1924972</a>.
 </div>
-<div id="ref-kishorVAREstimationForecasting2012" class="csl-entry">
-Kishor, N. Kundan, and Evan F. Koenig. 2012. <span>“<span>VAR
-Estimation</span> and <span>Forecasting When Data Are Subject</span> to
-<span>Revision</span>.”</span> <em>Journal of Business and Economic
-Statistics</em>, 1–10. <a href="https://doi.org/10.1198/jbes.2010.08169" class="external-link">https://doi.org/10.1198/jbes.2010.08169</a>.
-</div>
 <div id="ref-strohsalDataRevisionsGerman2020" class="csl-entry">
 Strohsal, Till, and Elias Wolf. 2020. <span>“Data Revisions to
 <span>German</span> National Accounts: <span>Are</span> Initial Releases
 Good Nowcasts?”</span> <em>International Journal of Forecasting</em> 36
 (4): 1252–59. <a href="https://doi.org/10.1016/j.ijforecast.2019.12.006" class="external-link">https://doi.org/10.1016/j.ijforecast.2019.12.006</a>.
-</div>
 </div>
 </div>
 </div>

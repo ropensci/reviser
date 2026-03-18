@@ -3,7 +3,7 @@
 forecasting with state-space models, allowing for multiple vintages of data,
 efficient estimation, and Kalman filtering and smoothing."><meta property="og:description" content="Implements a generalized Kishor-Koenig (KK) model for nowcasting and
 forecasting with state-space models, allowing for multiple vintages of data,
-efficient estimation, and Kalman filtering and smoothing."><meta property="og:image" content="https://p-wegmueller.github.io/reviser/logo.png"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script></head><body>
+efficient estimation, and Kalman filtering and smoothing."><meta property="og:image" content="https://p-wegmueller.github.io/reviser/logo.png"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\\\[', right: '\\\\]', display: true}, {left: '\\\\(', right: '\\\\)', display: false}], throwOnError: false});"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -26,7 +26,7 @@ efficient estimation, and Kalman filtering and smoothing."><meta property="og:im
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/understanding-revisions.html">Understanding Data Revisions</a></li>
     <li><a class="dropdown-item" href="../articles/revision-analysis.html">Revision Patterns and Statistics</a></li>
     <li><a class="dropdown-item" href="../articles/efficient-release.html">Identifying an Efficient Release in Data Subject to Revisions</a></li>
-    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig model</a></li>
+    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig family</a></li>
     <li><a class="dropdown-item" href="../articles/nowcasting-revisions-jvn.html">Nowcasting revisions using the Jacobs-Van Norden model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -77,9 +77,10 @@ efficient estimation, and Kalman filtering and smoothing.</p>
 
 
 <dl><dt id="arg-df">df<a class="anchor" aria-label="anchor" href="#arg-df"></a></dt>
-<dd><p>A data frame containing the time series data in either "long" or
-"wide" format.  It must include columns for the time index and the different
-release vintages.</p></dd>
+<dd><p>A data frame or single-ID vintages object in either long or wide
+format. Long-format vintages data are converted internally. After
+preprocessing, the data must contain a <code>time</code> column and at least <code>e + 1</code>
+releases.</p></dd>
 
 
 <dt id="arg-e">e<a class="anchor" aria-label="anchor" href="#arg-e"></a></dt>
@@ -109,34 +110,55 @@ implies no forecasts. Must be greater than or equal to 0.</p></dd>
 
 
 <dt id="arg-solver-options">solver_options<a class="anchor" aria-label="anchor" href="#arg-solver-options"></a></dt>
-<dd><p>An optional list to control the behaviour of the
-underlying <code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code>, <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">stats::optim()</a></code> and <code><a href="https://rdrr.io/r/stats/nlm.html" class="external-link">stats::nlm()</a></code>
-solvers:</p><ul><li><p><strong>trace</strong>: An integer controlling the level of output for the
-optimization procedure. Default is 0 (minimal output).</p></li>
-<li><p><strong>maxiter</strong>: An integer specifying the maximum number of iterations for
-the optimization procedure. Default is 1000.</p></li>
-<li><p><strong>startvals</strong>: A list of starting values for the optimization
-procedure (must match the number of parameters of the model).</p></li>
-<li><p><strong>solvtol</strong>: Tolerance for detecting linear dependencies in the columns of
-X in the qr function calls (See <code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code>).
-Default is .Machine$double.eps.</p></li>
-<li><p><strong>gradtol</strong>: A a positive scalar giving the tolerance at which the scaled
-gradient is considered close enough to zero to terminate the
-algorithm (See <code><a href="https://rdrr.io/r/stats/nlm.html" class="external-link">stats::nlm()</a></code>). Default is 1e-6.</p></li>
-<li><p><strong>steptol</strong>: A positive scalar providing the minimum allowable relative
-step length (See <code><a href="https://rdrr.io/r/stats/nlm.html" class="external-link">stats::nlm()</a></code>). Default is 1e-6.</p></li>
-<li><p><strong>transform_se</strong>: T/F whether standard errors should be constrained to be
-positive in optimization.</p></li>
-<li><p><strong>method</strong>: String specifying optimization method (default = "L-BFGS-B").</p></li>
-<li><p><strong>se_method</strong>: Method for standard error calculation (default = "hessian")</p></li>
-<li><p><strong>n_starts</strong>: Number of random starting points for multi-start optimization</p></li>
-</ul></dd>
+<dd><p>A named list controlling the SUR and MLE routines.
+Valid names are <code>trace</code>, <code>maxiter</code>, <code>startvals</code>, <code>solvtol</code>, <code>gradtol</code>,
+<code>steptol</code>, <code>transform_se</code>, <code>method</code>, <code>se_method</code>, <code>n_starts</code>, <code>seed</code>,
+<code>return_states</code>, <code>qml_eps</code>, <code>qml_score_method</code>, <code>qml_scale</code>,
+<code>sigma_lower</code>, <code>sigma_upper</code>, and <code>ic_n</code>. Supported entries are:</p><ul><li><p><code>trace</code>: integer controlling console output.</p></li>
+<li><p><code>maxiter</code>: maximum number of optimizer iterations.</p></li>
+<li><p><code>startvals</code>: optional numeric vector of starting values. Unnamed
+vectors are interpreted in the canonical internal order returned by
+<code>kk_matrices(e, model, type = "character")$params</code>. Named vectors are
+reordered to that same canonical order.</p></li>
+<li><p><code>solvtol</code>: tolerance passed to <code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code> in the
+SUR estimator.</p></li>
+<li><p><code>gradtol</code>: gradient tolerance passed to <code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code>
+in the SUR estimator.</p></li>
+<li><p><code>steptol</code>: step-length tolerance passed to
+<code><a href="https://rdrr.io/pkg/systemfit/man/nlsystemfit.html" class="external-link">systemfit::nlsystemfit()</a></code> in the SUR estimator.</p></li>
+<li><p><code>transform_se</code>: logical; whether variance parameters are optimized
+on the log scale in MLE.</p></li>
+<li><p><code>method</code>: optimization method for MLE; one of <code>"L-BFGS-B"</code>,
+<code>"BFGS"</code>, <code>"Nelder-Mead"</code>, <code>"nlminb"</code>, or <code>"two-step"</code>.</p></li>
+<li><p><code>se_method</code>: standard-error method for MLE; one of <code>"hessian"</code>,
+<code>"qml"</code>, or <code>"none"</code>.</p></li>
+<li><p><code>n_starts</code>: number of random starting points used by the MLE
+multi-start routine.</p></li>
+<li><p><code>seed</code>: optional random seed used for the MLE multi-start
+perturbations.</p></li>
+<li><p><code>return_states</code>: logical; whether filtered and smoothed states and
+the fitted KFAS model should be returned.</p></li>
+<li><p><code>qml_eps</code>: finite-difference step size used in QML covariance
+estimation.</p></li>
+<li><p><code>qml_score_method</code>: score approximation method; <code>"forward"</code> or
+<code>"central"</code>.</p></li>
+<li><p><code>qml_scale</code>: scaling convention for the QML covariance; <code>"sum"</code>,
+<code>"mean"</code>, or <code>"hc"</code>.</p></li>
+<li><p><code>sigma_lower</code>: lower bound for variance parameters on the natural
+scale when <code>transform_se = TRUE</code>.</p></li>
+<li><p><code>sigma_upper</code>: upper bound for variance parameters on the natural
+scale when <code>transform_se = TRUE</code>.</p></li>
+<li><p><code>ic_n</code>: sample-size convention used for BIC; <code>"T"</code> or <code>"Tp"</code>.</p></li>
+</ul><p>For backward compatibility, the legacy aliases <code>score_method</code> and
+<code>score_eps</code> are also accepted and mapped to <code>qml_score_method</code> and
+<code>qml_eps</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list with the following components:</p><dl><dt>states</dt>
-<dd><p>A tibble containing filtered and smoothed state estimates.</p></dd>
+<dd><p>A tibble containing filtered and smoothed state estimates. If
+<code>solver_options$return_states = FALSE</code>, this is <code>NULL</code>.</p></dd>
 
 <dt>kk_model_mat</dt>
 <dd><p>A list of KK model matrices, such as transition
@@ -147,22 +169,23 @@ and observation matrices.</p></dd>
 from the KK model.</p></dd>
 
 <dt>model</dt>
-<dd><p>The KFAS state-space model object.</p></dd>
+<dd><p>The fitted <code><a href="https://rdrr.io/pkg/KFAS/man/SSModel.html" class="external-link">KFAS::SSModel</a></code> object. If
+<code>solver_options$return_states = FALSE</code>, this is <code>NULL</code>.</p></dd>
 
 <dt>params</dt>
 <dd><p>Estimated model parameters with standard errors.</p></dd>
 
 <dt>fit</dt>
-<dd><p>The fitted model object from the estimation procedure.</p></dd>
+<dd><p>The raw fit object returned by the selected estimator.</p></dd>
 
 <dt>loglik</dt>
-<dd><p>Log-likelihood value (MLE only).</p></dd>
+<dd><p>Log-likelihood value for MLE fits; otherwise <code>NULL</code>.</p></dd>
 
 <dt>aic</dt>
-<dd><p>Akaike Information Criterion (MLE only).</p></dd>
+<dd><p>Akaike information criterion for MLE fits; otherwise <code>NULL</code>.</p></dd>
 
 <dt>bic</dt>
-<dd><p>Bayesian Information Criterion (MLE only).</p></dd>
+<dd><p>Bayesian information criterion for MLE fits; otherwise <code>NULL</code>.</p></dd>
 
 <dt>convergence</dt>
 <dd><p>Convergence status.</p></dd>
@@ -171,7 +194,14 @@ from the KK model.</p></dd>
 <dd><p>The number of the efficient release (0-indexed).</p></dd>
 
 <dt>data</dt>
-<dd><p>The input data in wide format.</p></dd>
+<dd><p>The input data after preprocessing to wide format.</p></dd>
+
+<dt>se_method</dt>
+<dd><p>The standard-error method used by MLE; otherwise <code>NULL</code>.</p></dd>
+
+<dt>cov</dt>
+<dd><p>Estimated covariance matrix of the parameter estimates, if
+available; otherwise <code>NULL</code>.</p></dd>
 
 
 </dl></div>

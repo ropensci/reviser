@@ -18,7 +18,8 @@ plot(x, state = "true_lag_0", type = "filtered", ...)
 
 - state:
 
-  Character scalar giving the state to visualize.
+  Character scalar giving the state to visualize. Defaults to
+  `"true_lag_0"`.
 
 - type:
 
@@ -32,6 +33,11 @@ plot(x, state = "true_lag_0", type = "filtered", ...)
 ## Value
 
 A `ggplot2` object.
+
+## Details
+
+This method requires `x$states` to be available. If the model was fitted
+with `solver_options$return_states = FALSE`, plotting is not possible.
 
 ## See also
 

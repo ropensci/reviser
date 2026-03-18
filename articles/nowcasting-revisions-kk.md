@@ -1,186 +1,172 @@
-# Nowcasting revisions using the generalized Kishor-Koenig model
+# Nowcasting revisions using the generalized Kishor-Koenig family
 
-Having some evidence that the revisions are predictable, we can now move
-to the next step: **nowcasting**. Nowcasting refers to the process of
-estimating the current state of the economy using timely indicators. In
-the context of revisions, nowcasting involves predicting the final (or
-efficient) value of an economic variable before all revisions are
-available. This vignette demonstrates how to implement a nowcasting
-model using the generalized Kishor-Koenig (KK) framework ([Kishor and
-Koenig 2012](#ref-kishorVAREstimationForecasting2012)).
+This vignette describes the generalized Kishor-Koenig (KK) revision
+model and its nested variants as implemented in
+[`reviser::kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md).
+The exposition uses the same Durbin-Koopman state-space notation that
+appears throughout the package documentation: observation matrices are
+denoted by $Z$, transition matrices by $T$, shock-loading matrices by
+$R$, and disturbance covariance matrices by $H$ and $Q$([Durbin and
+Koopman 2012](#ref-durbinTimeSeriesAnalysis2012)).
 
-## The Generalized Kishor-Koenig Model
+The motivation is straightforward. Early releases of macroeconomic
+series are often revised several times before they settle near a stable
+value. Rather than ignoring that revision process, the KK family models
+the vector of releases directly and uses the Kalman filter to infer the
+latent efficient estimate.
 
-The KK model extends the traditional Vector Autoregression (VAR)
-framework to account for data revisions explicitly. Unlike conventional
-models that treat data as final and accurate, the KK model recognizes
-that initial releases are subject to revisions, leading to biased and
-inefficient forecasts. By incorporating the revision process into a
-state-space framework, the KK model provides a reliable approach to
-nowcasting economic variables. Moreover, it nests several nowcasting
-models, such as the classical textbook measurement error model or the
-Howrey ([1978](#ref-howreyUsePreliminaryData1978)) model.
+## Revision system
 
-The procedure is based on the assumption that there exists an efficient
-estimate $y_{t}^{e}$ of the final release that becomes available $e$
-periods after the initial release $y_{t}^{0}$. We show in vignette
-[Efficient Release
-Identification](https://p-wegmueller.github.io/reviser/articles/efficient-release.md)
-how the number of the efficient release can be empirically tested. We
-follow Strohsal and Wolf ([2020](#ref-strohsalDataRevisionsGerman2020))
-and assume that $e$th revision data follows an autoregressive model of
-order one (AR(1)). The KK model is represented by the following
-equations:
+Suppose that an efficient estimate becomes available after $e$
+revisions. Let $y_{t}^{j}$ denote the $j$-th release for reference
+period $t$, where $j = 0,\ldots,e$. Following Strohsal and Wolf
+([2020](#ref-strohsalDataRevisionsGerman2020)), stack the efficient
+estimates and the observed real-time releases as
 
-**1. The State Equation** $$z_{t} = Fz_{t - 1} + \nu_{t}$$
+$$z_{t} = \begin{bmatrix}
+y_{t - e}^{e} \\
+y_{t - e + 1}^{e} \\
+\vdots \\
+y_{t}^{e}
+\end{bmatrix},\qquad y_{t} = \begin{bmatrix}
+y_{t - e}^{e} \\
+y_{t - e + 1}^{e - 1} \\
+\vdots \\
+y_{t}^{0}
+\end{bmatrix}.$$
 
-**2. The Observation Equation**
-$$y_{t} = (I - G)Fy_{t - 1} + Gz_{t} + \epsilon_{t}$$
+The generalized KK model is
 
-where $$z\prime_{t} = \begin{bmatrix}
-{y_{t - e}^{e},y_{t - e + 1}^{e},...,y_{t}^{e}}
-\end{bmatrix}\prime$$$$y\prime_{t} = \begin{bmatrix}
-{y_{t - e}^{e},y_{t - e + 1}^{e - 1},...,y_{t}^{0}}
-\end{bmatrix}\prime$$$$\nu\prime_{t} = \begin{bmatrix}
-{0,0,...,\nu_{0,t}}
-\end{bmatrix}\prime$$$$\epsilon\prime_{t} = \begin{bmatrix}
-{0,\epsilon_{e - 1,t},...,\epsilon_{1,t},\epsilon_{0,t}}
-\end{bmatrix}\prime$$$$F = \begin{bmatrix}
-0 & 1 & 0 & \ldots & 0 \\
-0 & 0 & 1 & \ldots & 0 \\
+$$z_{t} = Fz_{t - 1} + \nu_{t},\qquad\nu_{t} \sim N(0,V),$$
+
+$$y_{t} = (I - G)Fy_{t - 1} + Gz_{t} + \epsilon_{t},\qquad\epsilon_{t} \sim N(0,W).$$
+
+The companion-form transition matrix is
+
+$$F = \begin{bmatrix}
+0 & 1 & 0 & \cdots & 0 \\
+0 & 0 & 1 & \cdots & 0 \\
 \vdots & \vdots & \vdots & \ddots & \vdots \\
-0 & 0 & 0 & \ldots & 1 \\
-0 & 0 & 0 & \ldots & F_{0}
-\end{bmatrix}$$$$G = \begin{bmatrix}
-1 & 0 & \ldots & 0 \\
-G_{e - 1,e} & G_{e - 1,e - 1} & \ldots & G_{e - 1,0} \\
-G_{e - 2,e} & G_{e - 2,e - 1} & \ldots & G_{e - 2,0} \\
+0 & 0 & 0 & \cdots & 1 \\
+0 & 0 & 0 & \cdots & F_{0}
+\end{bmatrix},$$
+
+and the gain matrix is
+
+$$G = \begin{bmatrix}
+1 & 0 & \cdots & 0 \\
+G_{e - 1,e} & G_{e - 1,e - 1} & \cdots & G_{e - 1,0} \\
+G_{e - 2,e} & G_{e - 2,e - 1} & \cdots & G_{e - 2,0} \\
 \vdots & \vdots & \ddots & \vdots \\
-G_{0,e} & G_{0,e - 1} & \ldots & G_{0,0}
-\end{bmatrix}$$$G$ is a gain matrix capturing the weight placed on new
-information, $F$ determines the AR coefficient, and $\nu_{t}$ and
-$\epsilon_{t}$ are error vectors. The state-equation and
-observation-equation error vectors are assumed to be uncorrelated with
-one another at all leads and lags, and to be serially uncorrelated.
+G_{0,e} & G_{0,e - 1} & \cdots & G_{0,0}
+\end{bmatrix}.$$
 
-Because $\nu_{t}$ and $\epsilon_{t}$ are serially uncorrelated, and
-uncorrelated with one another at all leads and lags, estimation of the
-model equations is unproblematic apart from the crossequation
-restrictions on $F$. Therefore, it is recommended to estimate this
-system using seemingly unrelated regression (SUR). The SUR estimation is
-based on the \[systemfit::nlsystemfit()\] function. The parameter space
-of the KK model increases exponentially with the number of the efficient
-release. This leads to long computation times and potential convergence
-issues. As a fast, but potentially biased alternative, the package also
-allows to estimate the models parameters equation by equation using
-ordinary least squares (OLS).
+Intuitively, $F$ governs the dynamics of the efficient estimate, while
+$G$ controls how quickly incoming releases absorb new information. The
+covariance matrices $V$ and $W$ describe uncertainty in the latent
+efficient estimate and the published releases, respectively.
 
-### Howrey and Classical Measurement Error Model
+## Nested models
 
-It is easy to see that the KK model nests the classical measurement
-error model and the Howrey ([1978](#ref-howreyUsePreliminaryData1978))
-model. measurement error model treats published data ($y_{t}$) as a
-noisy measure of the true economic variable ($z_{t}$), where
-$y_{t} = z_{t} + \eta_{t}$. It addresses uncertainty in interpreting
-recent data by optimally updating forecasts, considering both potential
-economic shocks and measurement errors. This model is obtained by
-setting $G = I$.
+The generalized KK setup nests two useful special cases.
 
-As an extension to the classical measurement error mode, Howrey
-([1978](#ref-howreyUsePreliminaryData1978)) proposed a model that allows
-the revisions to be autocorrelated. Setting the entries
-$G_{e - i,0} = 0$ for $i = 1,...,e - 1$ and $G_{0,0} = 1$ results in the
-Howrey model.
+- The **Classical measurement-error model** is obtained by setting
+  $G = I$. In that case, published data are noisy measurements of the
+  latent efficient estimate, with no revision persistence beyond the
+  state dynamics.
+- The **Howrey model** ([Howrey
+  1978](#ref-howreyUsePreliminaryData1978)) allows revision persistence
+  but restricts the gain matrix by imposing $G_{e - i,0} = 0$ for
+  $i = 1,\ldots,e - 1$ and $G_{0,0} = 1$.
 
-### State Space Representation
+The `model` argument in
+[`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md)
+selects among these specifications: `"KK"`, `"Howrey"`, and
+`"Classical"`.
 
-Then, armed with estimates of F and K, one can apply the Kalman filter
-to the following state-space model (notation following Durbin and
-Koopman ([2012](#ref-durbinTimeSeriesAnalysis2012)))
+## Durbin-Koopman state-space form
 
-**1. The Observation Equation**
-$$y_{t} = Z\alpha_{t} + \varepsilon_{t}$$
+To run filtering and smoothing, `reviser` casts the KK system into the
+standard time-invariant state-space form
 
-where \$\varepsilon_t \dist N(0,H)\$. Durbin and Koopman
-([2012](#ref-durbinTimeSeriesAnalysis2012)) assumed that both error
-terms are iid and orthogonal to one another. However, we write the model
-in the form where $\varepsilon_{t}$, and therefore also $H$ are equal to
-zero and may be omitted, so this equation becomes
+$$y_{t} = Z\alpha_{t} + \varepsilon_{t},\qquad\varepsilon_{t} \sim N(0,H),$$
 
-$$y_{t} = Z\alpha_{t}$$
+$$\alpha_{t + 1} = T\alpha_{t} + R\eta_{t},\qquad\eta_{t} \sim N(0,Q).$$
 
-**2. The State Equation** $$\alpha_{t + 1} = T\alpha_{t} + R\eta_{t}$$
+Define the augmented state as
 
-where $$\alpha_{t} = \begin{bmatrix}
+$$\alpha_{t} = \begin{bmatrix}
 z_{t} \\
-{y_{t} - z_{t}}
-\end{bmatrix}$$$$Z = \begin{bmatrix}
+r_{t}
+\end{bmatrix},\qquad r_{t} = y_{t} - z_{t}.$$
+
+With this choice of state vector, the implementation in `kk_to_ss()`
+uses
+
+$$Z = \begin{bmatrix}
 I & I
-\end{bmatrix}$$$$T = \begin{bmatrix}
+\end{bmatrix},\qquad T = \begin{bmatrix}
 F & 0 \\
 0 & {(I - G)F}
-\end{bmatrix}$$$$R = I$$$$\eta_{t} = \begin{bmatrix}
-\nu_{t} \\
-{\epsilon_{t} - (I - G)\nu_{t}}
-\end{bmatrix}$$$$\eta_{t} \sim N(0,Q)$$
+\end{bmatrix},\qquad R = I.$$
 
-The analyst sees truth and the revisions. Both truth and revisions are
-included in the state vector. Importantly, when calculating the gain
-matrix, the model requires that one allow for the possibility that the
-off-diagonal matrix elements of
-$Q \equiv E\left\lbrack \eta_{t}\eta\prime_{t} \right\rbrack$ are
-nonzero. In particular, our model implies that $$Q = \begin{bmatrix}
-{\nu_{t}\nu\prime_{t}} & {- \nu_{t}\nu\prime_{t}(I - G)\prime} \\
-{- (I - G)\nu_{t}\nu\prime_{t}} & {\varepsilon_{t}\varepsilon\prime_{t} + (I - G)\nu_{t}\nu\prime_{t}(I - G)\prime}
-\end{bmatrix}$$
+The observation disturbance is set to zero, so $H = 0$. All uncertainty
+is collected in the state disturbance covariance matrix
 
-### Forecasting
+$$Q = \begin{bmatrix}
+V & {- V(I - G)\prime} \\
+{- (I - G)V} & {W + (I - G)V(I - G)\prime}
+\end{bmatrix}.$$
 
-Kalman filter forecasts are generated by projecting the estimated state
-vector forward in time using the model’s estimated transition equation
-$\langle T\rangle$. Given the Kalman filter’s state estimate
-$\langle\alpha_{t}\rangle_{T}$ at time $T$, forecasts for future periods
-$T + i$ are calculated as:
+This is exactly the Durbin-Koopman representation used internally by
+`reviser`: the Kalman filter and smoother operate on $(Z,T,R,H,Q)$,
+while the KK-specific parameters $(F,G,V,W)$ remain the economically
+interpretable layer.
 
-$$\langle\alpha_{T + i}\rangle_{T} = \langle T\rangle_{T}^{i}\langle\alpha_{T}\rangle_{T}$$
+## Estimation in `reviser`
 
-### Nowcasting using the `reviser` package
+[`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md)
+supports three estimators.
 
-As a demonstration, we nowcast the Euro Area GDP using the KK model. We
-use the
-[`reviser::gdp`](https://p-wegmueller.github.io/reviser/reference/gdp.md)
-dataset, which contains the Euro Area GDP data. As a first step we test
-which release (among the first 15) is efficient. As final release, we
-use the value published 4 years after the initial value, allowing for a
-4-year revision period. It turns out that $e = 2$ meaning that the third
-release is an efficient estimate of the final release.
+- `method = "SUR"` estimates the original revision equations jointly by
+  seemingly unrelated regression using
+  [`systemfit::nlsystemfit()`](https://rdrr.io/pkg/systemfit/man/nlsystemfit.html).
+- `method = "OLS"` estimates the equations one by one. This is fast, but
+  the cross-equation restrictions are not fully efficient.
+- `method = "MLE"` estimates the state-space model by maximum likelihood
+  using the Kalman filter.
+
+For applied work, the MLE route is usually the most flexible because it
+supports information criteria, Hessian- or QML-based standard errors,
+and filtered or smoothed states directly from the state-space model.
+
+## Example: Euro Area GDP revisions
+
+We illustrate the workflow with Euro Area GDP growth from
+[`reviser::gdp`](https://p-wegmueller.github.io/reviser/reference/gdp.md).
+We first identify an efficient release among the first 15 vintages, then
+estimate the full KK model.
 
 ``` r
 library(reviser)
-library(magrittr)
 library(dplyr)
-library(lubridate)
+library(magrittr)
+library(tidyr)
+library(tsbox)
 
 gdp <- reviser::gdp %>%
   tsbox::ts_pc() %>%
-    dplyr::filter(id == "EA",
-      time >= min(pub_date),
-      time <= as.Date("2020-01-01")
+  dplyr::filter(
+    id == "EA",
+    time >= min(pub_date),
+    time <= as.Date("2020-01-01")
   ) %>%
   tidyr::drop_na()
 
 df <- get_nth_release(gdp, n = 0:14)
-
 final_release <- get_nth_release(gdp, n = 15)
 
-efficient_release <- get_first_efficient_release(
-    df,
-    final_release
-  )
-
-data <- efficient_release$data
-e <- efficient_release$e
-
+efficient_release <- get_first_efficient_release(df, final_release)
 summary(efficient_release)
 #> Efficient release:  2 
 #> 
@@ -221,55 +207,121 @@ summary(efficient_release)
 #> 2     68  2 2.743 0.07151 .
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+data_kk <- efficient_release$data
+e <- efficient_release$e
 ```
 
-We then use the
-[`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md)
-function to nowcast the Euro Area GDP using the KK model. The function
-requires a `df` with columns `time`, `value`, `release#` and `final`.
-The function
-[`get_first_efficient_release()`](https://p-wegmueller.github.io/reviser/reference/get_first_efficient_release.md)
-returns a dataset in this format.
+The selected value of `e` tells us how many revision rounds are needed
+before a release is statistically close to the final benchmark.
 
 ``` r
-nowcast <- kk_nowcast(
-    df = data,
-    e = e,
-    model = "KK",
-    method = "MLE"
+fit_kk <- kk_nowcast(
+  df = data_kk,
+  e = e,
+  model = "KK",
+  method = "MLE",
+  solver_options = list(
+    method = "L-BFGS-B",
+    maxiter = 100,
+    se_method = "hessian"
   )
+)
 
-# Estimated parameters
-nowcast$params
-#>    Parameter     Estimate    Std.Error
-#> 1         F0  0.632965129 0.1313810220
-#> 2       G0_0  0.950076221 0.0109883048
-#> 3       G0_1 -0.036659893 0.0915496644
-#> 4       G0_2 -0.180788245 0.0612311984
-#> 5       G1_0 -0.008913728 0.0308311086
-#> 6       G1_1  0.594486477 0.2201158840
-#> 7       G1_2  0.194005618 0.1517555758
-#> 8         v0  0.379874535 0.0683792003
-#> 9       eps0  0.007785909 0.0002435071
-#> 10      eps1  0.001397110 0.0014196291
-
-# Filtered states
-filt_states <- nowcast$states
-tail(filt_states)
-#> # A tibble: 6 × 7
-#>   time       state           estimate lower upper filter   sample   
-#>   <date>     <chr>              <dbl> <dbl> <dbl> <chr>    <chr>    
-#> 1 2018-10-01 release_2_lag_2    0.414 0.412 0.416 smoothed in_sample
-#> 2 2019-01-01 release_2_lag_2    0.136 0.134 0.138 smoothed in_sample
-#> 3 2019-04-01 release_2_lag_2    0.307 0.305 0.309 smoothed in_sample
-#> 4 2019-07-01 release_2_lag_2    0.441 0.439 0.443 smoothed in_sample
-#> 5 2019-10-01 release_2_lag_2    0.147 0.146 0.149 smoothed in_sample
-#> 6 2020-01-01 release_2_lag_2    0.299 0.297 0.301 smoothed in_sample
+summary(fit_kk)
+#> 
+#> === Kishor-Koenig Model ===
+#> 
+#> Convergence: Success 
+#> Log-likelihood: 125.7 
+#> AIC: -231.41 
+#> BIC: -198.23 
+#> 
+#> Parameter Estimates:
+#>  Parameter Estimate Std.Error
+#>         F0    0.633     0.131
+#>       G0_0    0.950     0.031
+#>       G0_1   -0.037     0.152
+#>       G0_2   -0.181     0.220
+#>       G1_0   -0.009     0.011
+#>       G1_1    0.594     0.061
+#>       G1_2    0.194     0.092
+#>         v0    0.380     0.068
+#>       eps0    0.008     0.001
+#>       eps1    0.001     0.000
 ```
 
-Now we can plot the forecast.
+The parameter table reports the estimated transition coefficient
+$F_{0}$, the gain-matrix elements $G_{i,j}$, and the state and
+observation variances.
 
-### References
+``` r
+fit_kk$params
+#>    Parameter     Estimate    Std.Error
+#> 1         F0  0.632979835 0.1313817784
+#> 2       G0_0  0.950098244 0.0308323494
+#> 3       G0_1 -0.036686671 0.1517593622
+#> 4       G0_2 -0.180711861 0.2201164710
+#> 5       G1_0 -0.008925158 0.0109885896
+#> 6       G1_1  0.594482135 0.0612322466
+#> 7       G1_2  0.194091379 0.0915492332
+#> 8         v0  0.379854209 0.0683748040
+#> 9       eps0  0.007786103 0.0014196929
+#> 10      eps1  0.001397091 0.0002435022
+```
+
+The `states` element contains filtered and smoothed estimates of the
+latent state vector in tidy format.
+
+``` r
+fit_kk$states %>%
+  dplyr::filter(filter == "smoothed") %>%
+  dplyr::slice_tail(n = 8)
+#> # A tibble: 8 × 7
+#>   time       state           estimate lower upper filter   sample   
+#>   <date>     <chr>              <dbl> <dbl> <dbl> <chr>    <chr>    
+#> 1 2018-04-01 release_2_lag_2    0.654 0.652 0.656 smoothed in_sample
+#> 2 2018-07-01 release_2_lag_2    0.370 0.368 0.372 smoothed in_sample
+#> 3 2018-10-01 release_2_lag_2    0.414 0.412 0.416 smoothed in_sample
+#> 4 2019-01-01 release_2_lag_2    0.136 0.134 0.138 smoothed in_sample
+#> 5 2019-04-01 release_2_lag_2    0.307 0.305 0.309 smoothed in_sample
+#> 6 2019-07-01 release_2_lag_2    0.441 0.439 0.443 smoothed in_sample
+#> 7 2019-10-01 release_2_lag_2    0.147 0.146 0.149 smoothed in_sample
+#> 8 2020-01-01 release_2_lag_2    0.299 0.297 0.301 smoothed in_sample
+```
+
+The default plot method shows the filtered estimate of the efficient
+release and its confidence interval.
+
+``` r
+plot(fit_kk)
+```
+
+![](nowcasting-revisions-kk_files/figure-html/unnamed-chunk-6-1.png)
+
+## Other KK-family specifications
+
+The same data can be estimated under the nested Howrey and Classical
+restrictions.
+
+``` r
+fit_howrey <- kk_nowcast(
+  df = data_kk,
+  e = e,
+  model = "Howrey",
+  method = "MLE"
+)
+
+fit_classical <- kk_nowcast(
+  df = data_kk,
+  e = e,
+  model = "Classical",
+  method = "MLE"
+)
+```
+
+Those alternatives are useful when the unrestricted gain matrix of the
+full KK model is too parameter rich for the available sample.
 
 Durbin, James, and Siem Jan Koopman. 2012. *Time Series Analysis by
 State Space Methods: Second Edition*. Oxford University Press.
@@ -278,10 +330,6 @@ State Space Methods: Second Edition*. Oxford University Press.
 Howrey, E. Philip. 1978. “The Use of Preliminary Data in Econometric
 Forecasting.” *The Review of Economics and Statistics* 60 (2): 193.
 <https://doi.org/10.2307/1924972>.
-
-Kishor, N. Kundan, and Evan F. Koenig. 2012. “VAR Estimation and
-Forecasting When Data Are Subject to Revision.” *Journal of Business and
-Economic Statistics*, 1–10. <https://doi.org/10.1198/jbes.2010.08169>.
 
 Strohsal, Till, and Elias Wolf. 2020. “Data Revisions to German National
 Accounts: Are Initial Releases Good Nowcasts?” *International Journal of

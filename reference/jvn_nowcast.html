@@ -3,7 +3,7 @@
 data revisions, allowing for news and noise components and optional
 spillovers."><meta property="og:description" content="Estimate the Jacobs and Van Norden (2011) state-space model for real-time
 data revisions, allowing for news and noise components and optional
-spillovers."><meta property="og:image" content="https://p-wegmueller.github.io/reviser/logo.png"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script></head><body>
+spillovers."><meta property="og:image" content="https://p-wegmueller.github.io/reviser/logo.png"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '\\\\[', right: '\\\\]', display: true}, {left: '\\\\(', right: '\\\\)', display: false}], throwOnError: false});"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -26,7 +26,7 @@ spillovers."><meta property="og:image" content="https://p-wegmueller.github.io/r
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/understanding-revisions.html">Understanding Data Revisions</a></li>
     <li><a class="dropdown-item" href="../articles/revision-analysis.html">Revision Patterns and Statistics</a></li>
     <li><a class="dropdown-item" href="../articles/efficient-release.html">Identifying an Efficient Release in Data Subject to Revisions</a></li>
-    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig model</a></li>
+    <li><a class="dropdown-item" href="../articles/nowcasting-revisions-kk.html">Nowcasting revisions using the generalized Kishor-Koenig family</a></li>
     <li><a class="dropdown-item" href="../articles/nowcasting-revisions-jvn.html">Nowcasting revisions using the Jacobs-Van Norden model</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><a class="dropdown-item" href="../articles/index.html">More articles...</a></li>
@@ -83,9 +83,10 @@ spillovers.</p>
 
 
 <dl><dt id="arg-df">df<a class="anchor" aria-label="anchor" href="#arg-df"></a></dt>
-<dd><p>A matrix, data frame, or single-ID vintages object. Each vintage
-must be stored in a separate column. If <code>df</code> is a matrix, a synthetic
-<code>time</code> index is created.</p></dd>
+<dd><p>A matrix, data frame, or single-ID vintages object. Wide data
+should store one vintage per column. Long-format vintages data are also
+accepted and are converted internally. If <code>df</code> is a matrix, or a data
+frame without a <code>time</code> column, a synthetic <code>time</code> index is created.</p></dd>
 
 
 <dt id="arg-e">e<a class="anchor" aria-label="anchor" href="#arg-e"></a></dt>
@@ -153,7 +154,12 @@ Supported entries are:</p><ul><li><p><code>trace</code>: integer controlling con
 <li><p><code>maxiter</code>: maximum number of optimizer iterations.</p></li>
 <li><p><code>transform_se</code>: logical; whether standard deviation parameters are
 optimized on the log scale.</p></li>
-<li><p><code>startvals</code>: optional numeric vector of starting values.</p></li>
+<li><p><code>startvals</code>: optional numeric vector of starting values. The vector
+must have length equal to the number of estimated parameters and must
+follow the internal parameter order used by <code>jvn_param_table()</code>: AR
+coefficients <code>rho_*</code>, <code>sigma_e</code>, optional <code>sigma_nu_*</code>, optional
+<code>sigma_zeta_*</code>, and optional spillover parameters <code>T_nu_*</code> and
+<code>T_zeta_*</code>.</p></li>
 <li><p><code>se_method</code>: standard-error method; one of <code>"hessian"</code>, <code>"qml"</code>,
 or <code>"none"</code>.</p></li>
 <li><p><code>n_starts</code>: number of random starting points for multi-start
@@ -176,7 +182,9 @@ stage; <code>"stationary"</code> or <code>"diffuse"</code>. This affects state e
 not the custom likelihood engine.</p></li>
 <li><p><code>ic_n</code>: sample-size convention used for BIC; <code>"T"</code> for the paper
 convention or <code>"Tp"</code> for <code>T * n_vint</code>.</p></li>
-</ul></dd>
+</ul><p>For backward compatibility, the legacy aliases <code>score_method</code> and
+<code>score_eps</code> are also accepted and mapped to <code>qml_score_method</code> and
+<code>qml_eps</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -193,7 +201,8 @@ convention or <code>"Tp"</code> for <code>T * n_vint</code>.</p></li>
 <dd><p>A data frame of parameter estimates and standard errors.</p></dd>
 
 <dt>fit</dt>
-<dd><p>The raw optimizer output.</p></dd>
+<dd><p>The raw optimizer output returned by the selected numerical
+optimizer.</p></dd>
 
 <dt>loglik</dt>
 <dd><p>The maximized log-likelihood.</p></dd>
@@ -274,7 +283,7 @@ of Econometrics</em>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     Parameter Estimate Std.Error</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         rho_1    0.900     0.278</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         rho_2   -0.236     0.234</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       sigma_e    0.001     0.540</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       sigma_e    0.001     0.497</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    sigma_nu_1    0.070     0.006</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    sigma_nu_2    0.052     0.004</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    sigma_nu_3    0.001     0.036</span>

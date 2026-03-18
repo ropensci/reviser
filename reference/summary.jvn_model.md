@@ -69,7 +69,7 @@ summary(result)
 #>     Parameter Estimate Std.Error
 #>         rho_1    0.900     0.278
 #>         rho_2   -0.236     0.234
-#>       sigma_e    0.001     0.540
+#>       sigma_e    0.001     0.497
 #>    sigma_nu_1    0.070     0.006
 #>    sigma_nu_2    0.052     0.004
 #>    sigma_nu_3    0.001     0.036

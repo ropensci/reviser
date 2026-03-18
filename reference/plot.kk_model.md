@@ -1,6 +1,7 @@
 # Plot Kishor-Koenig Model Results
 
-Plot Kishor-Koenig Model Results
+Plot filtered or smoothed estimates for a selected state from a fitted
+`kk_model`.
 
 ## Usage
 
@@ -13,23 +14,30 @@ plot(x, state = NULL, type = "filtered", ...)
 
 - x:
 
-  An object of class 'kk_model'
+  An object of class `kk_model`.
 
 - state:
 
-  String. The name of the state to visualize.
+  Character scalar giving the state to visualize. If `NULL`, the first
+  available state is used.
 
 - type:
 
-  String. Type of estimate to plot: "filtered" or "smoothed".
+  Character scalar indicating whether `"filtered"` or `"smoothed"`
+  estimates should be plotted.
 
 - ...:
 
-  Additional arguments passed to theme_reviser.
+  Additional arguments passed to `plot.revision_model()`.
 
 ## Value
 
-A ggplot2 object visualizing the specified state estimates.
+A `ggplot2` object visualizing the specified state estimates.
+
+## Details
+
+This method requires `x$states` to be available. If the model was fitted
+with `solver_options$return_states = FALSE`, plotting is not possible.
 
 ## See also
 

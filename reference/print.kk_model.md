@@ -65,7 +65,7 @@ result
 #> Parameter Estimates:
 #>  Parameter Estimate Std.Error
 #>         F0    0.198     0.073
-#>       G0_0    0.990     0.005
+#>       G0_0    0.990     0.000
 #>       G0_1    0.080     0.076
 #>         v0    1.598     0.171
 #>       eps0    0.007     0.001
