@@ -103,19 +103,19 @@ test_that("jvn_nowcast handles long format data", {
 test_that("jvn_nowcast validates e parameter", {
   expect_error(
     jvn_nowcast(df = df_test_wide, e = 0, ar_order = 1),
-    "The initial release is already efficient"
+    "must be a single number > 0"
   )
 
   expect_error(
     jvn_nowcast(df = df_test_wide, e = 5, ar_order = 1),
-    "'df' must contain release columns"
+    "Not enough vintage columns"
   )
 })
 
 test_that("jvn_nowcast validates ar_order parameter", {
   expect_error(
     jvn_nowcast(df = df_test_wide, e = 1, ar_order = 0),
-    "'ar_order' must be > 0"
+    "must be a single number > 0"
   )
 })
 
@@ -146,7 +146,7 @@ test_that("jvn_init_params falls back to finite defaults for short samples", {
 test_that("jvn_nowcast validates h parameter", {
   expect_error(
     jvn_nowcast(df = df_test_wide, e = 1, ar_order = 1, h = -1),
-    "The horizon 'h' must be at least 0"
+    "must be a single number >= 0"
   )
 })
 
@@ -158,7 +158,7 @@ test_that("jvn_nowcast validates solver_options parameter", {
       ar_order = 1,
       solver_options = "not_a_list"
     ),
-    "'solver_options' must be a list"
+    "must be a list"
   )
 })
 
@@ -170,7 +170,7 @@ test_that("jvn_nowcast validates solver_options names", {
       ar_order = 1,
       solver_options = list(invalid_option = 123)
     ),
-    "Invalid solver options provided"
+    "Invalid `solver_options`"
   )
 })
 
@@ -210,19 +210,19 @@ test_that("jvn_nowcast handles noise-only model", {
   ))
 })
 
-test_that("jvn_nowcast handles neither news nor noise", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = FALSE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
+test_that("jvn_nowcast rejects models without news and noise", {
+  expect_error(
+    jvn_nowcast(
+      df = df_test_wide,
+      e = 2,
+      ar_order = 1,
+      h = 0,
+      include_news = FALSE,
+      include_noise = FALSE,
+      solver_options = list(trace = 0)
+    ),
+    "At least one of `include_news` or `include_noise` must be TRUE"
   )
-
-  expect_s3_class(result, "jvn_model")
-  expect_true(all(grepl("rho|sigma_e", result$params$Parameter)))
 })
 
 test_that("jvn_nowcast handles different AR orders", {
@@ -392,7 +392,7 @@ test_that("jvn_nowcast validates custom starting values length", {
       include_noise = FALSE,
       solver_options = list(startvals = c(0.1, 0.2))
     ),
-    "The length of 'startvals' must be"
+    "`startvals` must have length"
   )
 })
 
@@ -419,6 +419,53 @@ test_that("jvn_nowcast transform_se option works", {
 
   expect_s3_class(result_transform, "jvn_model")
   expect_s3_class(result_no_transform, "jvn_model")
+})
+
+test_that("jvn_nowcast supports se_method none and qml", {
+  result_none <- jvn_nowcast(
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(
+      trace = 0,
+      se_method = "none",
+      return_states = FALSE
+    )
+  )
+
+  result_qml <- jvn_nowcast(
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(
+      trace = 0,
+      se_method = "qml",
+      return_states = FALSE
+    )
+  )
+
+  expect_true(all(is.na(result_none$params$Std.Error)))
+  expect_true(any(is.finite(result_qml$params$Std.Error)))
+})
+
+test_that("jvn_nowcast can skip state extraction", {
+  result <- jvn_nowcast(
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(trace = 0, return_states = FALSE)
+  )
+
+  expect_null(result$states)
 })
 
 test_that("jvn_nowcast states output has correct structure", {
@@ -488,17 +535,19 @@ test_that("jvn_nowcast handles irregular time series error", {
     seq.Date(as.Date("2026-04-01"), by = "month", length.out = 25)
   )
 
-  expect_error(
-    jvn_nowcast(
-      df = df_irregular,
-      e = 2,
-      ar_order = 1,
-      h = 2,
-      include_news = TRUE,
-      include_noise = FALSE,
-      solver_options = list(trace = 0)
-    ),
-    "not to be regular"
+  suppressWarnings(
+    expect_error(
+      jvn_nowcast(
+        df = df_irregular,
+        e = 2,
+        ar_order = 1,
+        h = 2,
+        include_news = TRUE,
+        include_noise = FALSE,
+        solver_options = list(trace = 0)
+      ),
+      "Time index appears irregular"
+    )
   )
 })
 
@@ -673,8 +722,33 @@ test_that("full workflow with all components", {
   expect_true("Std.Error" %in% colnames(result$params))
 })
 
-test_that("results are reproducible with same seed", {
-  set.seed(456)
+test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
+  baseline_rng <- function() {
+    set.seed(2024)
+    rnorm(3)
+    rnorm(3)
+  }
+
+  post_fit_rng <- function() {
+    set.seed(2024)
+    rnorm(3)
+    jvn_nowcast(
+      df = df_test_wide,
+      e = 2,
+      ar_order = 1,
+      h = 0,
+      include_news = TRUE,
+      include_noise = FALSE,
+      solver_options = list(
+        trace = 0,
+        n_starts = 3,
+        seed = 99,
+        return_states = FALSE
+      )
+    )
+    rnorm(3)
+  }
+
   result1 <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -682,10 +756,15 @@ test_that("results are reproducible with same seed", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, n_starts = 1)
+    solver_options = list(
+      trace = 0,
+      n_starts = 3,
+      seed = 123,
+      return_states = FALSE
+    )
   )
 
-  set.seed(456)
+  set.seed(999)
   result2 <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -693,10 +772,16 @@ test_that("results are reproducible with same seed", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, n_starts = 1)
+    solver_options = list(
+      trace = 0,
+      n_starts = 3,
+      seed = 123,
+      return_states = FALSE
+    )
   )
 
-  expect_equal(result1$loglik, result2$loglik, tolerance = 1e-6)
+  expect_identical(baseline_rng(), post_fit_rng())
+  expect_equal(result1$params$Estimate, result2$params$Estimate, tolerance = 1e-10)
 })
 
 # ===== Edge Cases =====
@@ -735,18 +820,16 @@ test_that("jvn_nowcast handles data with NAs", {
 })
 
 test_that("jvn_nowcast rejects e = 0", {
-  # When e = 0, we're saying the initial release is efficient
-  # This should raise an error
   expect_error(
     jvn_nowcast(
       df = df_test_wide,
       e = 0,
       ar_order = 1,
       h = 0,
-      include_news = FALSE,
+      include_news = TRUE,
       include_noise = FALSE,
       solver_options = list(trace = 0)
     ),
-    "The initial release is already efficient"
+    "must be a single number > 0"
   )
 })

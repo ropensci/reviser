@@ -118,7 +118,7 @@ test_that("kk_nowcast handles long format data", {
 test_that("kk_nowcast validates e parameter", {
   expect_error(
     kk_nowcast(df = df_small, e = 0, model = "KK"),
-    "The initial release is already efficient"
+    "'e' must be a single whole number greater than 0"
   )
 
   expect_error(
@@ -130,7 +130,7 @@ test_that("kk_nowcast validates e parameter", {
 test_that("kk_nowcast validates h parameter", {
   expect_error(
     kk_nowcast(df = df_small, e = 1, h = -1, model = "KK"),
-    "The horizon 'h' must be at least 0"
+    "'h' must be at least 0"
   )
 })
 
@@ -291,21 +291,27 @@ test_that("kk_nowcast validates startvals are numeric", {
       e = 1,
       solver_options = list(startvals = "not_numeric")
     ),
-    "'startvals' must be a named, numeric vector"
+    "'startvals' must be a numeric vector"
   )
 })
 
-test_that("kk_nowcast validates startvals are named", {
-  start_vals <- c(0.5, 0.3, 0.2, 0.1, 0.1)  # Not named
+test_that("kk_nowcast accepts unnamed startvals in canonical order", {
+  start_vals <- c(0.5, 0.3, 0.2, 0.1, 0.1)
 
-  expect_error(
-    kk_nowcast(
-      df = df_small,
-      e = 1,
-      solver_options = list(startvals = start_vals)
-    ),
-    "'startvals' must be a named, numeric vector"
+  result <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(
+      trace = 0,
+      startvals = start_vals,
+      maxiter = 30,
+      return_states = FALSE
+    )
   )
+
+  expect_s3_class(result, "kk_model")
+  expect_true(is.finite(result$loglik))
 })
 
 test_that("kk_nowcast MLE with different optimization methods", {
@@ -341,7 +347,7 @@ test_that("kk_nowcast MLE with multi-start optimization", {
     df = df_small,
     e = 1,
     method = "MLE",
-    solver_options = list(trace = 0, n_starts = 2, maxiter = 50)
+    solver_options = list(trace = 0, n_starts = 2, maxiter = 50, seed = 123)
   )
 
   expect_s3_class(result, "kk_model")
@@ -364,6 +370,103 @@ test_that("kk_nowcast MLE with transform_se option", {
 
   expect_s3_class(result_transform, "kk_model")
   expect_s3_class(result_no_transform, "kk_model")
+})
+
+test_that("kk_nowcast MLE supports se_method none and qml", {
+  result_none <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(
+      trace = 0,
+      se_method = "none",
+      maxiter = 50,
+      return_states = FALSE
+    )
+  )
+
+  result_qml <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(
+      trace = 0,
+      se_method = "qml",
+      maxiter = 50,
+      return_states = FALSE
+    )
+  )
+
+  expect_true(all(is.na(result_none$params$Std.Error)))
+  expect_true(any(is.finite(result_qml$params$Std.Error)))
+})
+
+test_that("kk_nowcast can skip state extraction", {
+  result <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(trace = 0, maxiter = 50, return_states = FALSE)
+  )
+
+  expect_null(result$states)
+  expect_null(result$model)
+})
+
+test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
+  baseline_rng <- function() {
+    set.seed(2024)
+    rnorm(3)
+    rnorm(3)
+  }
+
+  post_fit_rng <- function() {
+    set.seed(2024)
+    rnorm(3)
+    kk_nowcast(
+      df = df_small,
+      e = 1,
+      method = "MLE",
+      solver_options = list(
+        trace = 0,
+        n_starts = 3,
+        seed = 99,
+        maxiter = 30,
+        return_states = FALSE
+      )
+    )
+    rnorm(3)
+  }
+
+  result1 <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(
+      trace = 0,
+      n_starts = 3,
+      seed = 123,
+      maxiter = 30,
+      return_states = FALSE
+    )
+  )
+
+  set.seed(999)
+  result2 <- kk_nowcast(
+    df = df_small,
+    e = 1,
+    method = "MLE",
+    solver_options = list(
+      trace = 0,
+      n_starts = 3,
+      seed = 123,
+      maxiter = 30,
+      return_states = FALSE
+    )
+  )
+
+  expect_identical(baseline_rng(), post_fit_rng())
+  expect_equal(result1$params$Estimate, result2$params$Estimate, tolerance = 1e-10)
 })
 
 test_that("kk_nowcast states output has correct structure", {
@@ -407,15 +510,17 @@ test_that("kk_nowcast handles irregular time series error", {
     seq.Date(as.Date("2020-11-01"), by = "quarter", length.out = 10)
   )
 
-  expect_error(
-    kk_nowcast(
-      df = df_irregular,
-      e = 1,
-      h = 2,
-      method = "OLS",
-      solver_options = list(trace = 0)
-    ),
-    "not to be regular"
+  suppressWarnings(
+    expect_error(
+      kk_nowcast(
+        df = df_irregular,
+        e = 1,
+        h = 2,
+        method = "OLS",
+        solver_options = list(trace = 0)
+      ),
+      "not to be regular"
+    )
   )
 })
 
@@ -533,13 +638,33 @@ test_that("kk_matrices validates params length", {
   )
 })
 
-test_that("kk_matrices validates params are named", {
-  params <- rep(0.2, 5) # Correct length for e = 1 KK model, but unnamed
+test_that("kk_matrices accepts unnamed params in canonical order", {
+  params <- c(0.8, 0.4, 0.5, 0.1, 0.05)
 
-  expect_error(
-    kk_matrices(e = 1, model = "KK", params = params, type = "numeric"),
-    "All parameters must be named"
+  matrices <- kk_matrices(e = 1, model = "KK", params = params, type = "numeric")
+
+  expect_equal(names(matrices$params), c("F0", "G0_0", "G0_1", "v0", "eps0"))
+  expect_equal(matrices$FF[2, 2], 0.8)
+  expect_equal(matrices$GG[2, 1], 0.5)
+  expect_equal(matrices$GG[2, 2], 0.4)
+})
+
+test_that("kk_matrices normalizes named params to canonical order", {
+  params <- c(
+    eps0 = 0.05,
+    G0_1 = 0.5,
+    F0 = 0.8,
+    v0 = 0.1,
+    G0_0 = 0.4
   )
+
+  matrices <- kk_matrices(e = 1, model = "KK", params = params, type = "numeric")
+
+  expect_equal(
+    unname(matrices$params),
+    c(0.8, 0.4, 0.5, 0.1, 0.05)
+  )
+  expect_equal(names(matrices$params), c("F0", "G0_0", "G0_1", "v0", "eps0"))
 })
 
 test_that("kk_matrices handles Howrey model correctly", {

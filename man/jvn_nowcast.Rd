@@ -21,9 +21,10 @@ jvn_nowcast(
 )
 }
 \arguments{
-\item{df}{A matrix, data frame, or single-ID vintages object. Each vintage
-must be stored in a separate column. If \code{df} is a matrix, a synthetic
-\code{time} index is created.}
+\item{df}{A matrix, data frame, or single-ID vintages object. Wide data
+should store one vintage per column. Long-format vintages data are also
+accepted and are converted internally. If \code{df} is a matrix, or a data
+frame without a \code{time} column, a synthetic \code{time} index is created.}
 
 \item{e}{A single integer giving the number of vintages used in estimation.
 The function uses the first \code{e} vintage columns after \code{time}, so \code{e} must
@@ -69,7 +70,12 @@ Supported entries are:
 \item \code{maxiter}: maximum number of optimizer iterations.
 \item \code{transform_se}: logical; whether standard deviation parameters are
 optimized on the log scale.
-\item \code{startvals}: optional numeric vector of starting values.
+\item \code{startvals}: optional numeric vector of starting values. The vector
+must have length equal to the number of estimated parameters and must
+follow the internal parameter order used by \code{jvn_param_table()}: AR
+coefficients \verb{rho_*}, \code{sigma_e}, optional \verb{sigma_nu_*}, optional
+\verb{sigma_zeta_*}, and optional spillover parameters \verb{T_nu_*} and
+\verb{T_zeta_*}.
 \item \code{se_method}: standard-error method; one of \code{"hessian"}, \code{"qml"},
 or \code{"none"}.
 \item \code{n_starts}: number of random starting points for multi-start
@@ -92,7 +98,10 @@ stage; \code{"stationary"} or \code{"diffuse"}. This affects state extraction,
 not the custom likelihood engine.
 \item \code{ic_n}: sample-size convention used for BIC; \code{"T"} for the paper
 convention or \code{"Tp"} for \code{T * n_vint}.
-}}
+}
+For backward compatibility, the legacy aliases \code{score_method} and
+\code{score_eps} are also accepted and mapped to \code{qml_score_method} and
+\code{qml_eps}.}
 }
 \value{
 An object of class \code{"jvn_model"} with components:
@@ -102,7 +111,8 @@ An object of class \code{"jvn_model"} with components:
 \item{jvn_model_mat}{A list containing the state-space matrices \code{Z},
 \code{Tmat}, \code{R}, \code{H}, and \code{Q}.}
 \item{params}{A data frame of parameter estimates and standard errors.}
-\item{fit}{The raw optimizer output.}
+\item{fit}{The raw optimizer output returned by the selected numerical
+optimizer.}
 \item{loglik}{The maximized log-likelihood.}
 \item{aic}{Akaike information criterion.}
 \item{bic}{Bayesian information criterion.}

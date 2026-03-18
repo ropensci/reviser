@@ -9,7 +9,8 @@
 \arguments{
 \item{x}{An object of class \code{jvn_model}.}
 
-\item{state}{Character scalar giving the state to visualize.}
+\item{state}{Character scalar giving the state to visualize. Defaults to
+\code{"true_lag_0"}.}
 
 \item{type}{Character scalar indicating whether \code{"filtered"} or \code{"smoothed"}
 estimates should be plotted.}
@@ -22,6 +23,11 @@ A \code{ggplot2} object.
 \description{
 Plot filtered or smoothed estimates for a selected state from a fitted
 \code{jvn_model}.
+}
+\details{
+This method requires \code{x$states} to be available. If the model was
+fitted with \code{solver_options$return_states = FALSE}, plotting is not
+possible.
 }
 \examples{
 \donttest{

@@ -4,9 +4,10 @@
 #' data revisions, allowing for news and noise components and optional
 #' spillovers.
 #'
-#' @param df A matrix, data frame, or single-ID vintages object. Each vintage
-#'   must be stored in a separate column. If `df` is a matrix, a synthetic
-#'   `time` index is created.
+#' @param df A matrix, data frame, or single-ID vintages object. Wide data
+#'   should store one vintage per column. Long-format vintages data are also
+#'   accepted and are converted internally. If `df` is a matrix, or a data
+#'   frame without a `time` column, a synthetic `time` index is created.
 #' @param e A single integer giving the number of vintages used in estimation.
 #'   The function uses the first `e` vintage columns after `time`, so `e` must
 #'   be greater than `0` and no larger than the number of available vintage
@@ -40,7 +41,12 @@
 #'     \item `maxiter`: maximum number of optimizer iterations.
 #'     \item `transform_se`: logical; whether standard deviation parameters are
 #'       optimized on the log scale.
-#'     \item `startvals`: optional numeric vector of starting values.
+#'     \item `startvals`: optional numeric vector of starting values. The vector
+#'       must have length equal to the number of estimated parameters and must
+#'       follow the internal parameter order used by `jvn_param_table()`: AR
+#'       coefficients `rho_*`, `sigma_e`, optional `sigma_nu_*`, optional
+#'       `sigma_zeta_*`, and optional spillover parameters `T_nu_*` and
+#'       `T_zeta_*`.
 #'     \item `se_method`: standard-error method; one of `"hessian"`, `"qml"`,
 #'       or `"none"`.
 #'     \item `n_starts`: number of random starting points for multi-start
@@ -64,6 +70,9 @@
 #'     \item `ic_n`: sample-size convention used for BIC; `"T"` for the paper
 #'       convention or `"Tp"` for `T * n_vint`.
 #'   }
+#'   For backward compatibility, the legacy aliases `score_method` and
+#'   `score_eps` are also accepted and mapped to `qml_score_method` and
+#'   `qml_eps`.
 #'
 #' @return An object of class `"jvn_model"` with components:
 #' \describe{
@@ -72,7 +81,8 @@
 #'   \item{jvn_model_mat}{A list containing the state-space matrices `Z`,
 #'   `Tmat`, `R`, `H`, and `Q`.}
 #'   \item{params}{A data frame of parameter estimates and standard errors.}
-#'   \item{fit}{The raw optimizer output.}
+#'   \item{fit}{The raw optimizer output returned by the selected numerical
+#'   optimizer.}
 #'   \item{loglik}{The maximized log-likelihood.}
 #'   \item{aic}{Akaike information criterion.}
 #'   \item{bic}{Bayesian information criterion.}
@@ -1942,10 +1952,14 @@ print.jvn_model <- function(x, ...) {
 #' `jvn_model`.
 #'
 #' @param x An object of class `jvn_model`.
-#' @param state Character scalar giving the state to visualize.
+#' @param state Character scalar giving the state to visualize. Defaults to
+#'   `"true_lag_0"`.
 #' @param type Character scalar indicating whether `"filtered"` or `"smoothed"`
 #'   estimates should be plotted.
 #' @param ... Additional arguments passed to `plot.revision_model()`.
+#' @details This method requires `x$states` to be available. If the model was
+#'   fitted with `solver_options$return_states = FALSE`, plotting is not
+#'   possible.
 #'
 #' @srrstats {TS5.0} Implements default plot methods for class system
 #' @srrstats {TS5.1} Time axis labeling (delegates to base method)

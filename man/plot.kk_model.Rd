@@ -7,19 +7,27 @@
 \method{plot}{kk_model}(x, state = NULL, type = "filtered", ...)
 }
 \arguments{
-\item{x}{An object of class 'kk_model'}
+\item{x}{An object of class \code{kk_model}.}
 
-\item{state}{String. The name of the state to visualize.}
+\item{state}{Character scalar giving the state to visualize. If \code{NULL}, the
+first available state is used.}
 
-\item{type}{String. Type of estimate to plot: "filtered" or "smoothed".}
+\item{type}{Character scalar indicating whether \code{"filtered"} or \code{"smoothed"}
+estimates should be plotted.}
 
-\item{...}{Additional arguments passed to theme_reviser.}
+\item{...}{Additional arguments passed to \code{plot.revision_model()}.}
 }
 \value{
-A ggplot2 object visualizing the specified state estimates.
+A \code{ggplot2} object visualizing the specified state estimates.
 }
 \description{
-Plot Kishor-Koenig Model Results
+Plot filtered or smoothed estimates for a selected state from a fitted
+\code{kk_model}.
+}
+\details{
+This method requires \code{x$states} to be available. If the model was
+fitted with \code{solver_options$return_states = FALSE}, plotting is not
+possible.
 }
 \examples{
 df <- get_nth_release(

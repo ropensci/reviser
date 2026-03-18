@@ -4,6 +4,8 @@ reviser.Rproj
 .Rhistory
 .RData
 .Ruserdata
+.R-lib/
+.Rprofile
 docs
 inst/doc
 .DS_Store

@@ -15,9 +15,10 @@ kk_nowcast(
 )
 }
 \arguments{
-\item{df}{A data frame containing the time series data in either "long" or
-"wide" format.  It must include columns for the time index and the different
-release vintages.}
+\item{df}{A data frame or single-ID vintages object in either long or wide
+format. Long-format vintages data are converted internally. After
+preprocessing, the data must contain a \code{time} column and at least \code{e + 1}
+releases.}
 
 \item{e}{An integer indicating the number of data vintages to include in the
 model. Must be greater than 0.}
@@ -37,48 +38,74 @@ implies no forecasts. Must be greater than or equal to 0.}
 
 \item{alpha}{Significance level for confidence intervals (default = 0.05).}
 
-\item{solver_options}{An optional list to control the behaviour of the
-underlying \code{\link[systemfit:nlsystemfit]{systemfit::nlsystemfit()}}, \code{\link[stats:optim]{stats::optim()}} and \code{\link[stats:nlm]{stats::nlm()}}
-solvers:
+\item{solver_options}{A named list controlling the SUR and MLE routines.
+Valid names are \code{trace}, \code{maxiter}, \code{startvals}, \code{solvtol}, \code{gradtol},
+\code{steptol}, \code{transform_se}, \code{method}, \code{se_method}, \code{n_starts}, \code{seed},
+\code{return_states}, \code{qml_eps}, \code{qml_score_method}, \code{qml_scale},
+\code{sigma_lower}, \code{sigma_upper}, and \code{ic_n}. Supported entries are:
 \itemize{
-\item \strong{trace}: An integer controlling the level of output for the
-optimization procedure. Default is 0 (minimal output).
-\item \strong{maxiter}: An integer specifying the maximum number of iterations for
-the optimization procedure. Default is 1000.
-\item \strong{startvals}: A list of starting values for the optimization
-procedure (must match the number of parameters of the model).
-\item \strong{solvtol}: Tolerance for detecting linear dependencies in the columns of
-X in the qr function calls (See \code{\link[systemfit:nlsystemfit]{systemfit::nlsystemfit()}}).
-Default is .Machine$double.eps.
-\item \strong{gradtol}: A a positive scalar giving the tolerance at which the scaled
-gradient is considered close enough to zero to terminate the
-algorithm (See \code{\link[stats:nlm]{stats::nlm()}}). Default is 1e-6.
-\item \strong{steptol}: A positive scalar providing the minimum allowable relative
-step length (See \code{\link[stats:nlm]{stats::nlm()}}). Default is 1e-6.
-\item \strong{transform_se}: T/F whether standard errors should be constrained to be
-positive in optimization.
-\item \strong{method}: String specifying optimization method (default = "L-BFGS-B").
-\item \strong{se_method}: Method for standard error calculation (default = "hessian")
-\item \strong{n_starts}: Number of random starting points for multi-start optimization
-}}
+\item \code{trace}: integer controlling console output.
+\item \code{maxiter}: maximum number of optimizer iterations.
+\item \code{startvals}: optional numeric vector of starting values. Unnamed
+vectors are interpreted in the canonical internal order returned by
+\code{kk_matrices(e, model, type = "character")$params}. Named vectors are
+reordered to that same canonical order.
+\item \code{solvtol}: tolerance passed to \code{systemfit::nlsystemfit()} in the
+SUR estimator.
+\item \code{gradtol}: gradient tolerance passed to \code{systemfit::nlsystemfit()}
+in the SUR estimator.
+\item \code{steptol}: step-length tolerance passed to
+\code{systemfit::nlsystemfit()} in the SUR estimator.
+\item \code{transform_se}: logical; whether variance parameters are optimized
+on the log scale in MLE.
+\item \code{method}: optimization method for MLE; one of \code{"L-BFGS-B"},
+\code{"BFGS"}, \code{"Nelder-Mead"}, \code{"nlminb"}, or \code{"two-step"}.
+\item \code{se_method}: standard-error method for MLE; one of \code{"hessian"},
+\code{"qml"}, or \code{"none"}.
+\item \code{n_starts}: number of random starting points used by the MLE
+multi-start routine.
+\item \code{seed}: optional random seed used for the MLE multi-start
+perturbations.
+\item \code{return_states}: logical; whether filtered and smoothed states and
+the fitted KFAS model should be returned.
+\item \code{qml_eps}: finite-difference step size used in QML covariance
+estimation.
+\item \code{qml_score_method}: score approximation method; \code{"forward"} or
+\code{"central"}.
+\item \code{qml_scale}: scaling convention for the QML covariance; \code{"sum"},
+\code{"mean"}, or \code{"hc"}.
+\item \code{sigma_lower}: lower bound for variance parameters on the natural
+scale when \code{transform_se = TRUE}.
+\item \code{sigma_upper}: upper bound for variance parameters on the natural
+scale when \code{transform_se = TRUE}.
+\item \code{ic_n}: sample-size convention used for BIC; \code{"T"} or \code{"Tp"}.
+}
+For backward compatibility, the legacy aliases \code{score_method} and
+\code{score_eps} are also accepted and mapped to \code{qml_score_method} and
+\code{qml_eps}.}
 }
 \value{
 A list with the following components:
 \describe{
-\item{states}{A tibble containing filtered and smoothed state estimates.}
+\item{states}{A tibble containing filtered and smoothed state estimates. If
+\code{solver_options$return_states = FALSE}, this is \code{NULL}.}
 \item{kk_model_mat}{A list of KK model matrices, such as transition
 and observation matrices.}
 \item{ss_model_mat}{A list of state-space model matrices derived
 from the KK model.}
-\item{model}{The KFAS state-space model object.}
+\item{model}{The fitted \code{KFAS::SSModel} object. If
+\code{solver_options$return_states = FALSE}, this is \code{NULL}.}
 \item{params}{Estimated model parameters with standard errors.}
-\item{fit}{The fitted model object from the estimation procedure.}
-\item{loglik}{Log-likelihood value (MLE only).}
-\item{aic}{Akaike Information Criterion (MLE only).}
-\item{bic}{Bayesian Information Criterion (MLE only).}
+\item{fit}{The raw fit object returned by the selected estimator.}
+\item{loglik}{Log-likelihood value for MLE fits; otherwise \code{NULL}.}
+\item{aic}{Akaike information criterion for MLE fits; otherwise \code{NULL}.}
+\item{bic}{Bayesian information criterion for MLE fits; otherwise \code{NULL}.}
 \item{convergence}{Convergence status.}
 \item{e}{The number of the efficient release (0-indexed).}
-\item{data}{The input data in wide format.}
+\item{data}{The input data after preprocessing to wide format.}
+\item{se_method}{The standard-error method used by MLE; otherwise \code{NULL}.}
+\item{cov}{Estimated covariance matrix of the parameter estimates, if
+available; otherwise \code{NULL}.}
 }
 }
 \description{

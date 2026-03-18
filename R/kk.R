@@ -4,9 +4,10 @@
 #' forecasting with state-space models, allowing for multiple vintages of data,
 #' efficient estimation, and Kalman filtering and smoothing.
 #'
-#' @param df A data frame containing the time series data in either "long" or
-#' "wide" format.  It must include columns for the time index and the different
-#' release vintages.
+#' @param df A data frame or single-ID vintages object in either long or wide
+#'   format. Long-format vintages data are converted internally. After
+#'   preprocessing, the data must contain a `time` column and at least `e + 1`
+#'   releases.
 #' @param e An integer indicating the number of data vintages to include in the
 #'  model. Must be greater than 0.
 #' @param h An integer specifying the forecast horizon. Default is 0, which
@@ -19,46 +20,73 @@
 #' @param method A string specifying the estimation method to use. Options are
 #' "SUR" (default), Maximum likelihood ("MLE") and "OLS".
 #' @param alpha Significance level for confidence intervals (default = 0.05).
-#' @param solver_options An optional list to control the behaviour of the
-#'  underlying [systemfit::nlsystemfit()], [stats::optim()] and [stats::nlm()]
-#'  solvers:
-#'
-#' - **trace**: An integer controlling the level of output for the
-#' optimization procedure. Default is 0 (minimal output).
-#' - **maxiter**: An integer specifying the maximum number of iterations for
-#' the optimization procedure. Default is 1000.
-#' - **startvals**: A list of starting values for the optimization
-#' procedure (must match the number of parameters of the model).
-#' - **solvtol**: Tolerance for detecting linear dependencies in the columns of
-#'    X in the qr function calls (See [systemfit::nlsystemfit()]).
-#'    Default is .Machine$double.eps.
-#' - **gradtol**: A a positive scalar giving the tolerance at which the scaled
-#'    gradient is considered close enough to zero to terminate the
-#'    algorithm (See [stats::nlm()]). Default is 1e-6.
-#' -  **steptol**: A positive scalar providing the minimum allowable relative
-#' step length (See [stats::nlm()]). Default is 1e-6.
-#' - **transform_se**: T/F whether standard errors should be constrained to be
-#'     positive in optimization.
-#' - **method**: String specifying optimization method (default = "L-BFGS-B").
-#' - **se_method**: Method for standard error calculation (default = "hessian")
-#' - **n_starts**: Number of random starting points for multi-start optimization
+#' @param solver_options A named list controlling the SUR and MLE routines.
+#'   Valid names are `trace`, `maxiter`, `startvals`, `solvtol`, `gradtol`,
+#'   `steptol`, `transform_se`, `method`, `se_method`, `n_starts`, `seed`,
+#'   `return_states`, `qml_eps`, `qml_score_method`, `qml_scale`,
+#'   `sigma_lower`, `sigma_upper`, and `ic_n`. Supported entries are:
+#'   \itemize{
+#'     \item `trace`: integer controlling console output.
+#'     \item `maxiter`: maximum number of optimizer iterations.
+#'     \item `startvals`: optional numeric vector of starting values. Unnamed
+#'       vectors are interpreted in the canonical internal order returned by
+#'       `kk_matrices(e, model, type = "character")$params`. Named vectors are
+#'       reordered to that same canonical order.
+#'     \item `solvtol`: tolerance passed to `systemfit::nlsystemfit()` in the
+#'       SUR estimator.
+#'     \item `gradtol`: gradient tolerance passed to `systemfit::nlsystemfit()`
+#'       in the SUR estimator.
+#'     \item `steptol`: step-length tolerance passed to
+#'       `systemfit::nlsystemfit()` in the SUR estimator.
+#'     \item `transform_se`: logical; whether variance parameters are optimized
+#'       on the log scale in MLE.
+#'     \item `method`: optimization method for MLE; one of `"L-BFGS-B"`,
+#'       `"BFGS"`, `"Nelder-Mead"`, `"nlminb"`, or `"two-step"`.
+#'     \item `se_method`: standard-error method for MLE; one of `"hessian"`,
+#'       `"qml"`, or `"none"`.
+#'     \item `n_starts`: number of random starting points used by the MLE
+#'       multi-start routine.
+#'     \item `seed`: optional random seed used for the MLE multi-start
+#'       perturbations.
+#'     \item `return_states`: logical; whether filtered and smoothed states and
+#'       the fitted KFAS model should be returned.
+#'     \item `qml_eps`: finite-difference step size used in QML covariance
+#'       estimation.
+#'     \item `qml_score_method`: score approximation method; `"forward"` or
+#'       `"central"`.
+#'     \item `qml_scale`: scaling convention for the QML covariance; `"sum"`,
+#'       `"mean"`, or `"hc"`.
+#'     \item `sigma_lower`: lower bound for variance parameters on the natural
+#'       scale when `transform_se = TRUE`.
+#'     \item `sigma_upper`: upper bound for variance parameters on the natural
+#'       scale when `transform_se = TRUE`.
+#'     \item `ic_n`: sample-size convention used for BIC; `"T"` or `"Tp"`.
+#'   }
+#'   For backward compatibility, the legacy aliases `score_method` and
+#'   `score_eps` are also accepted and mapped to `qml_score_method` and
+#'   `qml_eps`.
 #'
 #' @return A list with the following components:
 #' \describe{
-#'   \item{states}{A tibble containing filtered and smoothed state estimates.}
+#'   \item{states}{A tibble containing filtered and smoothed state estimates. If
+#'   `solver_options$return_states = FALSE`, this is `NULL`.}
 #'   \item{kk_model_mat}{A list of KK model matrices, such as transition
 #'   and observation matrices.}
 #'   \item{ss_model_mat}{A list of state-space model matrices derived
 #'   from the KK model.}
-#'   \item{model}{The KFAS state-space model object.}
+#'   \item{model}{The fitted `KFAS::SSModel` object. If
+#'   `solver_options$return_states = FALSE`, this is `NULL`.}
 #'   \item{params}{Estimated model parameters with standard errors.}
-#'   \item{fit}{The fitted model object from the estimation procedure.}
-#'   \item{loglik}{Log-likelihood value (MLE only).}
-#'   \item{aic}{Akaike Information Criterion (MLE only).}
-#'   \item{bic}{Bayesian Information Criterion (MLE only).}
+#'   \item{fit}{The raw fit object returned by the selected estimator.}
+#'   \item{loglik}{Log-likelihood value for MLE fits; otherwise `NULL`.}
+#'   \item{aic}{Akaike information criterion for MLE fits; otherwise `NULL`.}
+#'   \item{bic}{Bayesian information criterion for MLE fits; otherwise `NULL`.}
 #'   \item{convergence}{Convergence status.}
 #'   \item{e}{The number of the efficient release (0-indexed).}
-#'   \item{data}{The input data in wide format.}
+#'   \item{data}{The input data after preprocessing to wide format.}
+#'   \item{se_method}{The standard-error method used by MLE; otherwise `NULL`.}
+#'   \item{cov}{Estimated covariance matrix of the parameter estimates, if
+#'   available; otherwise `NULL`.}
 #' }
 #'
 #'
@@ -121,7 +149,44 @@ kk_nowcast <- function(
   alpha = 0.05,
   solver_options = list()
 ) {
-  # Default solver options
+  abort_scalar <- function(x, nm, cond, msg_extra = NULL) {
+    if (length(x) != 1L || !is.finite(x) || !cond(x)) {
+      msg <- paste0("'", nm, "' ", rlang::`%||%`(msg_extra, "is invalid."))
+      rlang::abort(msg, call = rlang::caller_env())
+    }
+  }
+
+  abort_flag <- function(x, nm) {
+    if (!(is.logical(x) && length(x) == 1L && !is.na(x))) {
+      rlang::abort(
+        paste0("'", nm, "' must be a single TRUE/FALSE."),
+        call = rlang::caller_env()
+      )
+    }
+  }
+
+  with_local_seed <- function(seed, expr) {
+    if (is.null(seed)) return(force(expr))
+
+    has_old_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    old_seed <- if (has_old_seed) {
+      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    } else {
+      NULL
+    }
+
+    on.exit({
+      if (has_old_seed) {
+        assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+
+    set.seed(as.integer(seed))
+    force(expr)
+  }
+
   default_solver_options <- list(
     trace = 0,
     maxiter = 1000,
@@ -132,93 +197,181 @@ kk_nowcast <- function(
     transform_se = TRUE,
     method = "L-BFGS-B",
     se_method = "hessian",
-    n_starts = 1
+    n_starts = 1,
+    seed = NULL,
+    return_states = TRUE,
+    qml_eps = 1e-4,
+    qml_score_method = "forward",
+    qml_scale = "sum",
+    sigma_lower = 1e-3,
+    sigma_upper = 100,
+    ic_n = "Tp"
   )
 
   model <- tolower(model)
   method <- tolower(method)
 
-  # Check solver options input is list
   if (!is.list(solver_options)) {
     rlang::abort("'solver_options' must be a list!")
   }
 
-  # Check solver options input names are valid
-  if (
-    length(setdiff(names(solver_options), names(default_solver_options))) > 0
-  ) {
+  if (!is.null(solver_options$score_method) &&
+      is.null(solver_options$qml_score_method)) {
+    solver_options$qml_score_method <- solver_options$score_method
+  }
+
+  if (!is.null(solver_options$score_eps) &&
+      is.null(solver_options$qml_eps)) {
+    solver_options$qml_eps <- solver_options$score_eps
+  }
+
+  invalid_solver_options <- setdiff(
+    names(solver_options),
+    names(default_solver_options)
+  )
+  if (length(invalid_solver_options) > 0) {
     rlang::abort(paste0(
       "Invalid solver options provided. Valid options are: ",
       paste(names(default_solver_options), collapse = ", ")
     ))
   }
 
-  # Update default options with user-provided options
   if (length(solver_options) > 0) {
     for (name in names(solver_options)) {
       default_solver_options[[name]] <- solver_options[[name]]
     }
   }
 
-  # Check input e
-  if (!is.numeric(e) || length(e) != 1 || is.na(e) || e %% 1 != 0) {
-    rlang::abort("'e' must be a single whole number greater than 0.")
-  }
+  abort_scalar(
+    e,
+    "e",
+    \(x) x > 0 && x %% 1 == 0,
+    "must be a single whole number greater than 0."
+  )
   e <- as.integer(e)
 
-  if (e == 0) {
+  if (e == 0L) {
     rlang::abort("The initial release is already efficient, 'e' is equal to 0!")
   }
 
-  # Check horizon h
-  if (h < 0) {
-    rlang::abort("The horizon 'h' must be at least 0!")
-  }
+  abort_scalar(
+    h,
+    "h",
+    \(x) x >= 0 && x %% 1 == 0,
+    "must be at least 0."
+  )
+  h <- as.integer(h)
 
-  # Check model input
+  abort_scalar(alpha, "alpha", \(x) x > 0 && x < 1, "must be in (0, 1).")
+
   if (!model %in% tolower(c("Kishor-Koenig", "KK", "Howrey", "Classical"))) {
     rlang::abort(
       "'model' must be one of 'Kishor-Koenig', 'KK', 'Howrey', or 'Classical'!"
     )
   }
 
-  # Check start values
-  # if provided startvalues must be numeric vector
-  if (!is.null(default_solver_options$startvals)) {
-    if (!is.numeric(default_solver_options$startvals)) {
-      rlang::abort(
-        "'startvals' must be a named, numeric vector! E.g. c(F0 = 0.2)."
-      )
-    }
-  }
-  # check vector is named
-  if (!is.null(default_solver_options$startvals)) {
-    if (is.null(names(default_solver_options$startvals))) {
-      rlang::abort(
-        "'startvals' must be a named, numeric vector! E.g. c(F0 = 0.2)."
-      )
-    }
+  if (!method %in% tolower(c("SUR", "MLE", "OLS"))) {
+    rlang::abort("'method' must be one of 'SUR', 'MLE', or 'OLS'!")
   }
 
-  # KK input matrices
+  abort_flag(default_solver_options$transform_se, "solver_options$transform_se")
+  abort_flag(default_solver_options$return_states, "solver_options$return_states")
+
+  default_solver_options$method <- match.arg(
+    default_solver_options$method,
+    c("L-BFGS-B", "BFGS", "Nelder-Mead", "nlminb", "two-step")
+  )
+  default_solver_options$se_method <- match.arg(
+    default_solver_options$se_method,
+    c("hessian", "qml", "none")
+  )
+  default_solver_options$qml_score_method <- match.arg(
+    default_solver_options$qml_score_method,
+    c("forward", "central")
+  )
+  default_solver_options$qml_scale <- match.arg(
+    default_solver_options$qml_scale,
+    c("sum", "mean", "hc")
+  )
+  default_solver_options$ic_n <- match.arg(
+    default_solver_options$ic_n,
+    c("T", "Tp")
+  )
+
+  abort_scalar(
+    default_solver_options$trace,
+    "solver_options$trace",
+    \(x) x >= 0,
+    "must be a single number >= 0."
+  )
+  default_solver_options$trace <- as.integer(round(default_solver_options$trace))
+
+  abort_scalar(
+    default_solver_options$maxiter,
+    "solver_options$maxiter",
+    \(x) x >= 1 && x %% 1 == 0,
+    "must be a single integer >= 1."
+  )
+  default_solver_options$maxiter <- as.integer(round(default_solver_options$maxiter))
+
+  abort_scalar(
+    default_solver_options$n_starts,
+    "solver_options$n_starts",
+    \(x) x >= 1 && x %% 1 == 0,
+    "must be a single integer >= 1."
+  )
+  default_solver_options$n_starts <- as.integer(round(default_solver_options$n_starts))
+
+  abort_scalar(
+    default_solver_options$qml_eps,
+    "solver_options$qml_eps",
+    \(x) x > 0,
+    "must be > 0."
+  )
+  abort_scalar(
+    default_solver_options$sigma_lower,
+    "solver_options$sigma_lower",
+    \(x) x > 0,
+    "must be > 0."
+  )
+  abort_scalar(
+    default_solver_options$sigma_upper,
+    "solver_options$sigma_upper",
+    \(x) x > default_solver_options$sigma_lower,
+    "must be > solver_options$sigma_lower."
+  )
+
+  if (!is.null(default_solver_options$seed)) {
+    abort_scalar(
+      default_solver_options$seed,
+      "solver_options$seed",
+      \(x) x %% 1 == 0,
+      "must be a single integer."
+    )
+    default_solver_options$seed <- as.integer(round(default_solver_options$seed))
+  }
+
+  if (!is.null(default_solver_options$startvals) &&
+      !is.numeric(default_solver_options$startvals)) {
+    rlang::abort("'startvals' must be a numeric vector.")
+  }
+
   n_param_mat <- dplyr::if_else(
     model %in% tolower(c("Kishor-Koenig", "KK")),
     1 + e + e^2,
     dplyr::if_else(
       model == tolower("Howrey"),
       1 + e^2,
-      1 # Classical
+      1
     )
   )
-
-  # Define model matrices
-  kk_mat_sur <- kk_matrices(e = e, model = model, type = "character")
-
-  # KK cov matrices
   n_param_cov <- e + 1
-
   n_param <- n_param_mat + n_param_cov
 
+  kk_mat_sur <- kk_matrices(e = e, model = model, type = "character")
+  param_names <- names(kk_mat_sur$params)
+
+  start_params <- NULL
   if (!is.null(default_solver_options$startvals)) {
     if (length(default_solver_options$startvals) != n_param) {
       rlang::abort(paste0(
@@ -229,23 +382,25 @@ kk_nowcast <- function(
         " and e = ",
         e
       ))
-    } else {
-      start_mat <- kk_matrices(
-        e = e,
-        model = model,
-        params = default_solver_options$startvals,
-        type = "numeric"
-      )$params[1:n_param_mat]
     }
-  } else {
-    start_mat <- rep(0.4, n_param_mat)
-    names(start_mat) <- names(kk_mat_sur$params)[1:n_param_mat]
+    start_params <- kk_matrices(
+      e = e,
+      model = model,
+      params = default_solver_options$startvals,
+      type = "numeric"
+    )$params
   }
 
-  # Check data input
+  start_mat <- if (is.null(start_params)) {
+    out <- rep(0.4, n_param_mat)
+    names(out) <- param_names[seq_len(n_param_mat)]
+    out
+  } else {
+    start_params[seq_len(n_param_mat)]
+  }
+
   check <- vintages_check(df)
 
-  # Reject lists with multiple IDs
   if (is.list(check)) {
     if (length(check) > 1) {
       rlang::abort(paste0(
@@ -255,24 +410,37 @@ kk_nowcast <- function(
         paste(names(check), collapse = ", ")
       ))
     }
-    # Extract single data frame from list
     df <- df[[1]]
     check <- check[[1]]
   }
 
-  # Convert long to wide if needed
   if (check == "long") {
     if ("id" %in% colnames(df) && length(unique(df$id)) > 1) {
       rlang::abort(paste0(
         "'df' contains ",
         length(unique(df$id)),
-        " different IDs. ",
-        "Filter to a single ID first."
+        " different IDs. Filter to a single ID first."
       ))
     }
     df <- suppressWarnings(vintages_wide(df, names_from = "release"))
-    # Handle if vintages_wide returns a list
     if (is.list(df) && !is.data.frame(df)) df <- df[[1]]
+  }
+
+  if (!("time" %in% names(df))) {
+    rlang::abort(
+      "After preprocessing, 'df' must contain a 'time' column."
+    )
+  }
+
+  df <- df[, c("time", setdiff(names(df), "time")), drop = FALSE]
+
+  time_in <- df$time
+  if ((inherits(time_in, "Date") ||
+       inherits(time_in, "POSIXt") ||
+       is.numeric(time_in) ||
+       is.integer(time_in)) &&
+      any(diff(as.numeric(time_in)) <= 0, na.rm = TRUE)) {
+    rlang::abort("'time' must be strictly increasing.")
   }
 
   required_release_cols <- paste0("release_", 0:e)
@@ -288,29 +456,25 @@ kk_nowcast <- function(
     ))
   }
 
-  # Define state and observable variable names
-  z_names <- c(paste0("release_", e, "_lag_", (e):0))
+  z_names <- c(paste0("release_", e, "_lag_", e:0))
   y_names <- c(paste0("release_", e:0, "_lag_", e:0))
-
   n_states <- length(c(z_names, y_names))
 
-  # Define equations
-  equations <- kk_equations(
-    kk_mat_sur = kk_mat_sur
-  )
-
-  # Arrange data
-  sur_data <- kk_arrange_data(
-    df = df,
-    e = e
-  )
-
-  # Create observable variable matrix
+  equations <- kk_equations(kk_mat_sur = kk_mat_sur)
+  sur_data <- kk_arrange_data(df = df, e = e)
   Ymat <- sur_data %>%
     dplyr::select(dplyr::all_of(y_names)) %>%
     as.matrix()
 
-  # TODO: ar_order specifiable
+  kk_spec <- list(
+    e = e,
+    model = model,
+    n_states = n_states,
+    param_names = param_names,
+    n_diffuse = ncol(Ymat),
+    n_contrib = nrow(Ymat) * ncol(Ymat) - ncol(Ymat)
+  )
+
   ar_order <- 1
   if (default_solver_options$trace > 0) {
     cat(
@@ -324,7 +488,6 @@ kk_nowcast <- function(
     cat("AR order:", ar_order, "\n")
   }
 
-  # Initialize variables for results
   params <- NULL
   fit <- NULL
   loglik <- NULL
@@ -333,9 +496,11 @@ kk_nowcast <- function(
   convergence <- NULL
   params_raw <- NULL
   se_raw <- NULL
+  se <- NULL
+  cov_used <- NULL
+  se_method_used <- NULL
 
-  # Estimation of parameters with SUR or OLS
-  if (method == tolower("SUR")) {
+  if (method == "sur") {
     fit <- systemfit::nlsystemfit(
       equations,
       method = "SUR",
@@ -347,42 +512,32 @@ kk_nowcast <- function(
       steptol = default_solver_options$steptol,
       gradtol = default_solver_options$gradtol
     )
-    parm_cov <- (diag(fit$rcov))
-    names(parm_cov) <- c("v0", paste0("eps", (e - 1):0))
-    params <- c(fit$b, parm_cov)
 
-    # bring params in the right order
+    parm_cov <- diag(fit$rcov)
+    names(parm_cov) <- c("v0", paste0("eps", (e - 1):0))
     params <- kk_matrices(
       e = e,
       model = model,
-      params = params,
+      params = c(fit$b, parm_cov),
       type = "numeric"
     )$params
 
-    # Extract standard errors from SUR
-    # For nlsystemfit objects, use the coefCov component
     if (!is.null(fit$se)) {
       se_raw <- fit$se
     } else {
-      # Fallback: approximate SEs
-      se_raw <- rep(NA, length(fit$b))
+      se_raw <- rep(NA_real_, length(fit$b))
       rlang::warn(
         "Could not extract standard errors from SUR estimation",
         call. = FALSE
       )
     }
 
-    # Add variance SEs
-    # For variance parameters from residual covariance matrix,
-    # use asymptotic SE formula: SE(sigma^2) = sigma^2 * sqrt(2/(n-k))
-    # where n = number of observations, k = number of parameters
-    n_obs <- nrow(sur_data)
+    n_obs_sur <- nrow(sur_data)
     k_params <- length(fit$b)
-    var_se <- parm_cov * sqrt(2 / (n_obs - k_params))
+    var_se <- parm_cov * sqrt(2 / (n_obs_sur - k_params))
     se_raw <- c(se_raw, var_se)
-
     convergence <- fit$convergence
-  } else if (method == tolower("OLS")) {
+  } else if (method == "ols") {
     ols_estim <- kk_ols_estim(
       equations = equations,
       model = model,
@@ -390,18 +545,13 @@ kk_nowcast <- function(
     )
 
     fit <- ols_estim$fit
-
-    params <- ols_estim$params
-
-    # bring params in the right order
     params <- kk_matrices(
       e = e,
       model = model,
-      params = params,
+      params = ols_estim$params,
       type = "numeric"
     )$params
 
-    # Extract standard errors from OLS
     se_raw <- numeric(length(params))
     idx <- 1
     for (i in seq_along(fit)) {
@@ -412,473 +562,294 @@ kk_nowcast <- function(
       }
     }
 
-    # Add variance SEs using asymptotic formula
-    # For variance parameters: SE(sigma^2) = sigma^2 * sqrt(2/(n-k))
     var_idx <- grep("v0|eps", names(params))
     if (length(var_idx) > 0) {
-      # Use the first OLS model to get n and k (representative)
-      n_obs <- nrow(fit[[1]]$model)
+      n_obs_ols <- nrow(fit[[1]]$model)
       k_params <- length(fit[[1]]$coefficients)
-      for (i in var_idx) {
-        se_raw[i] <- params[i] * sqrt(2 / (n_obs - k_params))
-      }
+      se_raw[var_idx] <- params[var_idx] * sqrt(2 / (n_obs_ols - k_params))
     }
 
     convergence <- 0
-  } else if (method == tolower("MLE")) {
-    # 1. Define the Negative Log-Likelihood Function
-    kk_negloglik <- function(p, e, model, Ymat, n_states, transform_se) {
-      # Map vector p back to named parameters
-      param_names <- names(start_mat_mle)
-      names(p) <- param_names
+  } else if (method == "mle") {
+    start_mat_mle <- if (is.null(start_params)) {
+      kk_matrices(
+        e = e,
+        model = model,
+        params = kk_ols_estim(equations, sur_data, model)$params,
+        type = "numeric"
+      )$params
+    } else {
+      start_params
+    }
 
-      # Transform variance parameters if needed
-      if (transform_se) {
-        var_idx <- grep("v0|eps", param_names)
-        p[var_idx] <- exp(p[var_idx])
+    param_groups <- kk_param_groups(names(start_mat_mle))
+    if (isTRUE(default_solver_options$transform_se) &&
+        length(param_groups$var_idx) > 0) {
+      start_mat_mle[param_groups$var_idx] <- log(
+        pmax(start_mat_mle[param_groups$var_idx], default_solver_options$sigma_lower)
+      )
+    }
+
+    lower_bounds <- rep(-Inf, length(start_mat_mle))
+    upper_bounds <- rep(Inf, length(start_mat_mle))
+    if (isTRUE(default_solver_options$transform_se) &&
+        length(param_groups$var_idx) > 0) {
+      lower_bounds[param_groups$var_idx] <- log(default_solver_options$sigma_lower)
+      upper_bounds[param_groups$var_idx] <- log(default_solver_options$sigma_upper)
+    }
+    if (length(param_groups$dyn_idx) > 0) {
+      lower_bounds[param_groups$dyn_idx] <- -0.99
+      upper_bounds[param_groups$dyn_idx] <- 0.99
+    }
+
+    with_local_seed(default_solver_options$seed, {
+      n_starts <- default_solver_options$n_starts
+      all_results <- vector("list", n_starts)
+      all_values <- rep(NA_real_, n_starts)
+
+      if (n_starts > 1 && default_solver_options$trace > 0) {
+        cat(
+          "\nUsing multi-start optimization with",
+          n_starts,
+          "starting points\n"
+        )
+        cat("Method:", default_solver_options$method, "\n\n")
       }
 
-      # Ensure variance parameters are positive
-      var_idx <- grep("v0|eps", names(p))
-      if (any(p[var_idx] <= 0)) {
-        return(1e10)
-      }
+      for (start_idx in seq_len(n_starts)) {
+        if (start_idx == 1L) {
+          current_init <- start_mat_mle
+        } else {
+          current_init <- start_mat_mle + stats::rnorm(length(start_mat_mle), 0, 0.5)
 
-      tryCatch(
-        {
-          k_mat <- kk_matrices(
-            e = e,
-            model = model,
-            params = p,
-            type = "numeric"
-          )
-          ss_mat <- kk_to_ss(k_mat$FF, k_mat$GG, k_mat$V, k_mat$W)
-
-          mod <- KFAS::SSModel(
-            Ymat ~ -1 +
-              SSMcustom(
-                Z = ss_mat$Z,
-                T = ss_mat$Tmat,
-                R = ss_mat$R,
-                Q = ss_mat$Q,
-                a1 = c(rep(0.2, n_states / 2), rep(0, n_states / 2)),
-                P1inf = diag(
-                  c(rep(1, n_states / 2), rep(0, n_states / 2)),
-                  n_states
-                ),
-                P1 = diag(
-                  c(rep(0, n_states / 2), rep(1, n_states / 2)),
-                  n_states
-                ),
-                index = seq_len(ncol(Ymat))
+          if (isTRUE(default_solver_options$transform_se) &&
+              length(param_groups$var_idx) > 0) {
+            current_init[param_groups$var_idx] <- pmax(
+              pmin(
+                current_init[param_groups$var_idx],
+                log(default_solver_options$sigma_upper)
               ),
-            H = ss_mat$H
-          )
-
-          # Return negative log-likelihood for minimization
-          ll <- stats::logLik(mod, check.model = FALSE)
-
-          if (is.finite(ll)) {
-            return(-as.numeric(ll))
-          } else {
-            return(1e10)
+              log(default_solver_options$sigma_lower)
+            )
           }
-        },
-        error = function(e) {
-          return(1e10)
-        }
-      )
-    }
-
-    # 2. Prepare starting values
-    if (is.null(default_solver_options$startvals)) {
-      # Use OLS estimates as smart starting values if none provided
-      ols_init <- kk_ols_estim(equations, sur_data, model)$params
-      start_mat_mle <- ols_init
-    } else {
-      start_mat_mle <- default_solver_options$startvals
-    }
-
-    # Log-transform variances if needed
-    if (default_solver_options$transform_se) {
-      var_idx <- grep("v0|eps", names(start_mat_mle))
-      start_mat_mle[var_idx] <- log(pmax(start_mat_mle[var_idx], 1e-6))
-    }
-
-    # Check if multi-start is requested
-    n_starts <- if (!is.null(default_solver_options$n_starts)) {
-      max(1, default_solver_options$n_starts)
-    } else {
-      1
-    }
-
-    if (n_starts > 1 && default_solver_options$trace > 0) {
-      cat(
-        "\nUsing multi-start optimization with",
-        n_starts,
-        "starting points\n"
-      )
-      cat("Method:", default_solver_options$method, "\n\n")
-    }
-
-    # Storage for multi-start results
-    all_results <- vector("list", n_starts)
-    all_values <- numeric(n_starts)
-
-    # Run optimization from multiple starting points
-    for (start_idx in 1:n_starts) {
-      if (n_starts > 1 && default_solver_options$trace > 0) {
-        cat("=== Starting point", start_idx, "of", n_starts, "===\n")
-      }
-
-      # Generate starting values
-      if (start_idx == 1) {
-        current_init <- start_mat_mle
-      } else {
-        # Perturb around default
-        current_init <- start_mat_mle +
-          stats::rnorm(length(start_mat_mle), 0, 0.5)
-
-        # Ensure perturbations respect constraints
-        if (default_solver_options$transform_se) {
-          var_idx <- grep("v0|eps", names(start_mat_mle))
-          current_init[var_idx] <- pmax(
-            pmin(current_init[var_idx], log(100)),
-            log(0.001)
-          )
+          if (length(param_groups$dyn_idx) > 0) {
+            current_init[param_groups$dyn_idx] <- pmax(
+              pmin(current_init[param_groups$dyn_idx], 0.99),
+              -0.99
+            )
+          }
         }
 
-        # For F0 and G parameters, keep reasonable
-        non_var_idx <- grep("F0|G", names(start_mat_mle))
-        current_init[non_var_idx] <- pmax(
-          pmin(current_init[non_var_idx], 0.9),
-          -0.9
-        )
-      }
+        opt_method <- default_solver_options$method
 
-      # Determine optimization method
-      opt_method <- default_solver_options$method
-
-      if (opt_method == "two-step") {
-        if (default_solver_options$trace > 0) {
-          cat("Step 1: Nelder-Mead (global search)...\n")
-        }
-
-        opt_result_nm <- stats::optim(
-          par = current_init,
-          fn = kk_negloglik,
-          e = e,
-          model = model,
-          Ymat = Ymat,
-          n_states = n_states,
-          transform_se = default_solver_options$transform_se,
-          method = "Nelder-Mead",
-          control = list(
-            trace = max(0, default_solver_options$trace),
-            maxit = 500
-          )
-        )
-
-        if (default_solver_options$trace > 0) {
-          cat("Step 2: BFGS (local refinement)...\n")
-        }
-        current_result <- stats::optim(
-          par = opt_result_nm$par,
-          fn = kk_negloglik,
-          e = e,
-          model = model,
-          Ymat = Ymat,
-          n_states = n_states,
-          transform_se = default_solver_options$transform_se,
-          method = "BFGS",
-          control = list(
-            trace = max(0, default_solver_options$trace),
-            maxit = default_solver_options$maxiter
-          ),
-          hessian = FALSE
-        )
-      } else if (opt_method == "L-BFGS-B") {
-        # Set bounds for parameters
-        n_params_opt <- length(current_init)
-        lower_bounds <- rep(-Inf, n_params_opt)
-        upper_bounds <- rep(Inf, n_params_opt)
-
-        if (default_solver_options$transform_se) {
-          var_idx <- grep("v0|eps", names(start_mat_mle))
-          lower_bounds[var_idx] <- log(0.001)
-          upper_bounds[var_idx] <- log(100)
-        }
-
-        # F0 and G parameters
-        non_var_idx <- grep("F0|G", names(start_mat_mle))
-        lower_bounds[non_var_idx] <- -0.99
-        upper_bounds[non_var_idx] <- 0.99
-
-        current_result <- stats::optim(
-          par = current_init,
-          fn = kk_negloglik,
-          e = e,
-          model = model,
-          Ymat = Ymat,
-          n_states = n_states,
-          transform_se = default_solver_options$transform_se,
-          method = "L-BFGS-B",
-          lower = lower_bounds,
-          upper = upper_bounds,
-          control = list(
-            trace = max(0, default_solver_options$trace),
-            maxit = default_solver_options$maxiter
-          ),
-          hessian = FALSE
-        )
-      } else if (opt_method == "nlminb") {
-        # Set bounds
-        n_params_opt <- length(current_init)
-        lower_bounds <- rep(-Inf, n_params_opt)
-        upper_bounds <- rep(Inf, n_params_opt)
-
-        if (default_solver_options$transform_se) {
-          var_idx <- grep("v0|eps", names(start_mat_mle))
-          lower_bounds[var_idx] <- log(0.001)
-          upper_bounds[var_idx] <- log(100)
-        }
-
-        non_var_idx <- grep("F0|G", names(start_mat_mle))
-        lower_bounds[non_var_idx] <- -0.99
-        upper_bounds[non_var_idx] <- 0.99
-
-        opt_result_nlminb <- stats::nlminb(
-          start = current_init,
-          objective = kk_negloglik,
-          e = e,
-          model = model,
-          Ymat = Ymat,
-          n_states = n_states,
-          transform_se = default_solver_options$transform_se,
-          lower = lower_bounds,
-          upper = upper_bounds,
-          control = list(
-            trace = max(0, default_solver_options$trace),
-            eval.max = default_solver_options$maxiter * 2,
-            iter.max = default_solver_options$maxiter
-          )
-        )
-
-        # Convert nlminb output to optim format
-        current_result <- list(
-          par = opt_result_nlminb$par,
-          value = opt_result_nlminb$objective,
-          convergence = opt_result_nlminb$convergence,
-          message = opt_result_nlminb$message
-        )
-      } else {
-        current_result <- stats::optim(
-          par = current_init,
-          fn = kk_negloglik,
-          e = e,
-          model = model,
-          Ymat = Ymat,
-          n_states = n_states,
-          transform_se = default_solver_options$transform_se,
-          method = opt_method,
-          control = list(
-            trace = max(0, default_solver_options$trace),
-            maxit = default_solver_options$maxiter
-          ),
-          hessian = FALSE
-        )
-      }
-
-      # Store results
-      all_results[[start_idx]] <- current_result
-      all_values[start_idx] <- current_result$value
-
-      if (n_starts > 1 && default_solver_options$trace > 0) {
-        cat("Negative log-likelihood:", round(current_result$value, 4), "\n")
-        cat("Convergence:", current_result$convergence, "\n\n")
-      }
-    }
-
-    # Select best result from all starting points
-    best_idx <- which.min(all_values)
-    opt_result <- all_results[[best_idx]]
-
-    if (n_starts > 1 && default_solver_options$trace > 0) {
-      cat("=== Multi-start Summary ===\n")
-      cat("Best result from starting point", best_idx, "\n")
-      cat("Negative log-likelihoods across starts:\n")
-      for (i in 1:n_starts) {
-        marker <- if (i == best_idx) " <- BEST" else ""
-        cat(sprintf("  Start %d: %.4f%s\n", i, all_values[i], marker))
-      }
-      cat("\n")
-    }
-
-    # Extract results (raw scale from optimizer)
-    params_raw <- opt_result$par
-    loglik <- -opt_result$value
-    convergence <- opt_result$convergence
-    fit <- opt_result
-
-    # ===== STANDARD ERROR CALCULATION =====
-    se_method <- default_solver_options$se_method
-
-    if (se_method == "hessian") {
-      # Calculate high-precision Hessian
-      se_result <- suppressWarnings(tryCatch(
-        {
-          precise_hessian <- numDeriv::hessian(
-            func = kk_negloglik,
-            x = params_raw,
-            e = e,
-            model = model,
+        if (opt_method == "two-step") {
+          opt_nm <- stats::optim(
+            par = current_init,
+            fn = kk_negloglik,
+            kk_spec = kk_spec,
             Ymat = Ymat,
-            n_states = n_states,
             transform_se = default_solver_options$transform_se,
-            method.args = list(eps = 1e-4, d = 0.01, r = 6)
+            method = "Nelder-Mead",
+            control = list(
+              trace = max(0, default_solver_options$trace),
+              maxit = 500
+            )
           )
 
-          # Check condition number
-          cond_num <- tryCatch(
-            kappa(precise_hessian, exact = FALSE),
-            error = function(e) Inf
+          current_result <- stats::optim(
+            par = opt_nm$par,
+            fn = kk_negloglik,
+            kk_spec = kk_spec,
+            Ymat = Ymat,
+            transform_se = default_solver_options$transform_se,
+            method = "BFGS",
+            control = list(
+              trace = max(0, default_solver_options$trace),
+              maxit = default_solver_options$maxiter
+            ),
+            hessian = FALSE
+          )
+        } else if (opt_method == "L-BFGS-B") {
+          current_result <- stats::optim(
+            par = current_init,
+            fn = kk_negloglik,
+            kk_spec = kk_spec,
+            Ymat = Ymat,
+            transform_se = default_solver_options$transform_se,
+            method = "L-BFGS-B",
+            lower = lower_bounds,
+            upper = upper_bounds,
+            control = list(
+              trace = max(0, default_solver_options$trace),
+              maxit = default_solver_options$maxiter
+            ),
+            hessian = FALSE
+          )
+        } else if (opt_method == "nlminb") {
+          opt_result_nlminb <- stats::nlminb(
+            start = current_init,
+            objective = kk_negloglik,
+            kk_spec = kk_spec,
+            Ymat = Ymat,
+            transform_se = default_solver_options$transform_se,
+            lower = lower_bounds,
+            upper = upper_bounds,
+            control = list(
+              trace = max(0, default_solver_options$trace),
+              eval.max = default_solver_options$maxiter * 2,
+              iter.max = default_solver_options$maxiter
+            )
           )
 
-          if (!is.finite(cond_num) || cond_num > 1e10) {
-            msg <- paste0(
-              "Hessian is poorly conditioned",
-              if (is.finite(cond_num)) {
-                paste0(
-                  " (cond = ",
-                  format(cond_num, scientific = TRUE, digits = 2),
-                  ")"
-                )
-              } else {
-                ""
-              },
-              ". SEs may be unreliable."
-            )
+          current_result <- list(
+            par = opt_result_nlminb$par,
+            value = opt_result_nlminb$objective,
+            convergence = opt_result_nlminb$convergence,
+            message = opt_result_nlminb$message
+          )
+        } else {
+          current_result <- stats::optim(
+            par = current_init,
+            fn = kk_negloglik,
+            kk_spec = kk_spec,
+            Ymat = Ymat,
+            transform_se = default_solver_options$transform_se,
+            method = opt_method,
+            control = list(
+              trace = max(0, default_solver_options$trace),
+              maxit = default_solver_options$maxiter
+            ),
+            hessian = FALSE
+          )
+        }
 
-            list(se = rep(NA, length(params_raw)), warning = msg, failed = TRUE)
-          } else {
-            # Try to invert
-            fisher_info <- tryCatch(
-              {
-                solve(precise_hessian)
-              },
-              error = function(e) {
-                ridge <- 1e-6 * mean(abs(diag(precise_hessian)))
-                if (default_solver_options$trace > 0) {
-                  cat(
-                    "Adding ridge regularization (\u03BB =",
-                    format(ridge, scientific = TRUE),
-                    ")\n"
-                  )
-                }
-                tryCatch(
-                  solve(
-                    precise_hessian + ridge * diag(nrow(precise_hessian))
-                  ),
-                  error = function(e2) NULL
-                )
-              }
-            )
+        all_results[[start_idx]] <- current_result
+        all_values[start_idx] <- current_result$value
 
-            if (is.null(fisher_info)) {
-              list(
-                se = rep(NA, length(params_raw)),
-                warning = "Failed to invert Hessian matrix.",
-                failed = TRUE
-              )
-            } else {
-              se_calc <- sqrt(diag(fisher_info))
-              n_nan <- sum(is.nan(se_calc))
-              n_large <- sum(se_calc > 1e3, na.rm = TRUE)
+        if (n_starts > 1 && default_solver_options$trace > 0) {
+          cat("Negative log-likelihood:", round(current_result$value, 4), "\n")
+          cat("Convergence:", current_result$convergence, "\n\n")
+        }
+      }
 
-              problem_msg <- NULL
-              has_failed <- FALSE
+      best_idx <- which.min(ifelse(is.finite(all_values), all_values, Inf))
+      opt_result <- all_results[[best_idx]]
 
-              if ((n_nan + n_large) > 0) {
-                problem_msg <- paste0(
-                  (n_nan + n_large),
-                  " parameter(s) have problematic SEs"
-                )
-                has_failed <- TRUE
-              }
+      if (n_starts > 1 && default_solver_options$trace > 0) {
+        cat("=== Multi-start Summary ===\n")
+        cat("Best result from starting point", best_idx, "\n")
+        cat("Negative log-likelihoods across starts:\n")
+        for (i in seq_len(n_starts)) {
+          marker <- if (i == best_idx) " <- BEST" else ""
+          cat(sprintf("  Start %d: %.4f%s\n", i, all_values[i], marker))
+        }
+        cat("\n")
+      }
 
-              se_calc[is.nan(se_calc)] <- NA
-              list(se = se_calc, warning = problem_msg, failed = has_failed)
-            }
-          }
-        },
+      params_raw <- opt_result$par
+      loglik <- -opt_result$value
+      convergence <- opt_result$convergence
+      fit <- opt_result
+    })
+
+    se_method_used <- default_solver_options$se_method
+    se_warning <- NULL
+    cov_raw <- NULL
+    se_raw <- rep(NA_real_, length(params_raw))
+
+    if (se_method_used == "hessian") {
+      h_res <- tryCatch(
+        kk_compute_hessian_cov(
+          theta_hat = params_raw,
+          kk_spec = kk_spec,
+          Ymat = Ymat,
+          transform_se = default_solver_options$transform_se
+        ),
         error = function(e) {
-          list(
-            se = rep(NA, length(params_raw)),
-            warning = paste0("Hessian calculation failed: ", e$message),
-            failed = TRUE
-          )
+          list(cov = NULL, warning = paste0("Hessian calculation failed: ", e$message))
         }
-      ))
-
-      se_raw <- se_result$se
-      se_warning <- se_result$warning
-      hessian_failed <- se_result$failed
-      se_method_used <- "hessian"
-
-      if (hessian_failed && !is.null(se_warning)) {
-        warning(se_warning, call. = FALSE)
+      )
+      cov_raw <- h_res$cov
+      se_warning <- h_res$warning
+      if (!is.null(cov_raw)) {
+        se_raw <- sqrt(pmax(diag(cov_raw), 0))
+        se_raw[is.nan(se_raw)] <- NA_real_
       }
-    }
-
-    if (default_solver_options$trace > 0) {
-      cat("Standard error method used:", se_method_used, "\n")
-      if (!is.null(se_warning) && default_solver_options$trace > 1) {
-        cat("Warning:", se_warning, "\n")
-      }
-    }
-
-    # Initialize final objects
-    params <- params_raw
-    se <- se_raw
-
-    # Apply transformation and Delta Method
-    if (default_solver_options$transform_se) {
-      var_idx <- grep("v0|eps", names(params_raw))
-
-      for (i in var_idx) {
-        if (!is.na(i)) {
-          # The value on the original scale: exp(log_sigma)
-          params[i] <- exp(params_raw[i])
-
-          # The Delta Method: SE_original = |d/dx exp(x)| * SE_log
-          se[i] <- params[i] * se_raw[i]
+    } else if (se_method_used == "qml") {
+      qml_res <- tryCatch(
+        kk_qml_covariance(
+          theta_hat = params_raw,
+          kk_spec = kk_spec,
+          Ymat = Ymat,
+          transform_se = default_solver_options$transform_se,
+          score_eps = default_solver_options$qml_eps,
+          score_method = default_solver_options$qml_score_method,
+          qml_scale = default_solver_options$qml_scale
+        ),
+        error = function(e) {
+          se_warning <<- paste0("QML covariance failed: ", e$message)
+          NULL
         }
+      )
+
+      if (!is.null(qml_res) && !is.null(qml_res$cov)) {
+        cov_raw <- qml_res$cov
+        se_raw <- sqrt(pmax(diag(cov_raw), 0))
+      } else if (is.null(se_warning)) {
+        se_warning <- "QML covariance returned NULL/invalid; SEs unavailable."
       }
     }
 
-    # Ensure parameter order is consistent
+    tr <- kk_transform_params_and_cov(
+      params_raw = params_raw,
+      cov_raw = cov_raw,
+      param_names = kk_spec$param_names,
+      transform_se = default_solver_options$transform_se
+    )
+
     params <- kk_matrices(
       e = e,
       model = model,
-      params = params,
+      params = tr$params,
       type = "numeric"
     )$params
+    cov_used <- tr$cov
+    se <- tr$se
 
-    # Calculate information criteria
-    n_obs <- nrow(Ymat) * ncol(Ymat)
+    if (is.null(cov_used) && any(is.finite(se_raw))) {
+      se <- se_raw
+      if (isTRUE(default_solver_options$transform_se) && length(tr$idx_sd) > 0) {
+        se[tr$idx_sd] <- exp(params_raw[tr$idx_sd]) * se_raw[tr$idx_sd]
+      }
+    }
+
+    if (!is.null(se_warning) && default_solver_options$trace > 0) {
+      warning(se_warning, call. = FALSE)
+    }
+
+    n_ic <- if (default_solver_options$ic_n == "Tp") {
+      nrow(Ymat) * ncol(Ymat)
+    } else {
+      nrow(Ymat)
+    }
     aic <- -2 * loglik + 2 * n_param
-    bic <- -2 * loglik + log(n_obs) * n_param
+    bic <- -2 * loglik + log(n_ic) * n_param
   }
 
-  # Create model matrices with estimated parameters
+  se_out <- if (method == "mle") se else se_raw
+  param_table <- data.frame(
+    Parameter = names(params),
+    Estimate = unname(params),
+    Std.Error = unname(se_out),
+    row.names = NULL
+  )
+
   kk_mat_hat <- kk_matrices(
     e = e,
     model = model,
     params = params,
     type = "numeric"
   )
-
-  # Cast model matrices to state space form
   sur_ss_mat <- kk_to_ss(
     FF = kk_mat_hat$FF,
     GG = kk_mat_hat$GG,
@@ -886,35 +857,53 @@ kk_nowcast <- function(
     W = kk_mat_hat$W,
     epsilon = 1e-6
   )
+  kk_mat_hat$params <- NULL
 
-  # Calculate forecasts if h > 0
+  if (!isTRUE(default_solver_options$return_states)) {
+    results <- list(
+      states = NULL,
+      kk_model_mat = kk_mat_hat,
+      ss_model_mat = sur_ss_mat,
+      model = NULL,
+      params = param_table,
+      fit = fit,
+      loglik = loglik,
+      aic = aic,
+      bic = bic,
+      convergence = convergence,
+      e = e,
+      data = df,
+      se_method = se_method_used,
+      cov = cov_used
+    )
+    class(results) <- c("kk_model", class(results))
+    return(results)
+  }
+
   if (h > 0) {
-    frequency <- unique((round(as.numeric(diff(df$time)) / 30)))
+    frequency <- unique(round(as.numeric(diff(df$time)) / 30))
     if (length(frequency) > 1) {
       rlang::abort(
-        "The time series seems not to be regular,
-        please provide a regular time series!"
+        "The time series seems not to be regular,\n        please provide a regular time series!"
       )
     }
 
     forecast_dates <- seq.Date(
       df$time[nrow(df)],
       by = paste0(frequency, " months"),
-      length.out = (h + 1)
+      length.out = h + 1
     )[2:(h + 1)]
 
     output_dates <- c(as.Date(rownames(Ymat)), forecast_dates)
-
-    # Create extended data by appending NAs
-    Ymat <- rbind(Ymat, matrix(NA, h, dim(Ymat)[2]))
+    y_kfas <- rbind(Ymat, matrix(NA_real_, h, ncol(Ymat)))
   } else {
     output_dates <- c(as.Date(rownames(Ymat)))
     forecast_dates <- as.Date(character(0))
+    y_kfas <- Ymat
   }
 
-  # Create the SSM object
   model_kfas <- KFAS::SSModel(
-    Ymat ~
+    y_kfas ~
       -1 +
       SSMcustom(
         Z = sur_ss_mat$Z,
@@ -924,31 +913,20 @@ kk_nowcast <- function(
         a1 = c(rep(0.2, n_states / 2), rep(0, n_states / 2)),
         P1inf = diag(c(rep(1, n_states / 2), rep(0, n_states / 2)), n_states),
         P1 = diag(c(rep(0, n_states / 2), rep(1, n_states / 2)), n_states),
-        index = c(seq_len(dim(Ymat)[2]))
+        index = seq_len(ncol(y_kfas))
       ),
     H = sur_ss_mat$H
   )
 
-  # Run the Kalman filter
   kalman <- KFAS::KFS(model_kfas)
 
-  # Number of state variables
-  n_states <- length(z_names)
-
-  # Initialize list to store results
-  state_results <- list()
-
-  # Loop through each state variable
-  for (i in 1:n_states) {
-    # Extract filtered estimates
+  state_results <- vector("list", length(z_names))
+  for (i in seq_along(z_names)) {
     filtered_est <- kalman$att[, i]
     filtered_se <- sqrt(kalman$Ptt[i, i, ])
-
-    # Extract smoothed estimates
     smoothed_est <- kalman$alphahat[, i]
     smoothed_se <- sqrt(kalman$V[i, i, ])
 
-    # Create filtered data frame
     filtered_df <- dplyr::tibble(
       time = output_dates,
       state = z_names[i],
@@ -963,7 +941,6 @@ kk_nowcast <- function(
       )
     )
 
-    # Create smoothed data frame
     smoothed_df <- dplyr::tibble(
       time = output_dates,
       state = z_names[i],
@@ -978,36 +955,12 @@ kk_nowcast <- function(
       )
     )
 
-    # Combine filtered and smoothed
     state_results[[i]] <- dplyr::bind_rows(filtered_df, smoothed_df)
   }
 
-  # Combine all states into one data frame
-  states_long <- dplyr::bind_rows(state_results)
-
-  # Optional: Convert to tibble if using tidyverse
-  states_long <- dplyr::as_tibble(states_long) %>%
+  states_long <- dplyr::bind_rows(state_results) %>%
+    dplyr::as_tibble() %>%
     dplyr::arrange(.data$filter, .data$state, .data$time)
-
-  # Create parameter table with standard errors
-  if (method == tolower("MLE")) {
-    param_table <- data.frame(
-      Parameter = names(params),
-      Estimate = params,
-      Std.Error = se,
-      row.names = NULL
-    )
-  } else if (method == tolower("SUR") || method == tolower("OLS")) {
-    param_table <- data.frame(
-      Parameter = names(params),
-      Estimate = params,
-      Std.Error = se_raw,
-      row.names = NULL
-    )
-  }
-
-  # Remove the parameters from the model matrices
-  kk_mat_hat$params <- NULL
 
   results <- list(
     states = states_long,
@@ -1021,11 +974,413 @@ kk_nowcast <- function(
     bic = bic,
     convergence = convergence,
     e = e,
-    data = df
+    data = df,
+    se_method = se_method_used,
+    cov = cov_used
   )
   class(results) <- c("kk_model", class(results))
+  results
+}
 
-  return(results)
+#' Internal parameter grouping for KK estimation
+#'
+#' @keywords internal
+#' @noRd
+kk_param_names <- function(e, model) {
+  model <- tolower(model)
+
+  g_names <- character(0)
+  if (model %in% tolower(c("Kishor-Koenig", "KK"))) {
+    for (i in seq_len(e)) {
+      for (j in seq_len(e + 1)) {
+        g_names <- c(g_names, paste0("G", e - i, "_", e - j + 1))
+      }
+    }
+  } else if (model == tolower("Howrey")) {
+    for (i in seq_len(e)) {
+      for (j in seq_len(e)) {
+        g_names <- c(g_names, paste0("G", e - i, "_", e - j + 1))
+      }
+    }
+  }
+
+  c("F0", sort(g_names), "v0", paste0("eps", seq.int(0, e - 1)))
+}
+
+#' Normalize KK parameters to the canonical internal order
+#'
+#' @keywords internal
+#' @noRd
+kk_normalize_params <- function(params, param_names) {
+  input_names <- names(params)
+  params <- as.numeric(params)
+  names(params) <- input_names
+
+  if (is.null(input_names)) {
+    names(params) <- param_names
+    return(params)
+  }
+
+  if (anyNA(input_names) || any(input_names == "")) {
+    rlang::abort(
+      "If 'params' is named, all parameter names must be non-empty."
+    )
+  }
+
+  if (anyDuplicated(input_names)) {
+    rlang::abort("Parameter names must be unique.")
+  }
+
+  missing_names <- setdiff(param_names, input_names)
+  extra_names <- setdiff(input_names, param_names)
+
+  if (length(missing_names) > 0 || length(extra_names) > 0) {
+    details <- c(
+      if (length(missing_names) > 0) {
+        paste0("missing: ", paste(missing_names, collapse = ", "))
+      },
+      if (length(extra_names) > 0) {
+        paste0("unexpected: ", paste(extra_names, collapse = ", "))
+      }
+    )
+    rlang::abort(paste(
+      "Named 'params' must match the canonical parameter names for this model.",
+      paste(details, collapse = "; ")
+    ))
+  }
+
+  params[param_names]
+}
+
+#' Internal parameter grouping for KK estimation
+#'
+#' @keywords internal
+#' @noRd
+kk_param_groups <- function(param_names) {
+  list(
+    var_idx = grep("v0|eps", param_names),
+    dyn_idx = grep("^F0$|^G", param_names)
+  )
+}
+
+#' Build the KFAS model used by KK estimation
+#'
+#' @keywords internal
+#' @noRd
+kk_build_kfas_model <- function(params, kk_spec, Ymat, transform_se = TRUE) {
+  theta <- as.numeric(params)
+  names(theta) <- kk_spec$param_names
+
+  groups <- kk_param_groups(kk_spec$param_names)
+
+  if (isTRUE(transform_se) && length(groups$var_idx) > 0) {
+    theta[groups$var_idx] <- exp(theta[groups$var_idx])
+  }
+
+  if (length(groups$var_idx) > 0 &&
+      any(!is.finite(theta[groups$var_idx]) | theta[groups$var_idx] <= 0)) {
+    return(NULL)
+  }
+
+  if (length(groups$dyn_idx) > 0 &&
+      any(!is.finite(theta[groups$dyn_idx]) | abs(theta[groups$dyn_idx]) >= 0.999)) {
+    return(NULL)
+  }
+
+  kk_mat <- tryCatch(
+    kk_matrices(
+      e = kk_spec$e,
+      model = kk_spec$model,
+      params = theta,
+      type = "numeric"
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(kk_mat)) return(NULL)
+
+  ss_mat <- tryCatch(
+    kk_to_ss(kk_mat$FF, kk_mat$GG, kk_mat$V, kk_mat$W),
+    error = function(e) NULL
+  )
+  if (is.null(ss_mat)) return(NULL)
+
+  n_states <- kk_spec$n_states
+  model_kfas <- tryCatch(
+    KFAS::SSModel(
+      Ymat ~ -1 +
+        SSMcustom(
+          Z = ss_mat$Z,
+          T = ss_mat$Tmat,
+          R = ss_mat$R,
+          Q = ss_mat$Q,
+          a1 = c(rep(0.2, n_states / 2), rep(0, n_states / 2)),
+          P1inf = diag(c(rep(1, n_states / 2), rep(0, n_states / 2)), n_states),
+          P1 = diag(c(rep(0, n_states / 2), rep(1, n_states / 2)), n_states),
+          index = seq_len(ncol(Ymat))
+        ),
+      H = ss_mat$H
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(model_kfas)) return(NULL)
+
+  list(
+    params = kk_mat$params,
+    ss_mat = ss_mat,
+    model = model_kfas
+  )
+}
+
+#' Sequential negative log-likelihood contributions for the KK model
+#'
+#' @keywords internal
+#' @noRd
+kk_negloglik_contrib <- function(params, kk_spec, Ymat, transform_se = TRUE) {
+  n_contrib <- max(1L, kk_spec$n_contrib)
+  build <- kk_build_kfas_model(params, kk_spec, Ymat, transform_se)
+  if (is.null(build)) return(rep(1e8, n_contrib))
+
+  kfs <- tryCatch(
+    KFAS::KFS(build$model, filtering = "state", smoothing = "none"),
+    error = function(e) NULL
+  )
+  if (is.null(kfs)) return(rep(1e8, n_contrib))
+
+  contrib_mat <- matrix(NA_real_, nrow = nrow(Ymat), ncol = ncol(Ymat))
+  log2pi <- log(2 * pi)
+
+  for (t in seq_len(nrow(Ymat))) {
+    for (i in seq_len(ncol(Ymat))) {
+      F_ti <- kfs$F[i, t]
+      v_ti <- kfs$v[t, i]
+      if (!is.finite(F_ti) || F_ti <= 0 || !is.finite(v_ti)) {
+        contrib_mat[t, i] <- NA_real_
+      } else {
+        contrib_mat[t, i] <- 0.5 * (log(F_ti) + v_ti^2 / F_ti + log2pi)
+      }
+    }
+  }
+
+  contrib <- as.vector(t(contrib_mat))
+  n_diffuse <- sum(kfs$Finf > 0, na.rm = TRUE)
+  if (n_diffuse > 0) {
+    contrib <- contrib[-seq_len(min(n_diffuse, length(contrib)))]
+  }
+
+  if (length(contrib) != n_contrib) {
+    return(rep(1e8, n_contrib))
+  }
+
+  contrib[!is.finite(contrib)] <- 1e8
+  contrib
+}
+
+#' Total negative log-likelihood for the KK model
+#'
+#' @keywords internal
+#' @noRd
+kk_negloglik <- function(params, kk_spec, Ymat, transform_se = TRUE) {
+  contrib <- kk_negloglik_contrib(
+    params = params,
+    kk_spec = kk_spec,
+    Ymat = Ymat,
+    transform_se = transform_se
+  )
+
+  contrib <- as.numeric(contrib)
+  if (length(contrib) == 0L || any(!is.finite(contrib))) return(1e10)
+
+  obj <- sum(contrib)
+  if (!is.finite(obj)) 1e10 else obj
+}
+
+#' Hessian covariance helper for KK estimation
+#'
+#' @keywords internal
+#' @noRd
+kk_compute_hessian_cov <- function(theta_hat, kk_spec, Ymat, transform_se = TRUE) {
+  H <- numDeriv::hessian(
+    func = kk_negloglik,
+    x = theta_hat,
+    kk_spec = kk_spec,
+    Ymat = Ymat,
+    transform_se = transform_se,
+    method.args = list(eps = 1e-4, d = 0.01, r = 6)
+  )
+
+  cond_num <- tryCatch(kappa(H, exact = FALSE), error = function(e) Inf)
+  if (!is.finite(cond_num) || cond_num > 1e10) {
+    return(list(
+      cov = NULL,
+      warning = paste0(
+        "Hessian is poorly conditioned",
+        if (is.finite(cond_num)) {
+          paste0(" (cond = ", format(cond_num, scientific = TRUE, digits = 2), ")")
+        } else {
+          ""
+        },
+        "; standard errors may be unreliable."
+      )
+    ))
+  }
+
+  invH <- tryCatch(
+    solve(H),
+    error = function(e) {
+      ridge <- 1e-6 * mean(abs(diag(H)))
+      tryCatch(solve(H + ridge * diag(nrow(H))), error = function(e2) NULL)
+    }
+  )
+
+  if (is.null(invH)) {
+    return(list(
+      cov = NULL,
+      warning = "Failed to invert Hessian; standard errors unavailable."
+    ))
+  }
+
+  invH <- (invH + t(invH)) / 2
+  list(cov = invH, warning = NULL)
+}
+
+#' Transform KK parameters and covariance back to the natural scale
+#'
+#' @keywords internal
+#' @noRd
+kk_transform_params_and_cov <- function(params_raw,
+                                        cov_raw,
+                                        param_names,
+                                        transform_se = TRUE) {
+  params <- as.numeric(params_raw)
+  names(params) <- param_names
+  cov_used <- cov_raw
+
+  idx_sd <- grep("v0|eps", param_names)
+
+  if (isTRUE(transform_se) && length(idx_sd) > 0) {
+    params[idx_sd] <- exp(params_raw[idx_sd])
+
+    if (!is.null(cov_raw)) {
+      J <- diag(length(params_raw))
+      J[idx_sd, idx_sd] <- diag(exp(params_raw[idx_sd]))
+      cov_used <- J %*% cov_raw %*% t(J)
+      cov_used <- (cov_used + t(cov_used)) / 2
+    } else {
+      cov_used <- NULL
+    }
+  }
+
+  se <- rep(NA_real_, length(params_raw))
+  if (!is.null(cov_used)) {
+    se <- sqrt(pmax(diag(cov_used), 0))
+    se[is.nan(se)] <- NA_real_
+  }
+
+  list(params = params, cov = cov_used, se = se, idx_sd = idx_sd)
+}
+
+#' QML covariance for the KK estimator
+#'
+#' @keywords internal
+#' @noRd
+kk_qml_covariance <- function(theta_hat,
+                              kk_spec,
+                              Ymat,
+                              transform_se = TRUE,
+                              score_eps = 1e-4,
+                              score_method = c("central", "forward"),
+                              qml_scale = c("sum", "mean", "hc"),
+                              hess_args = list(method.args = list(eps = 1e-4,
+                                                                  d = 0.01,
+                                                                  r = 6)),
+                              ridge_factor = 1e-6) {
+  score_method <- match.arg(score_method)
+  qml_scale <- match.arg(qml_scale)
+
+  H <- do.call(
+    numDeriv::hessian,
+    c(list(
+      func = kk_negloglik,
+      x = theta_hat,
+      kk_spec = kk_spec,
+      Ymat = Ymat,
+      transform_se = transform_se
+    ), hess_args)
+  )
+
+  cond_num <- tryCatch(kappa(H, exact = FALSE), error = function(e) Inf)
+
+  base_contrib <- kk_negloglik_contrib(theta_hat, kk_spec, Ymat, transform_se)
+  nT <- length(base_contrib)
+  k <- length(theta_hat)
+
+  total_nll <- kk_negloglik(theta_hat, kk_spec, Ymat, transform_se)
+  sum_contrib <- sum(base_contrib)
+
+  scale_factor <- 1
+  if (is.finite(total_nll) && is.finite(sum_contrib) && sum_contrib != 0) {
+    rel_gap <- abs(total_nll - sum_contrib) / max(1, abs(total_nll))
+    if (rel_gap > 1e-6) {
+      scale_factor <- total_nll / sum_contrib
+    }
+  }
+
+  scores <- matrix(0, nrow = nT, ncol = k)
+  for (j in seq_len(k)) {
+    step <- rep(0, k)
+    step[j] <- score_eps
+
+    c_plus <- kk_negloglik_contrib(theta_hat + step, kk_spec, Ymat, transform_se)
+    if (length(c_plus) != nT) {
+      stop("kk_negloglik_contrib returned different length under perturbation; cannot form scores.")
+    }
+
+    if (score_method == "central") {
+      c_minus <- kk_negloglik_contrib(theta_hat - step, kk_spec, Ymat, transform_se)
+      if (length(c_minus) != nT) {
+        stop("kk_negloglik_contrib returned different length under perturbation; cannot form scores.")
+      }
+      scores[, j] <- (c_plus - c_minus) / (2 * score_eps)
+    } else {
+      scores[, j] <- (c_plus - base_contrib) / score_eps
+    }
+  }
+
+  if (!isTRUE(all.equal(scale_factor, 1))) {
+    scores <- scores * scale_factor
+  }
+
+  Xproduct <- crossprod(scores)
+  Tobs <- nrow(scores)
+  p <- ncol(scores)
+
+  if (qml_scale == "mean") {
+    Xproduct <- Xproduct / Tobs
+  } else if (qml_scale == "hc") {
+    if (Tobs <= p) stop("hc scaling requires Tobs > number of parameters.")
+    Xproduct <- (Tobs / (Tobs - p)) * (Xproduct / Tobs)
+  }
+
+  invH <- tryCatch(
+    solve(H),
+    error = function(e) {
+      ridge <- ridge_factor * mean(abs(diag(H)))
+      solve(H + ridge * diag(nrow(H)))
+    }
+  )
+
+  invH <- (invH + t(invH)) / 2
+  cov_qml <- invH %*% Xproduct %*% invH
+  cov_qml <- (cov_qml + t(cov_qml)) / 2
+
+  list(
+    cov = cov_qml,
+    H = H,
+    Xproduct = Xproduct,
+    cond_num = cond_num,
+    scale_factor = scale_factor
+  )
 }
 
 #' @title Create Equations for Kishor-Koenig (KK) Models
@@ -1439,9 +1794,6 @@ kk_ols_estim <- function(equations, data, model = "KK") {
 kk_matrices <- function(e, model, params = NULL, type = "numeric") {
   model <- tolower(model)
 
-  # Start param count
-  ii <- 1
-
   # Check input e
   if (e == 0) {
     rlang::abort("The initial release is already efficient, 'e' is equal to 0!")
@@ -1472,14 +1824,6 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
     )
   }
 
-  # Check params are named
-  if (!is.null(params)) {
-    param_names <- names(params)
-    if (is.null(param_names) || anyNA(param_names) || any(param_names == "")) {
-      rlang::abort("All parameters must be named!")
-    }
-  }
-
   # Check params input
   n_param_mat <- dplyr::if_else(
     model %in% tolower(c("Kishor-Koenig", "KK")),
@@ -1494,6 +1838,7 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
   n_param_cov <- e + 1
 
   n_param <- n_param_mat + n_param_cov
+  param_names <- kk_param_names(e = e, model = model)
 
   if (!is.null(params) && length(params) != n_param) {
     rlang::abort(paste0(
@@ -1504,22 +1849,20 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
     ))
   }
 
-  if (is.null(params) && type == "numeric") {
-    params <- rep(1e-1, n_param)
-  } else if (is.null(params) && type == "character") {
-    params <- rep(NA_real_, n_param)
+  if (type == "numeric") {
+    params <- kk_normalize_params(params = params, param_names = param_names)
+  } else if (type == "character") {
+    params <- stats::setNames(rep(NA_character_, n_param), param_names)
   }
 
   # Define F matrix
   FF <- array(0, c(e + 1, e + 1))
   FF[1:(e), 2:(e + 1)] <- diag(e)
   if (type == "numeric") {
-    FF[e + 1, e + 1] <- params[[paste0("F0")]]
+    FF[e + 1, e + 1] <- unname(params[["F0"]])
   } else if (type == "character") {
     FF[e + 1, e + 1] <- "F0"
-    names(params) <- c("F0")
   }
-  ii <- ii + 1
 
   # Define G matrix
   GG <- diag(e + 1)
@@ -1528,27 +1871,24 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
     # e * e+1 params for G
     for (i in 1:e) {
       for (j in 1:(e + 1)) {
+        label <- paste0("G", e - i, "_", e - j + 1)
         if (type == "numeric") {
-          GG[i + 1, j] <- params[[paste0("G", e - i, "_", e - j + 1)]]
+          GG[i + 1, j] <- unname(params[[label]])
         } else if (type == "character") {
-          GG[i + 1, j] <- paste0("G", e - i, "_", e - j + 1)
-          names(params)[ii] <- c(paste0("G", e - i, "_", e - j + 1))
+          GG[i + 1, j] <- label
         }
-        ii <- ii + 1
       }
     }
   } else if (model == tolower("Howrey")) {
     # e * e params for G
     for (i in 1:e) {
       for (j in 1:e) {
+        label <- paste0("G", e - i, "_", e - j + 1)
         if (type == "numeric") {
-          GG[i + 1, j] <- params[[paste0("G", e - i, "_", e - j + 1)]]
+          GG[i + 1, j] <- unname(params[[label]])
         } else if (type == "character") {
-          GG[i + 1, j] <- paste0("G", e - i, "_", e - j + 1)
-          names(params)[ii] <- c(paste0("G", e - i, "_", e - j + 1))
+          GG[i + 1, j] <- label
         }
-
-        ii <- ii + 1
       }
     }
   } else if (model == tolower("Classical")) {
@@ -1561,24 +1901,20 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
   # State noise covariance
   V <- array(0, c(e + 1, e + 1))
   if (type == "numeric") {
-    V[e + 1, e + 1] <- params[[paste0("v0")]]
+    V[e + 1, e + 1] <- unname(params[["v0"]])
   } else if (type == "character") {
     V[e + 1, e + 1] <- "v0"
-    names(params)[ii] <- c(paste0("v0"))
   }
-  ii <- ii + 1
 
   # Observation noise covariance
   W <- array(0, c(e + 1, e + 1))
   for (jj in 2:(e + 1)) {
+    label <- paste0("eps", e + 1 - jj)
     if (type == "numeric") {
-      W[jj, jj] <- params[[paste0("eps", e + 1 - jj)]]
+      W[jj, jj] <- unname(params[[label]])
     } else if (type == "character") {
-      W[jj, jj] <- paste0("eps", e + 1 - jj)
-      names(params)[ii] <- c(paste0("eps", e + 1 - jj))
+      W[jj, jj] <- label
     }
-
-    ii <- ii + 1
   }
 
   if (type == "character") {
@@ -1592,20 +1928,6 @@ kk_matrices <- function(e, model, params = NULL, type = "numeric") {
     V <- apply(V, c(1, 2), as.numeric)
     W <- apply(W, c(1, 2), as.numeric)
   }
-
-  # Sort params to ensure consistency
-  params <- c(
-    params["F0"],
-    params[grep("G", names(params))][order(names(params[grep(
-      "G",
-      names(params)
-    )]))],
-    params["v0"],
-    params[grep("eps", names(params))][order(names(params[grep(
-      "eps",
-      names(params)
-    )]))]
-  )
 
   return(list(FF = FF, GG = GG, V = V, W = W, params = params))
 }
@@ -1810,12 +2132,20 @@ print.kk_model <- function(x, ...) {
 
 #' Plot Kishor-Koenig Model Results
 #'
-#' @param x An object of class 'kk_model'
-#' @param state String. The name of the state to visualize.
-#' @param type String. Type of estimate to plot: "filtered" or "smoothed".
-#' @param ... Additional arguments passed to theme_reviser.
+#' Plot filtered or smoothed estimates for a selected state from a fitted
+#' `kk_model`.
 #'
-#' @return A ggplot2 object visualizing the specified state estimates.
+#' @param x An object of class `kk_model`.
+#' @param state Character scalar giving the state to visualize. If `NULL`, the
+#'   first available state is used.
+#' @param type Character scalar indicating whether `"filtered"` or `"smoothed"`
+#'   estimates should be plotted.
+#' @param ... Additional arguments passed to `plot.revision_model()`.
+#' @details This method requires `x$states` to be available. If the model was
+#'   fitted with `solver_options$return_states = FALSE`, plotting is not
+#'   possible.
+#'
+#' @return A `ggplot2` object visualizing the specified state estimates.
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
