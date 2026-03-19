@@ -12,7 +12,7 @@ kk_nowcast(
   e,
   h = 0,
   model = "Kishor-Koenig",
-  method = "SUR",
+  method = "MLE",
   alpha = 0.05,
   solver_options = list()
 )
@@ -49,8 +49,8 @@ kk_nowcast(
 
 - method:
 
-  A string specifying the estimation method to use. Options are "SUR"
-  (default), Maximum likelihood ("MLE") and "OLS".
+  A string specifying the estimation method to use. Options are "MLE"
+  (Maximum Likelihood, default), "SUR", and "OLS".
 
 - alpha:
 
@@ -236,10 +236,10 @@ h <- 2 # Forecast horizon
 result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig")
 
 result$params
-#>   Parameter     Estimate    Std.Error
-#> 1        F0  0.200853533 0.0735783747
-#> 2      G0_0  0.995630065 0.0048794659
-#> 3      G0_1 -0.001694615 0.0047626028
-#> 4        v0  1.598322193 0.1718526669
-#> 5      eps0  0.006664367 0.0007165572
+#>   Parameter    Estimate    Std.Error
+#> 1        F0 0.197750674 0.0732240318
+#> 2      G0_0 0.990000000 0.0000000000
+#> 3      G0_1 0.079813622 0.0757344824
+#> 4        v0 1.598006734 0.1708419518
+#> 5      eps0 0.006636095 0.0007112013
 ```
