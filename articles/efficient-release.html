@@ -468,9 +468,11 @@ by using the function <code><a href="../reference/get_revision_analysis.html">ge
 <code>degree=3</code>, providing results for news and noise tests) as
 shown below. An advantage of using the
 <code><a href="../reference/get_first_efficient_release.html">get_first_efficient_release()</a></code> function is that it organizes
-the data to be subsequently used in <code><a href="../reference/kk_nowcast.html">kk_nowcast()</a></code> to improve
-nowcasts of preliminary releases (See vignette <a href="nowcasting-revisions.html">Nowcasting Revisions</a> for more
-details).</p>
+the data to be subsequently used in <code><a href="../reference/kk_nowcast.html">kk_nowcast()</a></code> and
+<code><a href="../reference/jvn_nowcast.html">jvn_nowcast()</a></code> to improve nowcasts of preliminary releases
+(See vignettes <a href="nowcasting-revisions-kk.html">Nowcasting
+revisions using the generalized Kishor-Koenig family</a> and <a href="nowcasting-revisions-jvn.html">Nowcasting revisions using the
+Jacobs-Van Norden model</a> for more details).</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">analysis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_revision_analysis.html">get_revision_analysis</a></span><span class="op">(</span></span>
 <span>  <span class="va">df</span>,</span>

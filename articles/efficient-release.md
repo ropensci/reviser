@@ -329,8 +329,13 @@ shown below. An advantage of using the
 [`get_first_efficient_release()`](https://p-wegmueller.github.io/reviser/reference/get_first_efficient_release.md)
 function is that it organizes the data to be subsequently used in
 [`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.md)
-to improve nowcasts of preliminary releases (See vignette [Nowcasting
-Revisions](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions.md)
+and
+[`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md)
+to improve nowcasts of preliminary releases (See vignettes [Nowcasting
+revisions using the generalized Kishor-Koenig
+family](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-kk.md)
+and [Nowcasting revisions using the Jacobs-Van Norden
+model](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-jvn.md)
 for more details).
 
 ``` r
