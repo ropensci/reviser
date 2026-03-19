@@ -18,7 +18,7 @@
 #'  - "Howrey": Howrey's simplified framework.
 #'  - "Classical": Classical model without vintage effects.
 #' @param method A string specifying the estimation method to use. Options are
-#' "SUR" (default), Maximum likelihood ("MLE") and "OLS".
+#' "MLE" (Maximum Likelihood, default), "SUR", and "OLS".
 #' @param alpha Significance level for confidence intervals (default = 0.05).
 #' @param solver_options A named list controlling the SUR and MLE routines.
 #'   Valid names are `trace`, `maxiter`, `startvals`, `solvtol`, `gradtol`,
@@ -145,7 +145,7 @@ kk_nowcast <- function(
   e,
   h = 0,
   model = "Kishor-Koenig",
-  method = "SUR",
+  method = "MLE",
   alpha = 0.05,
   solver_options = list()
 ) {

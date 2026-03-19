@@ -1,25 +1,11 @@
 # reviser (development version)
 
-## Changes since rOpenSci submission
-* Nowcasting/Forecasting revisions with Jacobs van Norden model
-* Improved estimation methods for Kishor-Koenig model
+## Post-review changes
 
-## Submission
+* Added Jacobs-van Norden nowcasting support via `jvn_nowcast()`.
+* Improved estimation methods and solver behavior in `kk_nowcast()`.
+* Expanded examples, tests, and documentation.
 
-* Initial submission to rOpenSci for peer review (2025-05-28)
+## Review milestone
 
-## Features
-
-* Core functionality for working with vintage data (real-time datasets)
-* Support for both long and wide format vintage data
-* Handles single time series and lists of multiple time series
-* Validation and format detection for vintage data structures
-* Functions for extracting, comparing, and visualizing vintage data
-* Statistical analysis tools for vintage datasets
-* Nowcasting/Forecasting revisions with Kishor-Koenig model
-
-## Documentation
-
-* Function documentation with examples
-* Vignettes demonstrating package usage
-* README with quick start guide
+* Submitted to rOpenSci for peer review on 2025-05-28.

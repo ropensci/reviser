@@ -9,7 +9,7 @@ kk_nowcast(
   e,
   h = 0,
   model = "Kishor-Koenig",
-  method = "SUR",
+  method = "MLE",
   alpha = 0.05,
   solver_options = list()
 )
@@ -34,7 +34,7 @@ implies no forecasts. Must be greater than or equal to 0.}
 }}
 
 \item{method}{A string specifying the estimation method to use. Options are
-"SUR" (default), Maximum likelihood ("MLE") and "OLS".}
+"MLE" (Maximum Likelihood, default), "SUR", and "OLS".}
 
 \item{alpha}{Significance level for confidence intervals (default = 0.05).}
 
