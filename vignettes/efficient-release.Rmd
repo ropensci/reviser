@@ -106,7 +106,7 @@ head(res)
 ```
 
 
-Note: The identification of the first efficient release is related to the news hypothesis testing. Hence, the same conclusion could be reached by using the function `get_revision_analysis()` (setting `degree=3`, providing results for news and noise tests) as shown below. An advantage of using the `get_first_efficient_release()` function is that it organizes the data to be subsequently used in `kk_nowcast()` to improve nowcasts of preliminary releases (See vignette [Nowcasting Revisions](nowcasting-revisions.html) for more details).
+Note: The identification of the first efficient release is related to the news hypothesis testing. Hence, the same conclusion could be reached by using the function `get_revision_analysis()` (setting `degree=3`, providing results for news and noise tests) as shown below. An advantage of using the `get_first_efficient_release()` function is that it organizes the data to be subsequently used in `kk_nowcast()` and `jvn_nowcast()` to improve nowcasts of preliminary releases (See vignettes [Nowcasting revisions using the generalized Kishor-Koenig family](nowcasting-revisions-kk.html) and [Nowcasting revisions using the Jacobs-Van Norden model](nowcasting-revisions-jvn.html) for more details).
 
 
 ```{r, warning=FALSE, message=FALSE}

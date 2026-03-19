@@ -111,10 +111,15 @@ Key features include:
   Identification*](https://p-wegmueller.github.io/reviser/articles/efficient-release.html).
 
 - **Nowcast future data revisions** using
-  [`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.html),
-  a tool to anticipate upcoming changes to early releases. Explore the
-  methodology in the vignette [*Nowcasting
-  Revisions*](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions.html).
+  [`kk_nowcast()`](https://p-wegmueller.github.io/reviser/reference/kk_nowcast.html)
+  and
+  [`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.html),
+  tools to anticipate upcoming changes to early releases. Explore the
+  methodology in the vignettes [*Nowcasting revisions using the generalized
+  Kishor-Koenig
+  family*](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-kk.html)
+  and [*Nowcasting revisions using the Jacobs-Van Norden
+  model*](https://p-wegmueller.github.io/reviser/articles/nowcasting-revisions-jvn.html).
 
 ## Installation
 

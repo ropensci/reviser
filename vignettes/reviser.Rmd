@@ -227,4 +227,4 @@ After defining the final release, we can analyze revisions and releases in multi
 - Calculate revisions: `get_revisions()`. See vignette [Understanding Data Revisions](understanding-revisions.html) for more details.
 - Analyze the revisions: `get_revision_analysis()`. See vignette [Revision Patterns and Statistics](revision-analysis.html) for more details.
 - Identify the first efficient release: `get_first_efficient_release()`. See vignette [Efficient Release Identification](efficient-release.html) for more details.
-- Nowcast future revisions: `kk_nowcast()`. See vignette [Nowcasting Revisions](nowcasting-revisions.html) for more details.
+- Nowcast future revisions: `kk_nowcast()` and `jvn_nowcast()`. See vignettes [Nowcasting revisions using the generalized Kishor-Koenig family](nowcasting-revisions-kk.html) and [Nowcasting revisions using the Jacobs-Van Norden model](nowcasting-revisions-jvn.html) for more details.
