@@ -1,7 +1,7 @@
 Package: reviser
 Type: Package
 Title: Tools for Studying Revision Properties in Real-Time Time Series Vintages
-Version: 0.1.0.9000
+Version: 0.1.0
 Authors@R: c(
     person(given = "Marc", family = "Burri", email = "marc.burri91@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-8974-9090")),

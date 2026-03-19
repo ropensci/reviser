@@ -16,3 +16,6 @@
 ^CODE_OF_CONDUCT\.md$
 ^\.lintr$
 ^codemeta\.json$
+^cran-comments\.md$
+^CRAN-SUBMISSION$
+^CRAN-SUBMISSION$

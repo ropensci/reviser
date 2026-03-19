@@ -1,4 +1,4 @@
-# reviser 0.1.0.9000
+# reviser 0.1.0
 
 * Added Jacobs-van Norden nowcasting support via `jvn_nowcast()`.
 * Improved estimation methods and solver behavior in `kk_nowcast()`.

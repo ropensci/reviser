@@ -11,3 +11,6 @@ inst/doc
 .DS_Store
 /doc/
 /Meta/
+*.Rcheck/
+*.tar.gz
+CRAN-SUBMISSION
