@@ -106,8 +106,8 @@ library(reviser)
 library(dplyr)
 library(tsbox)
 
-gdp <- reviser::gdp %>%
-  ts_pc() %>%
+gdp <- reviser::gdp |>
+  ts_pc() |>
   na.omit()
 
 df <- get_nth_release(gdp, 0:1)
@@ -609,7 +609,7 @@ the `pub_date` or `release` column. Alternatively, it can be specified
 via the optional function argument `grouping_var`.
 
 ``` r
-df <- gdp %>%
+df <- gdp |>
   filter(pub_date %in% c("2024-04-01", "2024-07-01"))
 
 
@@ -736,18 +736,18 @@ dataframe.
 
 ``` r
 # Get unique sorted publication dates
-pub_dates <- gdp %>%
-  distinct(pub_date) %>%
-  arrange(pub_date) %>%
+pub_dates <- gdp |>
+  distinct(pub_date) |>
+  arrange(pub_date) |>
   pull(pub_date)
 
 # Run the function for each pair of consecutive publication dates
 results <- purrr::map_dfr(seq_along(pub_dates[-length(pub_dates)]),
   function(i) {
-    df <- gdp %>%
+    df <- gdp |>
       filter(pub_date %in% pub_dates[i])
 
-    final_release <- gdp %>%
+    final_release <- gdp |>
       filter(pub_date %in% pub_dates[i + 1])
 
     get_revision_analysis(df, final_release, degree = 5)

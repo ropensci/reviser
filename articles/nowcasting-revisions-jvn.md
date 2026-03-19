@@ -166,13 +166,13 @@ library(tidyr)
 library(tsbox)
 library(ggplot2)
 
-gdp_growth <- reviser::gdp %>%
-  tsbox::ts_pc() %>%
+gdp_growth <- reviser::gdp |>
+  tsbox::ts_pc() |>
   dplyr::filter(
     id == "EA",
     time >= min(pub_date),
     time <= as.Date("2020-01-01")
-  ) %>%
+  ) |>
   tidyr::drop_na()
 
 df <- get_nth_release(gdp_growth, n = 0:3)
@@ -284,11 +284,11 @@ fit_jvn$params
 The state named `true_lag_0` is the current latent true value.
 
 ``` r
-fit_jvn$states %>%
+fit_jvn$states |>
   dplyr::filter(
     state == "true_lag_0",
     filter == "smoothed"
-  ) %>%
+  ) |>
   dplyr::slice_tail(n = 8)
 #> # A tibble: 8 × 7
 #>   time       state      estimate  lower   upper filter   sample   
@@ -315,11 +315,11 @@ plot(fit_jvn)
 We can also inspect the smoothed news and noise states directly.
 
 ``` r
-fit_jvn$states %>%
+fit_jvn$states |>
   dplyr::filter(
     filter == "smoothed",
     grepl("news|noise", state)
-  ) %>%
+  ) |>
   ggplot(aes(x = time, y = estimate, color = state)) +
   geom_line() +
   labs(

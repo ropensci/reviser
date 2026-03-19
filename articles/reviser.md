@@ -41,9 +41,9 @@ during the 2007–2009 financial crisis.
 ``` r
 # Example long-format US GDP data
 data("gdp")
-gdp_us_short <- gdp %>%
-  dplyr::filter(id == "US") %>%
-  ts_pc() %>%
+gdp_us_short <- gdp |>
+  dplyr::filter(id == "US") |>
+  ts_pc() |>
   filter(
     pub_date >= as.Date("2007-01-01"),
     pub_date < as.Date("2009-01-01"),
@@ -52,9 +52,9 @@ gdp_us_short <- gdp %>%
   )
 
 # Example long-format EA GDP data
-gdp_ea_short <- gdp %>%
-  dplyr::filter(id == "EA") %>%
-  ts_pc() %>%
+gdp_ea_short <- gdp |>
+  dplyr::filter(id == "EA") |>
+  ts_pc() |>
   filter(
     pub_date >= as.Date("2007-01-01"),
     pub_date < as.Date("2009-01-01"),
@@ -148,8 +148,8 @@ maintains the `id` column to distinguish between series.
 
 ``` r
 gdp_short <- bind_rows(
-  gdp_ea_short %>% mutate(id = "EA"),
-  gdp_us_short %>% mutate(id = "US")
+  gdp_ea_short |> mutate(id = "EA"),
+  gdp_us_short |> mutate(id = "US")
 )
 gdp_wide_short <- vintages_wide(gdp_short)
 head(gdp_wide_short)
@@ -313,9 +313,9 @@ function
 extracts these fixed releases.
 
 ``` r
-gdp_ea_longer <- gdp %>%
-  dplyr::filter(id == "EA") %>%
-  ts_pc() %>%
+gdp_ea_longer <- gdp |>
+  dplyr::filter(id == "EA") |>
+  ts_pc() |>
   filter(
     time >= as.Date("2000-01-01"),
     time < as.Date("2006-01-01"),
@@ -413,9 +413,9 @@ plot_vintages(
 
 # Line plot showing GDP vintages over id dimension
 plot_vintages(
-  gdp %>%
-    ts_pc() %>%
-    get_latest_release() %>%
+  gdp |>
+    ts_pc() |>
+    get_latest_release() |>
     na.omit(),
   dim_col = "id",
   title = "Recent GDP Estimates",

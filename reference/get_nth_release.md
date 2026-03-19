@@ -25,8 +25,8 @@ get_nth_release(df, n = 0, diagonal = FALSE)
 
   The release number to extract. Accepts:
 
-  - Positive integer or vector (e.g., 0 for first release, 1 for second,
-    etc.)
+  - Non-negative integer or vector (e.g., 0 for first release, 1 for
+    second, etc.)
 
   - `"first"` to extract the first release.
 

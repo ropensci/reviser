@@ -385,8 +385,8 @@ between consecutive releases:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/tsbox/" class="external-link">tsbox</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Example dataset</span></span>
-<span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">revisions_interval</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_revisions.html">get_revisions</a></span><span class="op">(</span><span class="va">gdp</span>, interval <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -394,8 +394,8 @@ between consecutive releases:</p>
 <span><span class="co"># Preview results</span></span>
 <span><span class="co"># How do the 2nd and 3rd release revise compared to previous quarter?</span></span>
 <span><span class="fu"><a href="../reference/plot_vintages.html">plot_vintages</a></span><span class="op">(</span></span>
-<span>  <span class="va">revisions_interval</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="st">"US"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>  <span class="va">revisions_interval</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="st">"US"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span>,</span>
 <span>  dim_col <span class="op">=</span> <span class="st">"release"</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Revisions of 2nd (release_1) and 3rd (release_2) release"</span>,</span>
@@ -406,7 +406,7 @@ between consecutive releases:</p>
 <code class="sourceCode R"><span></span>
 <span><span class="co"># Revisions of the latest release</span></span>
 <span><span class="fu"><a href="../reference/plot_vintages.html">plot_vintages</a></span><span class="op">(</span></span>
-<span>  <span class="va">revisions_interval</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="va">revisions_interval</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dim_col <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Revisions of the latest release"</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="st">"For several countries"</span></span>
@@ -430,7 +430,7 @@ against an initial estimate:</p>
 <span><span class="co"># Preview results</span></span>
 <span><span class="co"># Revisions of the latest release</span></span>
 <span><span class="fu"><a href="../reference/plot_vintages.html">plot_vintages</a></span><span class="op">(</span></span>
-<span>  <span class="va">revisions_date</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="va">revisions_date</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dim_col <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Revisions of the latest release compared to Q4 2005"</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="st">"For several countries"</span>,</span>
@@ -450,7 +450,7 @@ revisions between the first and last releases:</p>
 <span><span class="co"># Preview results</span></span>
 <span><span class="co"># Revisions of the latest release</span></span>
 <span><span class="fu"><a href="../reference/plot_vintages.html">plot_vintages</a></span><span class="op">(</span></span>
-<span>  <span class="va">revisions_nth</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="va">revisions_nth</span> <span class="op">|&gt;</span> <span class="fu"><a href="../reference/get_latest_release.html">get_latest_release</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dim_col <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  title <span class="op">=</span> <span class="st">"Revisions of the latest compared to first release"</span>,</span>
 <span>  subtitle <span class="op">=</span> <span class="st">"For several countries"</span>,</span>

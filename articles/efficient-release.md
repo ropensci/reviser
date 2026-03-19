@@ -130,7 +130,7 @@ ranging from the 1st (Japan, US) to the 13th (Switzerland) release.
 library(reviser)
 library(dplyr)
 
-gdp <- reviser::gdp %>%
+gdp <- reviser::gdp |>
   tsbox::ts_pc()
 
 df <- get_nth_release(gdp, n = 0:19)

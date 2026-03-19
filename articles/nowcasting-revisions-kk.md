@@ -150,17 +150,16 @@ estimate the full KK model.
 ``` r
 library(reviser)
 library(dplyr)
-library(magrittr)
 library(tidyr)
 library(tsbox)
 
-gdp <- reviser::gdp %>%
-  tsbox::ts_pc() %>%
+gdp <- reviser::gdp |>
+  tsbox::ts_pc() |>
   dplyr::filter(
     id == "EA",
     time >= min(pub_date),
     time <= as.Date("2020-01-01")
-  ) %>%
+  ) |>
   tidyr::drop_na()
 
 df <- get_nth_release(gdp, n = 0:14)
@@ -274,8 +273,8 @@ The `states` element contains filtered and smoothed estimates of the
 latent state vector in tidy format.
 
 ``` r
-fit_kk$states %>%
-  dplyr::filter(filter == "smoothed") %>%
+fit_kk$states |>
+  dplyr::filter(filter == "smoothed") |>
   dplyr::slice_tail(n = 8)
 #> # A tibble: 8 × 7
 #>   time       state           estimate lower upper filter   sample   
