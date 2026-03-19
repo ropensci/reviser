@@ -360,17 +360,19 @@ benchmark.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_kk</span> <span class="op">&lt;-</span> <span class="fu">load_or_build_vignette_result</span><span class="op">(</span></span>
 <span>  <span class="st">"nowcasting-revisions-kk-fit.rds"</span>,</span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
-<span>    df <span class="op">=</span> <span class="va">data_kk</span>,</span>
-<span>    e <span class="op">=</span> <span class="va">e</span>,</span>
-<span>    model <span class="op">=</span> <span class="st">"KK"</span>,</span>
-<span>    method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
-<span>    solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
-<span>      maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>      se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
+<span>      df <span class="op">=</span> <span class="va">data_kk</span>,</span>
+<span>      e <span class="op">=</span> <span class="va">e</span>,</span>
+<span>      model <span class="op">=</span> <span class="st">"KK"</span>,</span>
+<span>      method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>      solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>        maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>        se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>      <span class="op">)</span></span>
 <span>    <span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_kk</span><span class="op">)</span></span>

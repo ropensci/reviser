@@ -220,17 +220,19 @@ before a release is statistically close to the final benchmark.
 ``` r
 fit_kk <- load_or_build_vignette_result(
   "nowcasting-revisions-kk-fit.rds",
-  function() kk_nowcast(
-    df = data_kk,
-    e = e,
-    model = "KK",
-    method = "MLE",
-    solver_options = list(
-      method = "L-BFGS-B",
-      maxiter = 100,
-      se_method = "hessian"
+  function() {
+    kk_nowcast(
+      df = data_kk,
+      e = e,
+      model = "KK",
+      method = "MLE",
+      solver_options = list(
+        method = "L-BFGS-B",
+        maxiter = 100,
+        se_method = "hessian"
+      )
     )
-  )
+  }
 )
 
 summary(fit_kk)

@@ -204,24 +204,26 @@ per release, which is the format expected by
 ``` r
 fit_jvn <- load_or_build_vignette_result(
   "nowcasting-revisions-jvn-fit.rds",
-  function() jvn_nowcast(
-    df = df,
-    e = 4,
-    ar_order = 2,
-    h = 0,
-    include_news = TRUE,
-    include_noise = TRUE,
-    include_spillovers = TRUE,
-    spillover_news = TRUE,
-    spillover_noise = TRUE,
-    method = "MLE",
-    standardize = FALSE,
-    solver_options = list(
-      method = "L-BFGS-B",
-      maxiter = 100,
-      se_method = "hessian"
+  function() {
+    jvn_nowcast(
+      df = df,
+      e = 4,
+      ar_order = 2,
+      h = 0,
+      include_news = TRUE,
+      include_noise = TRUE,
+      include_spillovers = TRUE,
+      spillover_news = TRUE,
+      spillover_noise = TRUE,
+      method = "MLE",
+      standardize = FALSE,
+      solver_options = list(
+        method = "L-BFGS-B",
+        maxiter = 100,
+        se_method = "hessian"
+      )
     )
-  )
+  }
 )
 
 summary(fit_jvn)

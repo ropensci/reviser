@@ -358,24 +358,26 @@ column per release, which is the format expected by
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_jvn</span> <span class="op">&lt;-</span> <span class="fu">load_or_build_vignette_result</span><span class="op">(</span></span>
 <span>  <span class="st">"nowcasting-revisions-jvn-fit.rds"</span>,</span>
-<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
-<span>    df <span class="op">=</span> <span class="va">df</span>,</span>
-<span>    e <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>    ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>    h <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>    include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    spillover_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    spillover_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>    method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
-<span>    standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>    solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
-<span>      maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>      se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="../reference/jvn_nowcast.html">jvn_nowcast</a></span><span class="op">(</span></span>
+<span>      df <span class="op">=</span> <span class="va">df</span>,</span>
+<span>      e <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>      ar_order <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>      h <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>      include_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>      include_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>      include_spillovers <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>      spillover_news <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>      spillover_noise <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>      method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>      standardize <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>      solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>        maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>        se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>      <span class="op">)</span></span>
 <span>    <span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_jvn</span><span class="op">)</span></span>
