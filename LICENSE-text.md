@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2024
-    COPYRIGHT HOLDER: reviser authors, SECO IP
+    COPYRIGHT HOLDER: reviser authors

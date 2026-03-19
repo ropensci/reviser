@@ -262,24 +262,27 @@ macroeconomic data for forecasting and policy analysis.</p>
 <code>reviser</code><a class="anchor" aria-label="anchor" href="#example-identifying-an-efficient-release-in-gdp-data-with-reviser"></a>
 </h3>
 <p>In the following example, we use the <code>reviser</code> package to
-identify the efficient release in quarterly GDP data for Switzerland,
-the Euro Area, Japan, and the United States. We test the first 20 data
-releases, and we aim to determine the point at which further revisions
-become negligible. As the final release, we use the same release for all
-countries, namely the data released 5 years after the first release. The
-tests shows that the first efficient release occurs at different points
-for each country, ranging from the 1st (Japan, US) to the 13th
-(Switzerland) release.</p>
+identify the efficient release in quarterly Euro Area GDP data. We test
+the first 15 data releases and use the 16th release as the benchmark
+final release. The sample is restricted to a single series and a shorter
+time span to keep the vignette lightweight while preserving a
+non-trivial efficient-release result.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://p-wegmueller.github.io/reviser/">reviser</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span>
+<span>    <span class="va">id</span> <span class="op">==</span> <span class="st">"EA"</span>,</span>
+<span>    <span class="va">time</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">pub_date</span><span class="op">)</span>,</span>
+<span>    <span class="va">time</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/drop_na.html" class="external-link">drop_na</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">19</span><span class="op">)</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">14</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span>
+<span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">efficient</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span></span>
 <span>  <span class="va">df</span>,</span>
@@ -287,8 +290,7 @@ for each country, ranging from the 1st (Japan, US) to the 13th
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">efficient</span><span class="op">)</span></span>
-<span><span class="co">#&gt; id:  CHE </span></span>
-<span><span class="co">#&gt; Efficient release:  13 </span></span>
+<span><span class="co">#&gt; Efficient release:  2 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Model summary: </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -297,171 +299,42 @@ for each country, ranging from the 1st (Japan, US) to the 13th
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Residuals:</span></span>
 <span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
-<span><span class="co">#&gt; -0.83040 -0.13561 -0.00657  0.15531  0.76670 </span></span>
+<span><span class="co">#&gt; -0.34873 -0.08185 -0.00706  0.10475  0.31533 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)  0.05979    0.02526   2.367   0.0192 *  </span></span>
-<span><span class="co">#&gt; release_13   0.87766    0.03326  26.384   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; (Intercept)  0.03276    0.01775   1.846   0.0692 .  </span></span>
+<span><span class="co">#&gt; release_2    1.01446    0.02440  41.577   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residual standard error: 0.2631 on 155 degrees of freedom</span></span>
-<span><span class="co">#&gt;   (21 observations deleted due to missingness)</span></span>
-<span><span class="co">#&gt; Multiple R-squared:  0.8179, Adjusted R-squared:  0.8167 </span></span>
-<span><span class="co">#&gt; F-statistic: 696.1 on 1 and 155 DF,  p-value: &lt; 2.2e-16</span></span>
+<span><span class="co">#&gt; Residual standard error: 0.1428 on 68 degrees of freedom</span></span>
+<span><span class="co">#&gt; Multiple R-squared:  0.9622, Adjusted R-squared:  0.9616 </span></span>
+<span><span class="co">#&gt; F-statistic:  1729 on 1 and 68 DF,  p-value: &lt; 2.2e-16</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Test summary: </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Linear hypothesis test:</span></span>
 <span><span class="co">#&gt; (Intercept) = 0</span></span>
-<span><span class="co">#&gt; release_13 = 1</span></span>
+<span><span class="co">#&gt; release_2 = 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Model 1: restricted model</span></span>
-<span><span class="co">#&gt; Model 2: final ~ release_13</span></span>
+<span><span class="co">#&gt; Model 2: final ~ release_2</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Note: Coefficient covariance matrix supplied.</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   Res.Df Df      F  Pr(&gt;F)  </span></span>
-<span><span class="co">#&gt; 1    157                    </span></span>
-<span><span class="co">#&gt; 2    155  2 2.9999 0.05269 .</span></span>
+<span><span class="co">#&gt;   Res.Df Df     F  Pr(&gt;F)  </span></span>
+<span><span class="co">#&gt; 1     70                   </span></span>
+<span><span class="co">#&gt; 2     68  2 2.743 0.07151 .</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id:  EA </span></span>
-<span><span class="co">#&gt; Efficient release:  7 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; stats::lm(formula = formula, data = df_wide)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residuals:</span></span>
-<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
-<span><span class="co">#&gt; -0.39144 -0.06507  0.00536  0.07090  0.25743 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)  0.01982    0.01113   1.781   0.0768 .  </span></span>
-<span><span class="co">#&gt; release_7    1.00311    0.01646  60.934   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residual standard error: 0.1111 on 156 degrees of freedom</span></span>
-<span><span class="co">#&gt;   (20 observations deleted due to missingness)</span></span>
-<span><span class="co">#&gt; Multiple R-squared:  0.9597, Adjusted R-squared:  0.9594 </span></span>
-<span><span class="co">#&gt; F-statistic:  3713 on 1 and 156 DF,  p-value: &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Test summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Linear hypothesis test:</span></span>
-<span><span class="co">#&gt; (Intercept) = 0</span></span>
-<span><span class="co">#&gt; release_7 = 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model 1: restricted model</span></span>
-<span><span class="co">#&gt; Model 2: final ~ release_7</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Note: Coefficient covariance matrix supplied.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   Res.Df Df      F  Pr(&gt;F)  </span></span>
-<span><span class="co">#&gt; 1    158                    </span></span>
-<span><span class="co">#&gt; 2    156  2 3.0071 0.05231 .</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id:  JP </span></span>
-<span><span class="co">#&gt; Efficient release:  0 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; stats::lm(formula = formula, data = df_wide)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residuals:</span></span>
-<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
-<span><span class="co">#&gt; -1.76370 -0.36739 -0.01023  0.38499  1.72906 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept)  0.05437    0.05116   1.063     0.29    </span></span>
-<span><span class="co">#&gt; release_0    0.83179    0.04878  17.051   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residual standard error: 0.5765 on 156 degrees of freedom</span></span>
-<span><span class="co">#&gt;   (20 observations deleted due to missingness)</span></span>
-<span><span class="co">#&gt; Multiple R-squared:  0.6508, Adjusted R-squared:  0.6486 </span></span>
-<span><span class="co">#&gt; F-statistic: 290.7 on 1 and 156 DF,  p-value: &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Test summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Linear hypothesis test:</span></span>
-<span><span class="co">#&gt; (Intercept) = 0</span></span>
-<span><span class="co">#&gt; release_0 = 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model 1: restricted model</span></span>
-<span><span class="co">#&gt; Model 2: final ~ release_0</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Note: Coefficient covariance matrix supplied.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   Res.Df Df      F Pr(&gt;F)</span></span>
-<span><span class="co">#&gt; 1    158                 </span></span>
-<span><span class="co">#&gt; 2    156  2 1.8585 0.1593</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id:  US </span></span>
-<span><span class="co">#&gt; Efficient release:  0 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; stats::lm(formula = formula, data = df_wide)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residuals:</span></span>
-<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
-<span><span class="co">#&gt; -0.82880 -0.13760  0.03239  0.12910  0.95887 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span><span class="co">#&gt; (Intercept) 0.005432   0.028360   0.192    0.848    </span></span>
-<span><span class="co">#&gt; release_0   0.955730   0.029993  31.865   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Residual standard error: 0.2564 on 156 degrees of freedom</span></span>
-<span><span class="co">#&gt;   (20 observations deleted due to missingness)</span></span>
-<span><span class="co">#&gt; Multiple R-squared:  0.8668, Adjusted R-squared:  0.866 </span></span>
-<span><span class="co">#&gt; F-statistic:  1015 on 1 and 156 DF,  p-value: &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Test summary: </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Linear hypothesis test:</span></span>
-<span><span class="co">#&gt; (Intercept) = 0</span></span>
-<span><span class="co">#&gt; release_0 = 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Model 1: restricted model</span></span>
-<span><span class="co">#&gt; Model 2: final ~ release_0</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Note: Coefficient covariance matrix supplied.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   Res.Df Df      F Pr(&gt;F)</span></span>
-<span><span class="co">#&gt; 1    158                 </span></span>
-<span><span class="co">#&gt; 2    156  2 2.2919 0.1045</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
-<span><span class="co">#&gt;   id        e   alpha  beta p_value n_tested</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE      13 0.059<span style="text-decoration: underline;">8</span>  0.878  0.052<span style="text-decoration: underline;">7</span>       14</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA        7 0.019<span style="text-decoration: underline;">8</span>  1.00   0.052<span style="text-decoration: underline;">3</span>        8</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> JP        0 0.054<span style="text-decoration: underline;">4</span>  0.832  0.159         1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> US        0 0.005<span style="text-decoration: underline;">43</span> 0.956  0.104         1</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 5</span></span></span>
+<span><span class="co">#&gt;       e  alpha  beta p_value n_tested</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     2 0.032<span style="text-decoration: underline;">8</span>  1.01  0.071<span style="text-decoration: underline;">5</span>        3</span></span></code></pre></div>
 <p>Note: The identification of the first efficient release is related to
 the news hypothesis testing. Hence, the same conclusion could be reached
 by using the function <code><a href="../reference/get_revision_analysis.html">get_revision_analysis()</a></code> (setting
@@ -486,12 +359,12 @@ Jacobs-Van Norden model</a> for more details).</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 17</span></span></span>
 <span><span class="co">#&gt;   id    release        N `News test Intercept` `News test Intercept (std.err)`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   release_0    158                 0.18                            0.054</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   release_1    158                 0.163                           0.054</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> CHE   release_10   157                 0.128                           0.047</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> CHE   release_11   158                 0.126                           0.047</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> CHE   release_12   157                 0.092                           0.041</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> CHE   release_13   157                 0.06                            0.029</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    release_0     70                 0.043                           0.03 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    release_1     70                 0.041                           0.024</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    release_10    70                 0                               0.008</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    release_11    70                -<span style="color: #BB0000;">0.003</span>                           0.006</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> EA    release_12    70                -<span style="color: #BB0000;">0.004</span>                           0.007</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> EA    release_13    70                 0.002                           0.005</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 12 more variables: `News test Intercept (p-value)` &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `News test Coefficient` &lt;dbl&gt;, `News test Coefficient (std.err)` &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `News test Coefficient (p-value)` &lt;dbl&gt;, `News joint test (p-value)` &lt;dbl&gt;,</span></span></span>
@@ -502,29 +375,29 @@ Jacobs-Van Norden model</a> for more details).</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.004 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.011 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_10:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.003 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_11:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.003 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_12:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.017 ): systematic information</span></span>
+<span><span class="co">#&gt; id=EA, release=release_0:</span></span>
+<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.044 ): systematic information</span></span>
 <span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.001 ): measurement error</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_13:</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.053 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.121 )</span></span></code></pre></div>
+<span><span class="co">#&gt; id=EA, release=release_1:</span></span>
+<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.042 ): systematic information</span></span>
+<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.007 ): measurement error</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; id=EA, release=release_10:</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.124 )</span></span>
+<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.019 ): measurement error</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; id=EA, release=release_11:</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.524 )</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.132 )</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; id=EA, release=release_12:</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.628 )</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.402 )</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; id=EA, release=release_13:</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.553 )</span></span>
+<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.378 )</span></span></code></pre></div>
 </div>
 <div class="section level2 unnumbered">
 <h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

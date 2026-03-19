@@ -307,7 +307,10 @@ the first 15 vintages, then estimate the full KK model.</p>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">14</span><span class="op">)</span></span>
 <span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">efficient_release</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">final_release</span><span class="op">)</span></span>
+<span><span class="va">efficient_release</span> <span class="op">&lt;-</span> <span class="fu">load_or_build_vignette_result</span><span class="op">(</span></span>
+<span>  <span class="st">"nowcasting-revisions-kk-efficient-release.rds"</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="../reference/get_first_efficient_release.html">get_first_efficient_release</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">final_release</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">efficient_release</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Efficient release:  2 </span></span>
 <span><span class="co">#&gt; </span></span>
@@ -355,15 +358,18 @@ the first 15 vintages, then estimate the full KK model.</p>
 rounds are needed before a release is statistically close to the final
 benchmark.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_kk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
-<span>  df <span class="op">=</span> <span class="va">data_kk</span>,</span>
-<span>  e <span class="op">=</span> <span class="va">e</span>,</span>
-<span>  model <span class="op">=</span> <span class="st">"KK"</span>,</span>
-<span>  method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
-<span>  solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
-<span>    maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>    se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<code class="sourceCode R"><span><span class="va">fit_kk</span> <span class="op">&lt;-</span> <span class="fu">load_or_build_vignette_result</span><span class="op">(</span></span>
+<span>  <span class="st">"nowcasting-revisions-kk-fit.rds"</span>,</span>
+<span>  <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="../reference/kk_nowcast.html">kk_nowcast</a></span><span class="op">(</span></span>
+<span>    df <span class="op">=</span> <span class="va">data_kk</span>,</span>
+<span>    e <span class="op">=</span> <span class="va">e</span>,</span>
+<span>    model <span class="op">=</span> <span class="st">"KK"</span>,</span>
+<span>    method <span class="op">=</span> <span class="st">"MLE"</span>,</span>
+<span>    solver_options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      method <span class="op">=</span> <span class="st">"L-BFGS-B"</span>,</span>
+<span>      maxiter <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>      se_method <span class="op">=</span> <span class="st">"hessian"</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -396,16 +402,16 @@ and the state and observation variances.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_kk</span><span class="op">$</span><span class="va">params</span></span>
 <span><span class="co">#&gt;    Parameter     Estimate    Std.Error</span></span>
-<span><span class="co">#&gt; 1         F0  0.632979835 0.1313817784</span></span>
-<span><span class="co">#&gt; 2       G0_0  0.950098244 0.0308323494</span></span>
-<span><span class="co">#&gt; 3       G0_1 -0.036686671 0.1517593622</span></span>
-<span><span class="co">#&gt; 4       G0_2 -0.180711861 0.2201164710</span></span>
-<span><span class="co">#&gt; 5       G1_0 -0.008925158 0.0109885896</span></span>
-<span><span class="co">#&gt; 6       G1_1  0.594482135 0.0612322466</span></span>
-<span><span class="co">#&gt; 7       G1_2  0.194091379 0.0915492332</span></span>
-<span><span class="co">#&gt; 8         v0  0.379854209 0.0683748040</span></span>
-<span><span class="co">#&gt; 9       eps0  0.007786103 0.0014196929</span></span>
-<span><span class="co">#&gt; 10      eps1  0.001397091 0.0002435022</span></span></code></pre></div>
+<span><span class="co">#&gt; 1         F0  0.632965335 0.1313813639</span></span>
+<span><span class="co">#&gt; 2       G0_0  0.950076539 0.0308315303</span></span>
+<span><span class="co">#&gt; 3       G0_1 -0.036660310 0.1517629398</span></span>
+<span><span class="co">#&gt; 4       G0_2 -0.180790257 0.2201177887</span></span>
+<span><span class="co">#&gt; 5       G1_0 -0.008913846 0.0109883743</span></span>
+<span><span class="co">#&gt; 6       G1_1  0.594486360 0.0612313441</span></span>
+<span><span class="co">#&gt; 7       G1_2  0.194005812 0.0915497686</span></span>
+<span><span class="co">#&gt; 8         v0  0.379874788 0.0683792923</span></span>
+<span><span class="co">#&gt; 9       eps0  0.007785910 0.0014196296</span></span>
+<span><span class="co">#&gt; 10      eps1  0.001397112 0.0002435075</span></span></code></pre></div>
 <p>The <code>states</code> element contains filtered and smoothed
 estimates of the latent state vector in tidy format.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">

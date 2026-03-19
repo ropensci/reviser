@@ -202,22 +202,25 @@ per release, which is the format expected by
 [`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md).
 
 ``` r
-fit_jvn <- jvn_nowcast(
-  df = df,
-  e = 4,
-  ar_order = 2,
-  h = 0,
-  include_news = TRUE,
-  include_noise = TRUE,
-  include_spillovers = TRUE,
-  spillover_news = TRUE,
-  spillover_noise = TRUE,
-  method = "MLE",
-  standardize = FALSE,
-  solver_options = list(
-    method = "L-BFGS-B",
-    maxiter = 100,
-    se_method = "hessian"
+fit_jvn <- load_or_build_vignette_result(
+  "nowcasting-revisions-jvn-fit.rds",
+  function() jvn_nowcast(
+    df = df,
+    e = 4,
+    ar_order = 2,
+    h = 0,
+    include_news = TRUE,
+    include_noise = TRUE,
+    include_spillovers = TRUE,
+    spillover_news = TRUE,
+    spillover_noise = TRUE,
+    method = "MLE",
+    standardize = FALSE,
+    solver_options = list(
+      method = "L-BFGS-B",
+      maxiter = 100,
+      se_method = "hessian"
+    )
   )
 )
 
@@ -226,31 +229,31 @@ summary(fit_jvn)
 #> === Jacobs-Van Norden Model ===
 #> 
 #> Convergence: Failed 
-#> Log-likelihood: 265.97 
-#> AIC: -493.95 
-#> BIC: -451.23 
+#> Log-likelihood: 265.89 
+#> AIC: -493.78 
+#> BIC: -451.06 
 #> 
 #> Parameter Estimates:
 #>     Parameter Estimate Std.Error
-#>         rho_1    0.356     0.158
-#>         rho_2    0.201     0.078
-#>       sigma_e    0.487     0.094
-#>    sigma_nu_1    0.001     0.033
-#>    sigma_nu_2    0.048     0.003
-#>    sigma_nu_3    0.007     0.034
-#>    sigma_nu_4    1.145     0.914
-#>  sigma_zeta_1    0.046     0.011
-#>  sigma_zeta_2    0.003     0.004
+#>         rho_1    0.378     0.362
+#>         rho_2    0.179     0.122
+#>       sigma_e    0.485     0.128
+#>    sigma_nu_1    0.001     0.039
+#>    sigma_nu_2    0.047     0.004
+#>    sigma_nu_3    0.007     0.058
+#>    sigma_nu_4    1.088     1.591
+#>  sigma_zeta_1    0.046     0.012
+#>  sigma_zeta_2    0.003     0.006
 #>  sigma_zeta_3    0.008     0.000
-#>  sigma_zeta_4    0.039     0.006
-#>        T_nu_1    0.164     0.070
-#>        T_nu_2    0.123     0.076
-#>        T_nu_3    0.111     0.080
-#>        T_nu_4    0.104     0.083
-#>      T_zeta_1   -0.154     0.281
+#>  sigma_zeta_4    0.039     0.010
+#>        T_nu_1    0.150     0.078
+#>        T_nu_2    0.107     0.087
+#>        T_nu_3    0.094     0.097
+#>        T_nu_4    0.086     0.105
+#>      T_zeta_1   -0.185     0.423
 #>      T_zeta_2   -0.900     0.000
-#>      T_zeta_3   -0.624     0.089
-#>      T_zeta_4    0.130     0.106
+#>      T_zeta_3   -0.634     0.111
+#>      T_zeta_4    0.146     0.113
 ```
 
 The parameter table contains the AR coefficients, the latent-process
@@ -260,25 +263,25 @@ and, when selected, the diagonal spillover persistence parameters.
 ``` r
 fit_jvn$params
 #>       Parameter     Estimate   Std.Error
-#> 1         rho_1  0.356408038 0.158431318
-#> 2         rho_2  0.200935588 0.078220946
-#> 3       sigma_e  0.486756413 0.094436350
-#> 4    sigma_nu_1  0.001000000 0.032618670
-#> 5    sigma_nu_2  0.047668850 0.003298778
-#> 6    sigma_nu_3  0.006525772 0.033559056
-#> 7    sigma_nu_4  1.144878401 0.914450379
-#> 8  sigma_zeta_1  0.046105381 0.010749449
-#> 9  sigma_zeta_2  0.002981855 0.004472634
-#> 10 sigma_zeta_3  0.008311171 0.000000000
-#> 11 sigma_zeta_4  0.039216195 0.005648985
-#> 12       T_nu_1  0.164086445 0.070449063
-#> 13       T_nu_2  0.123193600 0.076373404
-#> 14       T_nu_3  0.110775346 0.080465728
-#> 15       T_nu_4  0.103632508 0.083392144
-#> 16     T_zeta_1 -0.153683728 0.280761939
+#> 1         rho_1  0.378378980 0.361677538
+#> 2         rho_2  0.179154350 0.121871675
+#> 3       sigma_e  0.485087544 0.127563589
+#> 4    sigma_nu_1  0.001000000 0.039456621
+#> 5    sigma_nu_2  0.047177947 0.003942688
+#> 6    sigma_nu_3  0.006547902 0.057869870
+#> 7    sigma_nu_4  1.087596777 1.590627455
+#> 8  sigma_zeta_1  0.045978422 0.012375310
+#> 9  sigma_zeta_2  0.002968998 0.005930814
+#> 10 sigma_zeta_3  0.008115144 0.000000000
+#> 11 sigma_zeta_4  0.038936158 0.009748625
+#> 12       T_nu_1  0.150090145 0.078021418
+#> 13       T_nu_2  0.106883324 0.087466061
+#> 14       T_nu_3  0.093954764 0.096747489
+#> 15       T_nu_4  0.085946442 0.105141486
+#> 16     T_zeta_1 -0.185315823 0.423426245
 #> 17     T_zeta_2 -0.900000000 0.000000000
-#> 18     T_zeta_3 -0.623909241 0.089155530
-#> 19     T_zeta_4  0.130082271 0.105795014
+#> 18     T_zeta_3 -0.633719067 0.111249751
+#> 19     T_zeta_4  0.145519819 0.113131616
 ```
 
 The state named `true_lag_0` is the current latent true value.
@@ -291,16 +294,16 @@ fit_jvn$states |>
   ) |>
   dplyr::slice_tail(n = 8)
 #> # A tibble: 8 × 7
-#>   time       state      estimate  lower   upper filter   sample   
-#>   <date>     <chr>         <dbl>  <dbl>   <dbl> <chr>    <chr>    
-#> 1 2018-04-01 true_lag_0    0.397 -0.986  1.78   smoothed in_sample
-#> 2 2018-07-01 true_lag_0    0.766 -0.617  2.15   smoothed in_sample
-#> 3 2018-10-01 true_lag_0    0.744 -0.639  2.13   smoothed in_sample
-#> 4 2019-01-01 true_lag_0    0.152 -1.23   1.54   smoothed in_sample
-#> 5 2019-04-01 true_lag_0    1.11  -0.272  2.49   smoothed in_sample
-#> 6 2019-07-01 true_lag_0   -1.48  -2.87  -0.0947 smoothed in_sample
-#> 7 2019-10-01 true_lag_0   -3.19  -4.65  -1.73   smoothed in_sample
-#> 8 2020-01-01 true_lag_0   -4.09  -6.34  -1.84   smoothed in_sample
+#>   time       state      estimate  lower  upper filter   sample   
+#>   <date>     <chr>         <dbl>  <dbl>  <dbl> <chr>    <chr>    
+#> 1 2018-04-01 true_lag_0    0.406 -0.902  1.71  smoothed in_sample
+#> 2 2018-07-01 true_lag_0    0.720 -0.589  2.03  smoothed in_sample
+#> 3 2018-10-01 true_lag_0    0.746 -0.563  2.05  smoothed in_sample
+#> 4 2019-01-01 true_lag_0    0.155 -1.15   1.46  smoothed in_sample
+#> 5 2019-04-01 true_lag_0    1.04  -0.273  2.34  smoothed in_sample
+#> 6 2019-07-01 true_lag_0   -1.11  -2.42   0.201 smoothed in_sample
+#> 7 2019-10-01 true_lag_0   -3.20  -4.56  -1.84  smoothed in_sample
+#> 8 2020-01-01 true_lag_0   -4.04  -6.18  -1.90  smoothed in_sample
 ```
 
 The default plot method shows the filtered estimate of the latent true

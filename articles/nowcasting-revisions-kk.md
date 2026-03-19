@@ -165,7 +165,10 @@ gdp <- reviser::gdp |>
 df <- get_nth_release(gdp, n = 0:14)
 final_release <- get_nth_release(gdp, n = 15)
 
-efficient_release <- get_first_efficient_release(df, final_release)
+efficient_release <- load_or_build_vignette_result(
+  "nowcasting-revisions-kk-efficient-release.rds",
+  function() get_first_efficient_release(df, final_release)
+)
 summary(efficient_release)
 #> Efficient release:  2 
 #> 
@@ -215,15 +218,18 @@ The selected value of `e` tells us how many revision rounds are needed
 before a release is statistically close to the final benchmark.
 
 ``` r
-fit_kk <- kk_nowcast(
-  df = data_kk,
-  e = e,
-  model = "KK",
-  method = "MLE",
-  solver_options = list(
-    method = "L-BFGS-B",
-    maxiter = 100,
-    se_method = "hessian"
+fit_kk <- load_or_build_vignette_result(
+  "nowcasting-revisions-kk-fit.rds",
+  function() kk_nowcast(
+    df = data_kk,
+    e = e,
+    model = "KK",
+    method = "MLE",
+    solver_options = list(
+      method = "L-BFGS-B",
+      maxiter = 100,
+      se_method = "hessian"
+    )
   )
 )
 
@@ -257,16 +263,16 @@ observation variances.
 ``` r
 fit_kk$params
 #>    Parameter     Estimate    Std.Error
-#> 1         F0  0.632979835 0.1313817784
-#> 2       G0_0  0.950098244 0.0308323494
-#> 3       G0_1 -0.036686671 0.1517593622
-#> 4       G0_2 -0.180711861 0.2201164710
-#> 5       G1_0 -0.008925158 0.0109885896
-#> 6       G1_1  0.594482135 0.0612322466
-#> 7       G1_2  0.194091379 0.0915492332
-#> 8         v0  0.379854209 0.0683748040
-#> 9       eps0  0.007786103 0.0014196929
-#> 10      eps1  0.001397091 0.0002435022
+#> 1         F0  0.632965335 0.1313813639
+#> 2       G0_0  0.950076539 0.0308315303
+#> 3       G0_1 -0.036660310 0.1517629398
+#> 4       G0_2 -0.180790257 0.2201177887
+#> 5       G1_0 -0.008913846 0.0109883743
+#> 6       G1_1  0.594486360 0.0612313441
+#> 7       G1_2  0.194005812 0.0915497686
+#> 8         v0  0.379874788 0.0683792923
+#> 9       eps0  0.007785910 0.0014196296
+#> 10      eps1  0.001397112 0.0002435075
 ```
 
 The `states` element contains filtered and smoothed estimates of the

@@ -237,6 +237,7 @@ uncertainty in initial estimates.</p>
 <span></span>
 <span><span class="va">gdp</span> <span class="op">&lt;-</span> <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="../reference/gdp.html">gdp</a></span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">==</span> <span class="st">"EA"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">gdp</span>, <span class="fl">0</span><span class="op">:</span><span class="fl">1</span><span class="op">)</span></span>
@@ -252,29 +253,15 @@ uncertainty in initial estimates.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 14</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 14</span></span></span>
 <span><span class="co">#&gt;   id    release       N `Bias (mean)` `Bias (p-value)` `Bias (robust p-value)`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   release_0   178         0.11             0.007                   0    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   release_1   177         0.096            0.015                   0    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    release_0   178         0.055            0.002                   0    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    release_1   177         0.05             0.004                   0.001</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> JP    release_0   178         0.01             0.848                   0.795</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> JP    release_1   177         0.009            0.859                   0.79 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> US    release_0   178         0.023            0.3                     0.255</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> US    release_1   177         0.02             0.347                   0.288</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    release_0   178         0.055            0.002                   0    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    release_1   177         0.05             0.004                   0.001</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 8 more variables: Minimum &lt;dbl&gt;, Maximum &lt;dbl&gt;, `10Q` &lt;dbl&gt;, Median &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `90Q` &lt;dbl&gt;, MAR &lt;dbl&gt;, `Std. Dev.` &lt;dbl&gt;, `Noise/Signal` &lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Significant upward bias detected (p = 0 )</span></span>
-<span><span class="co">#&gt;   • High revision volatility (Noise/Signal = 0.542 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Significant upward bias detected (p = 0 )</span></span>
-<span><span class="co">#&gt;   • High revision volatility (Noise/Signal = 0.522 )</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_0:</span></span>
 <span><span class="co">#&gt;   • Significant upward bias detected (p = 0 )</span></span>
@@ -282,23 +269,7 @@ uncertainty in initial estimates.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_1:</span></span>
 <span><span class="co">#&gt;   • Significant upward bias detected (p = 0.001 )</span></span>
-<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.165 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_0:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.795 )</span></span>
-<span><span class="co">#&gt;   • High revision volatility (Noise/Signal = 0.55 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_1:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.79 )</span></span>
-<span><span class="co">#&gt;   • High revision volatility (Noise/Signal = 0.548 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=US, release=release_0:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.255 )</span></span>
-<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.27 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=US, release=release_1:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.288 )</span></span>
-<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.257 )</span></span></code></pre></div>
+<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.165 )</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -405,26 +376,16 @@ predictability, and potential biases in data revisions.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 8</span></span></span>
 <span><span class="co">#&gt;   id    release      N Correlation Correlation (p-value…¹ Autocorrelation (1st…²</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   release…   178      -<span style="color: #BB0000;">0.209</span>                  0.005                 -<span style="color: #BB0000;">0.089</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   release…   177      -<span style="color: #BB0000;">0.204</span>                  0.007                 -<span style="color: #BB0000;">0.114</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    release…   178      -<span style="color: #BB0000;">0.315</span>                  0                     -<span style="color: #BB0000;">0.092</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    release…   177      -<span style="color: #BB0000;">0.318</span>                  0                     -<span style="color: #BB0000;">0.157</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> JP    release…   178      -<span style="color: #BB0000;">0.204</span>                  0.006                 -<span style="color: #BB0000;">0.278</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> JP    release…   177      -<span style="color: #BB0000;">0.241</span>                  0.001                 -<span style="color: #BB0000;">0.292</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    release…   178      -<span style="color: #BB0000;">0.315</span>                      0                 -<span style="color: #BB0000;">0.092</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    release…   177      -<span style="color: #BB0000;">0.318</span>                      0                 -<span style="color: #BB0000;">0.157</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ abbreviated names: ¹​`Correlation (p-value)`, ²​`Autocorrelation (1st)`</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: `Autocorrelation (1st p-value)` &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `Autocorrelation up to 1yr (Ljung-Box p-value)` &lt;dbl&gt;</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.209 , p = 0.005 )</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.204 , p = 0.007 )</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_0:</span></span>
 <span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.315 , p = 0 )</span></span>
@@ -432,17 +393,7 @@ predictability, and potential biases in data revisions.</p>
 <span><span class="co">#&gt; id=EA, release=release_1:</span></span>
 <span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.318 , p = 0 )</span></span>
 <span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.157 ): revisions are persistent</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.204 , p = 0.006 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.278 ): revisions are persistent</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.241 , p = 0.001 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.292 ): revisions are persistent</span></span></code></pre></div>
+<span><span class="co">#&gt;               (ρ₁ = -0.157 ): revisions are persistent</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -609,15 +560,11 @@ for the presence of noise and news in the data revisions.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 17</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 17</span></span></span>
 <span><span class="co">#&gt;   id    release       N `News test Intercept` `News test Intercept (std.err)`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                 <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   release_0   178                 0.149                           0.042</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   release_1   177                 0.134                           0.044</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    release_0   178                 0.074                           0.02 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    release_1   177                 0.069                           0.018</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> JP    release_0   178                 0.059                           0.044</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> JP    release_1   177                 0.065                           0.041</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    release_0   178                 0.074                           0.02 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    release_1   177                 0.069                           0.018</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 12 more variables: `News test Intercept (p-value)` &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `News test Coefficient` &lt;dbl&gt;, `News test Coefficient (std.err)` &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `News test Coefficient (p-value)` &lt;dbl&gt;, `News joint test (p-value)` &lt;dbl&gt;,</span></span></span>
@@ -628,29 +575,13 @@ for the presence of noise and news in the data revisions.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.001 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.004 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_0:</span></span>
 <span><span class="co">#&gt;   • Revisions contain NEWS (p = 0 ): systematic information</span></span>
 <span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.007 ): measurement error</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_1:</span></span>
 <span><span class="co">#&gt;   • Revisions contain NEWS (p = 0 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.005 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.142 )</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.039 ): measurement error</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.106 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.082 )</span></span></code></pre></div>
+<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.005 ): measurement error</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level3">
@@ -784,15 +715,11 @@ estimates.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 8</span></span></span>
 <span><span class="co">#&gt;   id    release     N Fraction of correct …¹ Fraction of correct …² `Theil's U1`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   releas…   178                  0.803                  0.652        0.262</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   releas…   177                  0.802                  0.644        0.25 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    releas…   178                  0.944                  0.764        0.082</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    releas…   177                  0.944                  0.763        0.08 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> JP    releas…   178                  0.82                   0.725        0.266</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> JP    releas…   177                  0.802                  0.712        0.262</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    releas…   178                  0.944                  0.764        0.082</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    releas…   177                  0.944                  0.763        0.08 </span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ abbreviated names: ¹​`Fraction of correct sign`,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   ²​`Fraction of correct growth rate change`</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2 more variables: `Theil's U2` &lt;dbl&gt;,</span></span></span>
@@ -800,29 +727,13 @@ estimates.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.262 )</span></span>
-<span><span class="co">#&gt;   • Good sign prediction (80.3% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.25 )</span></span>
-<span><span class="co">#&gt;   • Good sign prediction (80.2% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_0:</span></span>
 <span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.082 )</span></span>
 <span><span class="co">#&gt;   • Excellent sign prediction (94.4% correct)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, release=release_1:</span></span>
 <span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.08 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (94.4% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_0:</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.266 )</span></span>
-<span><span class="co">#&gt;   • Good sign prediction (82% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, release=release_1:</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.262 )</span></span>
-<span><span class="co">#&gt;   • Good sign prediction (80.2% correct)</span></span></code></pre></div>
+<span><span class="co">#&gt;   • Excellent sign prediction (94.4% correct)</span></span></code></pre></div>
 <p>In the above examples, we analyze GDP revisions by comparing the
 final release with the first and second releases, which correspond to
 the diagonal elements of the real-time data matrix. This approach
@@ -849,17 +760,11 @@ Alternatively, it can be specified via the optional function argument
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 39</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 39</span></span></span>
 <span><span class="co">#&gt;   id    pub_date       N Frequency `Bias (mean)` `Bias (p-value)`</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   2024-04-01   176         4         0.002            0.478</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> CHE   2024-07-01   177         4        -<span style="color: #BB0000;">0.001</span>            0.371</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> EA    2024-04-01   176         4         0.007            0.159</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> EA    2024-07-01   177         4         0.002            0.52 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> JP    2024-04-01   176         4        -<span style="color: #BB0000;">0.003</span>            0.49 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> JP    2024-07-01   177         4        -<span style="color: #BB0000;">0.003</span>            0.305</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> US    2024-04-01   176         4         0.008            0.006</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> US    2024-07-01   177         4         0.007            0.006</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> EA    2024-04-01   176         4         0.007            0.159</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    2024-07-01   177         4         0.002            0.52 </span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 33 more variables: `Bias (robust p-value)` &lt;dbl&gt;, Minimum &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   Maximum &lt;dbl&gt;, `10Q` &lt;dbl&gt;, Median &lt;dbl&gt;, `90Q` &lt;dbl&gt;, MAR &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   `Std. Dev.` &lt;dbl&gt;, `Noise/Signal` &lt;dbl&gt;, Correlation &lt;dbl&gt;,</span></span></span>
@@ -869,22 +774,6 @@ Alternatively, it can be specified via the optional function argument
 <span><span class="co">#&gt; <span style="color: #949494;">#   `Theil's U2` &lt;dbl&gt;, `Seasonality (Friedman p-value)` &lt;dbl&gt;, …</span></span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; === Interpretation ===</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, pub_date=2024-04-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.515 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.042 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.232 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.553 )</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.019 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (98.9% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, pub_date=2024-07-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.358 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.018 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.61 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.65 )</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.008 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (100% correct)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; id=EA, pub_date=2024-04-01:</span></span>
 <span><span class="co">#&gt;   • Significant upward bias detected (p = 0.033 )</span></span>
@@ -902,49 +791,7 @@ Alternatively, it can be specified via the optional function argument
 <span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.579 )</span></span>
 <span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.279 )</span></span>
 <span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.015 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (98.9% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, pub_date=2024-04-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.355 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.049 )</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.219 , p = 0.003 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.18 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.298 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.232 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.023 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (100% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, pub_date=2024-07-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.24 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.028 )</span></span>
-<span><span class="co">#&gt;   • Significant negative correlation between revisions and initial values (ρ = -0.203 , p = 0.007 )</span></span>
-<span><span class="co">#&gt;   • Revisions contain NEWS (p = 0.04 ): systematic information</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.067 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.198 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.013 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (100% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=US, pub_date=2024-04-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.111 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.033 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.12 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.058 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = 0.544 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.014 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (99.4% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=US, pub_date=2024-07-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.12 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.032 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.122 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.059 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = 0.558 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.014 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (99.4% correct)</span></span></code></pre></div>
+<span><span class="co">#&gt;   • Excellent sign prediction (98.9% correct)</span></span></code></pre></div>
 <p>The <code><a href="../reference/get_revision_analysis.html">get_revision_analysis()</a></code> function requires a single
 time series in <code>final_release</code> and compares it to multiple
 time series in <code>df</code> for the same <code>id</code>. To always
@@ -974,76 +821,7 @@ and then combines the results into a single dataframe.</p>
 <span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; === Revision Analysis Summary ===</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 39</span></span></span>
-<span><span class="co">#&gt;   id    pub_date       N Frequency `Bias (mean)` `Bias (p-value)`</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;date&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> CHE   2002-10-01    90         4         0.001            0.634</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> EA    2002-10-01    90         4         0.001            0.512</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> JP    2002-10-01    90         4         0.023            0.629</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> US    2002-10-01    90         4         0              <span style="color: #BB0000;">NaN</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> CHE   2003-01-01    91         4        -<span style="color: #BB0000;">0.004</span>            0.563</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> EA    2003-01-01    91         4         0.002            0.75 </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 33 more variables: `Bias (robust p-value)` &lt;dbl&gt;, Minimum &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   Maximum &lt;dbl&gt;, `10Q` &lt;dbl&gt;, Median &lt;dbl&gt;, `90Q` &lt;dbl&gt;, MAR &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   `Std. Dev.` &lt;dbl&gt;, `Noise/Signal` &lt;dbl&gt;, Correlation &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   `Correlation (p-value)` &lt;dbl&gt;, `Autocorrelation (1st)` &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   `Autocorrelation (1st p-value)` &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   `Autocorrelation up to 1yr (Ljung-Box p-value)` &lt;dbl&gt;, `Theil's U1` &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   `Theil's U2` &lt;dbl&gt;, `Seasonality (Friedman p-value)` &lt;dbl&gt;, …</span></span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; === Interpretation ===</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, pub_date=2002-10-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.181 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.021 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.318 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.376 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.494 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.009 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (100% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=EA, pub_date=2002-10-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.175 )</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0.032 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.612 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.623 )</span></span>
-<span><span class="co">#&gt;   • Significant autocorrelation in revisions</span></span>
-<span><span class="co">#&gt;               (ρ₁ = -0.378 ): revisions are persistent</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.011 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (98.9% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=JP, pub_date=2002-10-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.231 )</span></span>
-<span><span class="co">#&gt;   • High revision volatility (Noise/Signal = 0.472 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.355 )</span></span>
-<span><span class="co">#&gt;   • Revisions contain NOISE (p = 0.015 ): measurement error</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.199 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (91.1% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=US, pub_date=2002-10-01:</span></span>
-<span><span class="co">#&gt;   • Very low revision volatility (Noise/Signal = 0 )</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (100% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=CHE, pub_date=2003-01-01:</span></span>
-<span><span class="co">#&gt;   • No significant bias detected (p = 0.254 )</span></span>
-<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.104 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.333 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.779 )</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.045 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (97.8% correct)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; id=EA, pub_date=2003-01-01:</span></span>
-<span><span class="co">#&gt;   • Moderate revision volatility (Noise/Signal = 0.119 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain news (p = 0.829 )</span></span>
-<span><span class="co">#&gt;   • Revisions do NOT contain noise (p = 0.377 )</span></span>
-<span><span class="co">#&gt;   • Good forecast accuracy (Theil's U1 = 0.041 )</span></span>
-<span><span class="co">#&gt;   • Excellent sign prediction (98.9% correct)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">results</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 </div>
