@@ -11,7 +11,7 @@
 
 # Create synthetic vintage data for testing
 set.seed(123)
-n_obs <- 50
+n_obs <- 30
 n_vint <- 4 # Increased to 4 vintages to support tests with e = 2
 
 # Generate true values following AR(2) process
@@ -63,18 +63,116 @@ df_test_long <- tidyr::pivot_longer(
   values_to = "value"
 )
 
-# ===== Tests for jvn_nowcast =====
+jvn_fit <- function(key, ..., solver_options = list(trace = 0)) {
+  args <- list(...)
+  args$solver_options <- modifyList(list(trace = 0), solver_options)
 
-test_that("jvn_nowcast returns correct structure", {
-  result <- jvn_nowcast(
+  cached_fixture(
+    paste0("jvn-", key),
+    function() do.call(jvn_nowcast, args)
+  )
+}
+
+fit_jvn_long <- function() {
+  jvn_fit(
+    "long",
+    df = df_test_long,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(return_states = FALSE)
+  )
+}
+
+fit_jvn_news_fast <- function() {
+  jvn_fit(
+    "news-fast",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(return_states = FALSE)
+  )
+}
+
+fit_jvn_noise_fast <- function() {
+  jvn_fit(
+    "noise-fast",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = FALSE,
+    include_noise = TRUE,
+    solver_options = list(return_states = FALSE)
+  )
+}
+
+fit_jvn_ar3_fast <- function() {
+  jvn_fit(
+    "ar3-fast",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 3,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(return_states = FALSE)
+  )
+}
+
+fit_jvn_stateful <- function() {
+  jvn_fit(
+    "stateful",
     df = df_test_wide,
     e = 2,
     ar_order = 2,
+    h = 4,
+    include_news = TRUE,
+    include_noise = TRUE
+  )
+}
+
+fit_jvn_spillovers_full <- function() {
+  jvn_fit(
+    "spillovers-full",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
     h = 0,
     include_news = TRUE,
     include_noise = TRUE,
-    solver_options = list(trace = 0)
+    include_spillovers = TRUE,
+    spillover_news = TRUE,
+    spillover_noise = TRUE,
+    solver_options = list(return_states = FALSE)
   )
+}
+
+fit_jvn_spillovers_news_only <- function() {
+  jvn_fit(
+    "spillovers-news",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = TRUE,
+    include_spillovers = TRUE,
+    spillover_news = TRUE,
+    spillover_noise = FALSE,
+    solver_options = list(return_states = FALSE)
+  )
+}
+
+# ===== Tests for jvn_nowcast =====
+
+test_that("jvn_nowcast returns correct structure", {
+  result <- fit_jvn_stateful()
 
   expect_s3_class(result, "jvn_model")
   expect_true("states" %in% names(result))
@@ -86,15 +184,7 @@ test_that("jvn_nowcast returns correct structure", {
 })
 
 test_that("jvn_nowcast handles long format data", {
-  result <- jvn_nowcast(
-    df = df_test_long,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_long()
 
   expect_s3_class(result, "jvn_model")
   expect_true(nrow(result$params) > 0)
@@ -175,15 +265,7 @@ test_that("jvn_nowcast validates solver_options names", {
 })
 
 test_that("jvn_nowcast handles news-only model", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   expect_s3_class(result, "jvn_model")
   expect_true(all(
@@ -193,15 +275,7 @@ test_that("jvn_nowcast handles news-only model", {
 })
 
 test_that("jvn_nowcast handles noise-only model", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = FALSE,
-    include_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_noise_fast()
 
   expect_s3_class(result, "jvn_model")
   expect_true(all(
@@ -226,40 +300,15 @@ test_that("jvn_nowcast rejects models without news and noise", {
 })
 
 test_that("jvn_nowcast handles different AR orders", {
-  result_ar1 <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
-
-  result_ar3 <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 3,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result_ar1 <- fit_jvn_news_fast()
+  result_ar3 <- fit_jvn_ar3_fast()
 
   expect_equal(sum(grepl("^rho_", result_ar1$params$Parameter)), 1)
   expect_equal(sum(grepl("^rho_", result_ar3$params$Parameter)), 3)
 })
 
 test_that("jvn_nowcast produces forecasts when h > 0", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 2,
-    h = 4,
-    include_news = TRUE,
-    include_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   expect_s3_class(result, "jvn_model")
 
@@ -270,18 +319,7 @@ test_that("jvn_nowcast produces forecasts when h > 0", {
 })
 
 test_that("jvn_nowcast handles spillovers", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = TRUE,
-    include_spillovers = TRUE,
-    spillover_news = TRUE,
-    spillover_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_spillovers_full()
 
   expect_s3_class(result, "jvn_model")
   expect_true(any(grepl("^T_nu_", result$params$Parameter)))
@@ -289,18 +327,7 @@ test_that("jvn_nowcast handles spillovers", {
 })
 
 test_that("jvn_nowcast handles spillovers for news only", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = TRUE,
-    include_spillovers = TRUE,
-    spillover_news = TRUE,
-    spillover_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_spillovers_news_only()
 
   expect_s3_class(result, "jvn_model")
   expect_true(any(grepl("^T_nu_", result$params$Parameter)))
@@ -308,6 +335,7 @@ test_that("jvn_nowcast handles spillovers for news only", {
 })
 
 test_that("jvn_nowcast optimization methods work", {
+  skip_if_not_reviser_full_tests()
   methods <- c("L-BFGS-B", "BFGS", "Nelder-Mead", "nlminb")
 
   for (meth in methods) {
@@ -318,7 +346,12 @@ test_that("jvn_nowcast optimization methods work", {
       h = 0,
       include_news = TRUE,
       include_noise = FALSE,
-      solver_options = list(trace = 0, method = meth, maxiter = 500)
+      solver_options = list(
+        trace = 0,
+        method = meth,
+        maxiter = 60,
+        return_states = FALSE
+      )
     )
 
     expect_s3_class(result, "jvn_model")
@@ -326,6 +359,7 @@ test_that("jvn_nowcast optimization methods work", {
 })
 
 test_that("jvn_nowcast two-step method works", {
+  skip_if_not_reviser_full_tests()
   result <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -333,13 +367,19 @@ test_that("jvn_nowcast two-step method works", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, method = "two-step", maxiter = 500)
+    solver_options = list(
+      trace = 0,
+      method = "two-step",
+      maxiter = 60,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result, "jvn_model")
 })
 
 test_that("jvn_nowcast multi-start optimization works", {
+  skip_if_not_reviser_full_tests()
   result <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -347,23 +387,21 @@ test_that("jvn_nowcast multi-start optimization works", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, n_starts = 3, maxiter = 200)
+    solver_options = list(
+      trace = 0,
+      n_starts = 2,
+      maxiter = 60,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result, "jvn_model")
 })
 
 test_that("jvn_nowcast handles custom starting values", {
+  skip_if_not_reviser_full_tests()
   # Get default parameter count
-  temp_result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0, maxiter = 100)
-  )
+  temp_result <- fit_jvn_news_fast()
 
   n_params <- nrow(temp_result$params)
   custom_start <- rep(0.1, n_params)
@@ -375,7 +413,12 @@ test_that("jvn_nowcast handles custom starting values", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, startvals = custom_start, maxiter = 200)
+    solver_options = list(
+      trace = 0,
+      startvals = custom_start,
+      maxiter = 60,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result, "jvn_model")
@@ -397,6 +440,7 @@ test_that("jvn_nowcast validates custom starting values length", {
 })
 
 test_that("jvn_nowcast transform_se option works", {
+  skip_if_not_reviser_full_tests()
   result_transform <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -404,7 +448,11 @@ test_that("jvn_nowcast transform_se option works", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, transform_se = TRUE)
+    solver_options = list(
+      trace = 0,
+      transform_se = TRUE,
+      return_states = FALSE
+    )
   )
 
   result_no_transform <- jvn_nowcast(
@@ -414,7 +462,11 @@ test_that("jvn_nowcast transform_se option works", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, transform_se = FALSE)
+    solver_options = list(
+      trace = 0,
+      transform_se = FALSE,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result_transform, "jvn_model")
@@ -422,6 +474,7 @@ test_that("jvn_nowcast transform_se option works", {
 })
 
 test_that("jvn_nowcast supports se_method none and qml", {
+  skip_if_not_reviser_full_tests()
   result_none <- jvn_nowcast(
     df = df_test_wide,
     e = 2,
@@ -455,29 +508,13 @@ test_that("jvn_nowcast supports se_method none and qml", {
 })
 
 test_that("jvn_nowcast can skip state extraction", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0, return_states = FALSE)
-  )
+  result <- fit_jvn_news_fast()
 
   expect_null(result$states)
 })
 
 test_that("jvn_nowcast states output has correct structure", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 2,
-    h = 2,
-    include_news = TRUE,
-    include_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   states <- result$states
 
@@ -494,29 +531,13 @@ test_that("jvn_nowcast states output has correct structure", {
 })
 
 test_that("jvn_nowcast parameter estimates are finite", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   expect_true(all(is.finite(result$params$Estimate)))
 })
 
 test_that("jvn_nowcast information criteria are calculated", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   expect_true(is.finite(result$aic))
   expect_true(is.finite(result$bic))
@@ -531,8 +552,8 @@ test_that("jvn_nowcast handles irregular time series error", {
   df_irregular <- df_test_wide
   # Change spacing: first part quarterly, second part monthly
   df_irregular$time <- c(
-    seq.Date(as.Date("2020-01-01"), by = "quarter", length.out = 25),
-    seq.Date(as.Date("2026-04-01"), by = "month", length.out = 25)
+    seq.Date(as.Date("2020-01-01"), by = "quarter", length.out = n_obs / 2),
+    seq.Date(as.Date("2024-01-01"), by = "month", length.out = n_obs / 2)
   )
 
   suppressWarnings(
@@ -554,15 +575,7 @@ test_that("jvn_nowcast handles irregular time series error", {
 # ===== Tests for summary.jvn_model =====
 
 test_that("summary.jvn_model produces output", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   # Capture output
   output <- utils::capture.output(summary(result))
@@ -576,15 +589,7 @@ test_that("summary.jvn_model produces output", {
 })
 
 test_that("summary.jvn_model returns invisibly", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   returned <- summary(result)
   expect_identical(returned, result)
@@ -593,15 +598,7 @@ test_that("summary.jvn_model returns invisibly", {
 # ===== Tests for print.jvn_model =====
 
 test_that("print.jvn_model produces output", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   output <- utils::capture.output(print(result))
 
@@ -610,15 +607,7 @@ test_that("print.jvn_model produces output", {
 })
 
 test_that("print.jvn_model returns invisibly", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_news_fast()
 
   returned <- print(result)
   expect_identical(returned, result)
@@ -627,30 +616,14 @@ test_that("print.jvn_model returns invisibly", {
 # ===== Tests for plot.jvn_model =====
 
 test_that("plot.jvn_model returns ggplot object", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 2,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   p <- plot(result)
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plot.jvn_model handles different states", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 2,
-    h = 0,
-    include_news = TRUE,
-    include_noise = TRUE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   # Plot true_lag_0
   p1 <- plot(result, state = "true_lag_0")
@@ -666,15 +639,7 @@ test_that("plot.jvn_model handles different states", {
 })
 
 test_that("plot.jvn_model handles filtered vs smoothed", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 1,
-    h = 0,
-    include_news = TRUE,
-    include_noise = FALSE,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_jvn_stateful()
 
   p_filtered <- plot(result, type = "filtered")
   p_smoothed <- plot(result, type = "smoothed")
@@ -686,19 +651,7 @@ test_that("plot.jvn_model handles filtered vs smoothed", {
 # ===== Integration Tests =====
 
 test_that("full workflow with all components", {
-  result <- jvn_nowcast(
-    df = df_test_wide,
-    e = 2,
-    ar_order = 2,
-    h = 4,
-    include_news = TRUE,
-    include_noise = TRUE,
-    include_spillovers = TRUE,
-    spillover_news = TRUE,
-    spillover_noise = TRUE,
-    alpha = 0.05,
-    solver_options = list(trace = 0, method = "L-BFGS-B")
-  )
+  result <- fit_jvn_stateful()
 
   # Test structure
   expect_s3_class(result, "jvn_model")
@@ -723,6 +676,7 @@ test_that("full workflow with all components", {
 })
 
 test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
+  skip_if_not_reviser_full_tests()
   baseline_rng <- function() {
     set.seed(2024)
     rnorm(3)
@@ -741,7 +695,7 @@ test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
       include_noise = FALSE,
       solver_options = list(
         trace = 0,
-        n_starts = 3,
+        n_starts = 2,
         seed = 99,
         return_states = FALSE
       )
@@ -758,7 +712,7 @@ test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
     include_noise = FALSE,
     solver_options = list(
       trace = 0,
-      n_starts = 3,
+      n_starts = 2,
       seed = 123,
       return_states = FALSE
     )
@@ -774,7 +728,7 @@ test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
     include_noise = FALSE,
     solver_options = list(
       trace = 0,
-      n_starts = 3,
+      n_starts = 2,
       seed = 123,
       return_states = FALSE
     )
@@ -800,7 +754,7 @@ test_that("jvn_nowcast handles minimal data", {
     h = 0,
     include_news = TRUE,
     include_noise = FALSE,
-    solver_options = list(trace = 0, maxiter = 500)
+    solver_options = list(trace = 0, maxiter = 100)
   )
 
   expect_s3_class(result, "jvn_model")

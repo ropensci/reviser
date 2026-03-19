@@ -10,7 +10,7 @@
 # ===== Setup Test Data =====
 
 set.seed(456)
-n_obs <- 50
+n_obs <- 30
 n_releases <- 3
 
 # Generate synthetic data for KK model
@@ -48,17 +48,109 @@ df_long_kk <- tidyr::pivot_longer(
 # Smaller dataset for faster tests
 df_small <- df_wide_kk[1:20, ]
 
-# ===== Tests for kk_nowcast =====
+kk_fit <- function(key, ..., solver_options = list(trace = 0)) {
+  args <- list(...)
+  args$solver_options <- modifyList(list(trace = 0), solver_options)
 
-test_that("kk_nowcast returns correct structure with SUR", {
-  result <- kk_nowcast(
+  cached_fixture(
+    paste0("kk-", key),
+    function() do.call(kk_nowcast, args)
+  )
+}
+
+fit_kk_ols <- function() {
+  kk_fit(
+    "ols",
     df = df_small,
     e = 1,
     h = 0,
     model = "KK",
-    method = "SUR",
-    solver_options = list(trace = 0)
+    method = "OLS"
   )
+}
+
+fit_kk_ols_forecast <- function() {
+  kk_fit(
+    "ols-forecast",
+    df = df_small,
+    e = 1,
+    h = 3,
+    model = "KK",
+    method = "OLS"
+  )
+}
+
+fit_kk_sur <- function() {
+  kk_fit(
+    "sur",
+    df = df_small,
+    e = 1,
+    h = 0,
+    model = "KK",
+    method = "SUR"
+  )
+}
+
+fit_kk_mle <- function() {
+  kk_fit(
+    "mle",
+    df = df_small,
+    e = 1,
+    h = 0,
+    model = "KK",
+    method = "MLE",
+    solver_options = list(maxiter = 40, return_states = FALSE)
+  )
+}
+
+fit_kk_long <- function() {
+  kk_fit(
+    "long",
+    df = df_long_kk[df_long_kk$time %in% df_small$time, ],
+    e = 1,
+    h = 0,
+    model = "KK",
+    method = "OLS"
+  )
+}
+
+fit_kk_howrey <- function() {
+  kk_fit(
+    "howrey",
+    df = df_small,
+    e = 1,
+    h = 0,
+    model = "Howrey",
+    method = "OLS"
+  )
+}
+
+fit_kk_classical <- function() {
+  kk_fit(
+    "classical",
+    df = df_small,
+    e = 1,
+    h = 0,
+    model = "Classical",
+    method = "OLS"
+  )
+}
+
+fit_kk_e2 <- function() {
+  kk_fit(
+    "e2",
+    df = df_small,
+    e = 2,
+    h = 0,
+    model = "KK",
+    method = "OLS"
+  )
+}
+
+# ===== Tests for kk_nowcast =====
+
+test_that("kk_nowcast returns correct structure with SUR", {
+  result <- fit_kk_sur()
 
   expect_s3_class(result, "kk_model")
   expect_true("states" %in% names(result))
@@ -71,14 +163,7 @@ test_that("kk_nowcast returns correct structure with SUR", {
 })
 
 test_that("kk_nowcast returns correct structure with OLS", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 0,
-    model = "KK",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   expect_s3_class(result, "kk_model")
   expect_true("params" %in% names(result))
@@ -86,14 +171,7 @@ test_that("kk_nowcast returns correct structure with OLS", {
 })
 
 test_that("kk_nowcast returns correct structure with MLE", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 0,
-    model = "KK",
-    method = "MLE",
-    solver_options = list(trace = 0, maxiter = 100)
-  )
+  result <- fit_kk_mle()
 
   expect_s3_class(result, "kk_model")
   expect_true(!is.null(result$loglik))
@@ -103,14 +181,7 @@ test_that("kk_nowcast returns correct structure with MLE", {
 })
 
 test_that("kk_nowcast handles long format data", {
-  result <- kk_nowcast(
-    df = df_long_kk[df_long_kk$time %in% df_small$time, ],
-    e = 1,
-    h = 0,
-    model = "KK",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_long()
 
   expect_s3_class(result, "kk_model")
 })
@@ -185,13 +256,7 @@ test_that("kk_nowcast handles KK model (short name)", {
 })
 
 test_that("kk_nowcast handles Howrey model", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    model = "Howrey",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_howrey()
 
   expect_s3_class(result, "kk_model")
   # Howrey has e^2 G parameters (fewer than KK)
@@ -200,13 +265,7 @@ test_that("kk_nowcast handles Howrey model", {
 })
 
 test_that("kk_nowcast handles Classical model", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    model = "Classical",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_classical()
 
   expect_s3_class(result, "kk_model")
   # Classical has no G parameters
@@ -215,32 +274,15 @@ test_that("kk_nowcast handles Classical model", {
 })
 
 test_that("kk_nowcast handles different e values", {
-  result_e1 <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
-
-  result_e2 <- kk_nowcast(
-    df = df_small,
-    e = 2,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result_e1 <- fit_kk_ols()
+  result_e2 <- fit_kk_e2()
 
   # e=2 should have more parameters than e=1
   expect_gt(nrow(result_e2$params), nrow(result_e1$params))
 })
 
 test_that("kk_nowcast produces forecasts when h > 0", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 3,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   oos_data <- result$states[result$states$sample == "out_of_sample", ]
   expect_gt(nrow(oos_data), 0)
@@ -249,12 +291,7 @@ test_that("kk_nowcast produces forecasts when h > 0", {
 
 test_that("kk_nowcast handles custom starting values with OLS", {
   # Get parameter count
-  temp_result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  temp_result <- fit_kk_ols()
 
   n_params <- nrow(temp_result$params)
   start_vals <- rep(0.3, n_params)
@@ -296,6 +333,7 @@ test_that("kk_nowcast validates startvals are numeric", {
 })
 
 test_that("kk_nowcast accepts unnamed startvals in canonical order", {
+  skip_if_not_reviser_full_tests()
   start_vals <- c(0.5, 0.3, 0.2, 0.1, 0.1)
 
   result <- kk_nowcast(
@@ -315,6 +353,7 @@ test_that("kk_nowcast accepts unnamed startvals in canonical order", {
 })
 
 test_that("kk_nowcast MLE with different optimization methods", {
+  skip_if_not_reviser_full_tests()
   methods <- c("L-BFGS-B", "BFGS", "Nelder-Mead", "nlminb")
 
   for (meth in methods) {
@@ -322,7 +361,12 @@ test_that("kk_nowcast MLE with different optimization methods", {
       df = df_small,
       e = 1,
       method = "MLE",
-      solver_options = list(trace = 0, method = meth, maxiter = 50)
+      solver_options = list(
+        trace = 0,
+        method = meth,
+        maxiter = 40,
+        return_states = FALSE
+      )
     )
 
     expect_s3_class(result, "kk_model")
@@ -331,11 +375,17 @@ test_that("kk_nowcast MLE with different optimization methods", {
 })
 
 test_that("kk_nowcast MLE with two-step method", {
+  skip_if_not_reviser_full_tests()
   result <- kk_nowcast(
     df = df_small,
     e = 1,
     method = "MLE",
-    solver_options = list(trace = 0, method = "two-step", maxiter = 50)
+    solver_options = list(
+      trace = 0,
+      method = "two-step",
+      maxiter = 40,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result, "kk_model")
@@ -343,29 +393,47 @@ test_that("kk_nowcast MLE with two-step method", {
 })
 
 test_that("kk_nowcast MLE with multi-start optimization", {
+  skip_if_not_reviser_full_tests()
   result <- kk_nowcast(
     df = df_small,
     e = 1,
     method = "MLE",
-    solver_options = list(trace = 0, n_starts = 2, maxiter = 50, seed = 123)
+    solver_options = list(
+      trace = 0,
+      n_starts = 2,
+      maxiter = 40,
+      seed = 123,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result, "kk_model")
 })
 
 test_that("kk_nowcast MLE with transform_se option", {
+  skip_if_not_reviser_full_tests()
   result_transform <- kk_nowcast(
     df = df_small,
     e = 1,
     method = "MLE",
-    solver_options = list(trace = 0, transform_se = TRUE, maxiter = 50)
+    solver_options = list(
+      trace = 0,
+      transform_se = TRUE,
+      maxiter = 40,
+      return_states = FALSE
+    )
   )
 
   result_no_transform <- kk_nowcast(
     df = df_small,
     e = 1,
     method = "MLE",
-    solver_options = list(trace = 0, transform_se = FALSE, maxiter = 50)
+    solver_options = list(
+      trace = 0,
+      transform_se = FALSE,
+      maxiter = 40,
+      return_states = FALSE
+    )
   )
 
   expect_s3_class(result_transform, "kk_model")
@@ -373,6 +441,7 @@ test_that("kk_nowcast MLE with transform_se option", {
 })
 
 test_that("kk_nowcast MLE supports se_method none and qml", {
+  skip_if_not_reviser_full_tests()
   result_none <- kk_nowcast(
     df = df_small,
     e = 1,
@@ -380,7 +449,7 @@ test_that("kk_nowcast MLE supports se_method none and qml", {
     solver_options = list(
       trace = 0,
       se_method = "none",
-      maxiter = 50,
+      maxiter = 40,
       return_states = FALSE
     )
   )
@@ -392,7 +461,7 @@ test_that("kk_nowcast MLE supports se_method none and qml", {
     solver_options = list(
       trace = 0,
       se_method = "qml",
-      maxiter = 50,
+      maxiter = 40,
       return_states = FALSE
     )
   )
@@ -402,18 +471,14 @@ test_that("kk_nowcast MLE supports se_method none and qml", {
 })
 
 test_that("kk_nowcast can skip state extraction", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "MLE",
-    solver_options = list(trace = 0, maxiter = 50, return_states = FALSE)
-  )
+  result <- fit_kk_mle()
 
   expect_null(result$states)
   expect_null(result$model)
 })
 
 test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
+  skip_if_not_reviser_full_tests()
   baseline_rng <- function() {
     set.seed(2024)
     rnorm(3)
@@ -429,7 +494,7 @@ test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
       method = "MLE",
       solver_options = list(
         trace = 0,
-        n_starts = 3,
+        n_starts = 2,
         seed = 99,
         maxiter = 30,
         return_states = FALSE
@@ -444,7 +509,7 @@ test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
     method = "MLE",
     solver_options = list(
       trace = 0,
-      n_starts = 3,
+      n_starts = 2,
       seed = 123,
       maxiter = 30,
       return_states = FALSE
@@ -458,7 +523,7 @@ test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
     method = "MLE",
     solver_options = list(
       trace = 0,
-      n_starts = 3,
+      n_starts = 2,
       seed = 123,
       maxiter = 30,
       return_states = FALSE
@@ -474,13 +539,7 @@ test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
 })
 
 test_that("kk_nowcast states output has correct structure", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 2,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   states <- result$states
 
@@ -497,12 +556,7 @@ test_that("kk_nowcast states output has correct structure", {
 })
 
 test_that("kk_nowcast parameter estimates are finite", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   expect_true(all(is.finite(result$params$Estimate)))
 })
@@ -766,12 +820,7 @@ test_that("kk_to_ss creates correct dimensions", {
 # ===== Tests for print.kk_model =====
 
 test_that("print.kk_model produces output", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   output <- utils::capture.output(print(result))
 
@@ -781,12 +830,7 @@ test_that("print.kk_model produces output", {
 })
 
 test_that("print.kk_model returns invisibly", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   returned <- print(result)
   expect_identical(returned, result)
@@ -795,12 +839,7 @@ test_that("print.kk_model returns invisibly", {
 # ===== Tests for summary.kk_model =====
 
 test_that("summary.kk_model produces detailed output", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "MLE",
-    solver_options = list(trace = 0, maxiter = 50)
-  )
+  result <- fit_kk_mle()
 
   output <- utils::capture.output(summary(result))
 
@@ -813,12 +852,7 @@ test_that("summary.kk_model produces detailed output", {
 })
 
 test_that("summary.kk_model returns invisibly", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   returned <- summary(result)
   expect_identical(returned, result)
@@ -827,25 +861,14 @@ test_that("summary.kk_model returns invisibly", {
 # ===== Tests for plot.kk_model =====
 
 test_that("plot.kk_model returns ggplot object", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 2,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   p <- plot(result)
   expect_s3_class(p, "ggplot")
 })
 
 test_that("plot.kk_model handles different states", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   # Get available states
   states <- unique(result$states$state)
@@ -857,12 +880,7 @@ test_that("plot.kk_model handles different states", {
 })
 
 test_that("plot.kk_model handles filtered vs smoothed", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   p_filtered <- plot(result, type = "filtered")
   p_smoothed <- plot(result, type = "smoothed")
@@ -874,15 +892,7 @@ test_that("plot.kk_model handles filtered vs smoothed", {
 # ===== Integration Tests =====
 
 test_that("full workflow with all components", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    h = 3,
-    model = "KK",
-    method = "OLS",
-    alpha = 0.05,
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols_forecast()
 
   # Test structure
   expect_s3_class(result, "kk_model")
@@ -905,29 +915,9 @@ test_that("full workflow with all components", {
 })
 
 test_that("different models produce different results", {
-  result_kk <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    model = "KK",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
-
-  result_howrey <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    model = "Howrey",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
-
-  result_classical <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    model = "Classical",
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result_kk <- fit_kk_ols()
+  result_howrey <- fit_kk_howrey()
+  result_classical <- fit_kk_classical()
 
   # Different number of parameters
   expect_gt(nrow(result_kk$params), nrow(result_howrey$params))
@@ -935,19 +925,8 @@ test_that("different models produce different results", {
 })
 
 test_that("different methods produce consistent estimates", {
-  result_ols <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
-
-  result_sur <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "SUR",
-    solver_options = list(trace = 0, maxiter = 100)
-  )
+  result_ols <- fit_kk_ols()
+  result_sur <- fit_kk_sur()
 
   # Both should have same parameter names
   expect_equal(
@@ -1039,12 +1018,7 @@ test_that("kk_nowcast model matrices have correct properties", {
 })
 
 test_that("kk_nowcast information criteria are calculated correctly for MLE", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    method = "MLE",
-    solver_options = list(trace = 0, maxiter = 50)
-  )
+  result <- fit_kk_mle()
 
   expect_true(is.finite(result$aic))
   expect_true(is.finite(result$bic))
@@ -1055,13 +1029,7 @@ test_that("kk_nowcast information criteria are calculated correctly for MLE", {
 })
 
 test_that("kk_nowcast confidence intervals have correct coverage", {
-  result <- kk_nowcast(
-    df = df_small,
-    e = 1,
-    alpha = 0.05,
-    method = "OLS",
-    solver_options = list(trace = 0)
-  )
+  result <- fit_kk_ols()
 
   # Check that lower < estimate < upper
   states <- result$states

@@ -80,7 +80,7 @@ An optimal revision process is one that leads to unbiased, efficient, and minima
 
 ### Example: Identifying an Efficient Release in GDP Data with `reviser`
 
-In the following example, we use the `reviser` package to identify the efficient release in quarterly GDP data for Switzerland, the Euro Area, Japan, and the United States. We test the first 20 data releases, and we aim to determine the point at which further revisions become negligible. As the final release, we use the same release for all countries, namely the data released 5 years after the first release. The tests shows that the first efficient release occurs at different points for each country, ranging from the 1st (Japan, US) to the 13th (Switzerland) release.
+In the following example, we use the `reviser` package to identify the efficient release in quarterly Euro Area GDP data. We test the first 15 data releases and use the 16th release as the benchmark final release. The sample is restricted to a single series and a shorter time span to keep the vignette lightweight while preserving a non-trivial efficient-release result.
 
 
 ```{r setup, warning=FALSE, message=FALSE}
@@ -88,11 +88,17 @@ library(reviser)
 library(dplyr)
 
 gdp <- reviser::gdp |>
-  tsbox::ts_pc()
+  tsbox::ts_pc() |>
+  dplyr::filter(
+    id == "EA",
+    time >= min(pub_date),
+    time <= as.Date("2020-01-01")
+  ) |>
+  tidyr::drop_na()
 
-df <- get_nth_release(gdp, n = 0:19)
+df <- get_nth_release(gdp, n = 0:14)
 
-final_release <- get_nth_release(gdp, n = 20)
+final_release <- get_nth_release(gdp, n = 15)
 
 efficient <- get_first_efficient_release(
   df,

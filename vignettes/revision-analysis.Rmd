@@ -98,6 +98,7 @@ library(tsbox)
 
 gdp <- reviser::gdp |>
   ts_pc() |>
+  filter(id == "EA") |>
   na.omit()
 
 df <- get_nth_release(gdp, 0:1)
@@ -338,7 +339,7 @@ results
 
 The `get_revision_analysis()` function requires a single time series in `final_release` and compares it to multiple time series in `df` for the same `id`. To always compare two consecutive publication dates, it is necessary to structure the analysis sequentially. The code below iterates over consecutive publication dates in the gdp dataset, comparing revisions between each pair. For each pair of consecutive dates, it extracts the corresponding data, runs `get_revision_analysis()` to analyze revisions, and then combines the results into a single dataframe.
 
-```{r, warning=FALSE}
+```{r, warning=FALSE, eval=FALSE}
 # Get unique sorted publication dates
 pub_dates <- gdp |>
   distinct(pub_date) |>

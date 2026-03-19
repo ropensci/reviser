@@ -15,6 +15,42 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+rebuild_vignette_results <- identical(
+  tolower(Sys.getenv("REVISER_REBUILD_VIGNETTE_RESULTS")),
+  "true"
+)
+
+vignette_result_path <- function(name) {
+  candidates <- c(
+    file.path("vignettes", "precomputed", name),
+    file.path("precomputed", name)
+  )
+  existing <- candidates[file.exists(candidates)]
+
+  if (length(existing) > 0) {
+    existing[[1]]
+  } else {
+    candidates[[1]]
+  }
+}
+
+load_or_build_vignette_result <- function(name, builder) {
+  path <- vignette_result_path(name)
+
+  if (!rebuild_vignette_results) {
+    if (!file.exists(path)) {
+      stop("Missing precomputed vignette result: ", basename(path))
+    }
+
+    return(readRDS(path))
+  }
+
+  result <- builder()
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(result, path)
+  result
+}
 ```
 
 This vignette describes the Jacobs-Van Norden (JVN) revision model as
@@ -216,22 +252,25 @@ The resulting data frame has one row per reference period and one column per
 release, which is the format expected by `jvn_nowcast()`.
 
 ```{r warning = FALSE, message = FALSE}
-fit_jvn <- jvn_nowcast(
-  df = df,
-  e = 4,
-  ar_order = 2,
-  h = 0,
-  include_news = TRUE,
-  include_noise = TRUE,
-  include_spillovers = TRUE,
-  spillover_news = TRUE,
-  spillover_noise = TRUE,
-  method = "MLE",
-  standardize = FALSE,
-  solver_options = list(
-    method = "L-BFGS-B",
-    maxiter = 100,
-    se_method = "hessian"
+fit_jvn <- load_or_build_vignette_result(
+  "nowcasting-revisions-jvn-fit.rds",
+  function() jvn_nowcast(
+    df = df,
+    e = 4,
+    ar_order = 2,
+    h = 0,
+    include_news = TRUE,
+    include_noise = TRUE,
+    include_spillovers = TRUE,
+    spillover_news = TRUE,
+    spillover_noise = TRUE,
+    method = "MLE",
+    standardize = FALSE,
+    solver_options = list(
+      method = "L-BFGS-B",
+      maxiter = 100,
+      se_method = "hessian"
+    )
   )
 )
 

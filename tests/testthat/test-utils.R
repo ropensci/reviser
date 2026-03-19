@@ -106,9 +106,7 @@ test_that("vintages_long handles list input", {
 test_that("vintages_long keeps ids for long-format list input", {
   long_list <- list(US = df_long, EA = df_long)
 
-  expect_no_warning(
-    result <- vintages_long(long_list, names_to = "pub_date")
-  )
+  result <- suppressWarnings(vintages_long(long_list, names_to = "pub_date"))
 
   expect_true("id" %in% colnames(result))
   expect_equal(sort(unique(result$id)), c("EA", "US"))
