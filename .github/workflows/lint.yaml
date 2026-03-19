@@ -10,6 +10,8 @@ permissions: read-all
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      LINTR_ERROR_ON_LINT: true
 
     steps:
       - uses: actions/checkout@v4
@@ -22,4 +24,6 @@ jobs:
         with:
           extra-packages: any::lintr, local::.
 
-      - uses: r-lib/actions/lint@v2
+      - name: Lint package
+        run: lintr::lint_package()
+        shell: Rscript {0}
