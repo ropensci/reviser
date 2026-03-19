@@ -4,7 +4,7 @@
   "identifier": "reviser",
   "description": "Provides tools to analyze revision properties in real-time time series data.",
   "name": "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
-  "codeRepository": "https://p-wegmueller.github.io/reviser/",
+  "codeRepository": "https://github.com/p-wegmueller/reviser",
   "issueTracker": "https://github.com/p-wegmueller/reviser/issues",
   "license": "https://spdx.org/licenses/MIT",
   "version": "0.1.0.9000",
@@ -13,7 +13,7 @@
     "name": "R",
     "url": "https://r-project.org"
   },
-  "runtimePlatform": "R version 4.4.0 (2024-04-24)",
+  "runtimePlatform": "R version 4.5.3 (2026-03-11)",
   "author": [
     {
       "@type": "Person",
@@ -121,21 +121,9 @@
       "@type": "SoftwareApplication",
       "identifier": "R",
       "name": "R",
-      "version": ">= 2.10"
+      "version": ">= 4.1.0"
     },
     "2": {
-      "@type": "SoftwareApplication",
-      "identifier": "magrittr",
-      "name": "magrittr",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=magrittr"
-    },
-    "3": {
       "@type": "SoftwareApplication",
       "identifier": "dplyr",
       "name": "dplyr",
@@ -147,7 +135,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=dplyr"
     },
-    "4": {
+    "3": {
       "@type": "SoftwareApplication",
       "identifier": "tidyr",
       "name": "tidyr",
@@ -158,6 +146,18 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=tidyr"
+    },
+    "4": {
+      "@type": "SoftwareApplication",
+      "identifier": "pillar",
+      "name": "pillar",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=pillar"
     },
     "5": {
       "@type": "SoftwareApplication",
@@ -257,18 +257,6 @@
     },
     "13": {
       "@type": "SoftwareApplication",
-      "identifier": "glue",
-      "name": "glue",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=glue"
-    },
-    "14": {
-      "@type": "SoftwareApplication",
       "identifier": "lubridate",
       "name": "lubridate",
       "provider": {
@@ -279,7 +267,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=lubridate"
     },
-    "15": {
+    "14": {
       "@type": "SoftwareApplication",
       "identifier": "KFAS",
       "name": "KFAS",
@@ -291,7 +279,44 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=KFAS"
     },
+    "15": {
+      "@type": "SoftwareApplication",
+      "identifier": "numDeriv",
+      "name": "numDeriv",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=numDeriv"
+    },
     "SystemRequirements": null
   },
-  "fileSize": "NAKB"
+  "fileSize": "4606.333KB",
+  "citation": [
+    {
+      "@type": "CreativeWork",
+      "datePublished": "2025",
+      "author": [
+        {
+          "@type": "Person",
+          "givenName": "Marc",
+          "familyName": "Burri"
+        },
+        {
+          "@type": "Person",
+          "givenName": "Philipp",
+          "familyName": "Wegmueller"
+        }
+      ],
+      "name": "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
+      "url": "https://p-wegmueller.github.io/reviser/"
+    }
+  ],
+  "relatedLink": "https://p-wegmueller.github.io/reviser/",
+  "releaseNotes": "https://github.com/p-wegmueller/reviser/blob/main/NEWS.md",
+  "readme": "https://github.com/p-wegmueller/reviser/blob/main/README.md",
+  "contIntegration": ["https://github.com/p-wegmueller/reviser/actions/workflows/R-CMD-check.yaml", "https://github.com/p-wegmueller/reviser/actions?query=workflow%3Apkgcheck", "https://app.codecov.io/gh/p-wegmueller/reviser"],
+  "developmentStatus": ["https://www.repostatus.org/#active", "https://lifecycle.r-lib.org/articles/stages.html#stable"]
 }

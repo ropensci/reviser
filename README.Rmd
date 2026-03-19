@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![R-CMD-check](https://github.com/p-wegmueller/reviser/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/p-wegmueller/reviser/actions/workflows/R-CMD-check.yaml)
+[![lint](https://github.com/p-wegmueller/reviser/actions/workflows/lint.yaml/badge.svg)](https://github.com/p-wegmueller/reviser/actions/workflows/lint.yaml)
 [![pkgcheck](https://github.com/p-wegmueller/reviser/workflows/pkgcheck/badge.svg)](https://github.com/p-wegmueller/reviser/actions?query=workflow%3Apkgcheck)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![reviser status badge](https://marcburri.r-universe.dev/badges/reviser)](https://marcburri.r-universe.dev/reviser)
@@ -82,9 +83,9 @@ stable and reliable.
 library(reviser)
 library(dplyr)
 
-gdp <- gdp %>%
-  filter(id == "US") %>%
-  tsbox::ts_pc() %>%
+gdp <- gdp |>
+  filter(id == "US") |>
+  tsbox::ts_pc() |>
   tsbox::ts_span(start = "1980-01-01")
 
 gdp_wide <- vintages_wide(gdp)
@@ -92,7 +93,7 @@ gdp_wide <- vintages_wide(gdp)
 gdp_long <- vintages_long(gdp_wide, keep_na = FALSE)
 
 plot_vintages(
-  gdp_long %>%
+  gdp_long |>
   filter(
     pub_date >= as.Date("2009-01-01") & pub_date < as.Date("2010-01-01"),
     time < as.Date("2010-01-01") & time > as.Date("2008-01-01")

@@ -166,7 +166,9 @@ kk_nowcast <- function(
   }
 
   with_local_seed <- function(seed, expr) {
-    if (is.null(seed)) return(force(expr))
+    if (is.null(seed)) {
+      return(force(expr))
+    }
 
     has_old_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     old_seed <- if (has_old_seed) {
@@ -175,13 +177,18 @@ kk_nowcast <- function(
       NULL
     }
 
-    on.exit({
-      if (has_old_seed) {
-        assign(".Random.seed", old_seed, envir = .GlobalEnv)
-      } else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-        rm(".Random.seed", envir = .GlobalEnv)
-      }
-    }, add = TRUE)
+    on.exit(
+      {
+        if (has_old_seed) {
+          assign(".Random.seed", old_seed, envir = .GlobalEnv)
+        } else if (
+          exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+        ) {
+          rm(".Random.seed", envir = .GlobalEnv)
+        }
+      },
+      add = TRUE
+    )
 
     set.seed(as.integer(seed))
     force(expr)
@@ -275,7 +282,10 @@ kk_nowcast <- function(
   }
 
   abort_flag(default_solver_options$transform_se, "solver_options$transform_se")
-  abort_flag(default_solver_options$return_states, "solver_options$return_states")
+  abort_flag(
+    default_solver_options$return_states,
+    "solver_options$return_states"
+  )
 
   default_solver_options$method <- match.arg(
     default_solver_options$method,
@@ -304,7 +314,9 @@ kk_nowcast <- function(
     \(x) x >= 0,
     "must be a single number >= 0."
   )
-  default_solver_options$trace <- as.integer(round(default_solver_options$trace))
+  default_solver_options$trace <- as.integer(
+    round(default_solver_options$trace)
+  )
 
   abort_scalar(
     default_solver_options$maxiter,
@@ -312,7 +324,9 @@ kk_nowcast <- function(
     \(x) x >= 1 && x %% 1 == 0,
     "must be a single integer >= 1."
   )
-  default_solver_options$maxiter <- as.integer(round(default_solver_options$maxiter))
+  default_solver_options$maxiter <- as.integer(
+    round(default_solver_options$maxiter)
+  )
 
   abort_scalar(
     default_solver_options$n_starts,
@@ -320,7 +334,9 @@ kk_nowcast <- function(
     \(x) x >= 1 && x %% 1 == 0,
     "must be a single integer >= 1."
   )
-  default_solver_options$n_starts <- as.integer(round(default_solver_options$n_starts))
+  default_solver_options$n_starts <- as.integer(
+    round(default_solver_options$n_starts)
+  )
 
   abort_scalar(
     default_solver_options$qml_eps,
@@ -348,7 +364,9 @@ kk_nowcast <- function(
       \(x) x %% 1 == 0,
       "must be a single integer."
     )
-    default_solver_options$seed <- as.integer(round(default_solver_options$seed))
+    default_solver_options$seed <- as.integer(
+      round(default_solver_options$seed)
+    )
   }
 
   if (!is.null(default_solver_options$startvals) &&
@@ -436,9 +454,9 @@ kk_nowcast <- function(
 
   time_in <- df$time
   if ((inherits(time_in, "Date") ||
-       inherits(time_in, "POSIXt") ||
-       is.numeric(time_in) ||
-       is.integer(time_in)) &&
+        inherits(time_in, "POSIXt") ||
+        is.numeric(time_in) ||
+        is.integer(time_in)) &&
       any(diff(as.numeric(time_in)) <= 0, na.rm = TRUE)) {
     rlang::abort("'time' must be strictly increasing.")
   }
@@ -462,8 +480,8 @@ kk_nowcast <- function(
 
   equations <- kk_equations(kk_mat_sur = kk_mat_sur)
   sur_data <- kk_arrange_data(df = df, e = e)
-  Ymat <- sur_data %>%
-    dplyr::select(dplyr::all_of(y_names)) %>%
+  Ymat <- sur_data |>
+    dplyr::select(dplyr::all_of(y_names)) |>
     as.matrix()
 
   kk_spec <- list(
@@ -586,7 +604,10 @@ kk_nowcast <- function(
     if (isTRUE(default_solver_options$transform_se) &&
         length(param_groups$var_idx) > 0) {
       start_mat_mle[param_groups$var_idx] <- log(
-        pmax(start_mat_mle[param_groups$var_idx], default_solver_options$sigma_lower)
+        pmax(
+          start_mat_mle[param_groups$var_idx],
+          default_solver_options$sigma_lower
+        )
       )
     }
 
@@ -594,8 +615,12 @@ kk_nowcast <- function(
     upper_bounds <- rep(Inf, length(start_mat_mle))
     if (isTRUE(default_solver_options$transform_se) &&
         length(param_groups$var_idx) > 0) {
-      lower_bounds[param_groups$var_idx] <- log(default_solver_options$sigma_lower)
-      upper_bounds[param_groups$var_idx] <- log(default_solver_options$sigma_upper)
+      lower_bounds[param_groups$var_idx] <- log(
+        default_solver_options$sigma_lower
+      )
+      upper_bounds[param_groups$var_idx] <- log(
+        default_solver_options$sigma_upper
+      )
     }
     if (length(param_groups$dyn_idx) > 0) {
       lower_bounds[param_groups$dyn_idx] <- -0.99
@@ -620,7 +645,8 @@ kk_nowcast <- function(
         if (start_idx == 1L) {
           current_init <- start_mat_mle
         } else {
-          current_init <- start_mat_mle + stats::rnorm(length(start_mat_mle), 0, 0.5)
+          current_init <- start_mat_mle +
+            stats::rnorm(length(start_mat_mle), 0, 0.5)
 
           if (isTRUE(default_solver_options$transform_se) &&
               length(param_groups$var_idx) > 0) {
@@ -766,7 +792,10 @@ kk_nowcast <- function(
           transform_se = default_solver_options$transform_se
         ),
         error = function(e) {
-          list(cov = NULL, warning = paste0("Hessian calculation failed: ", e$message))
+          list(
+            cov = NULL,
+            warning = paste0("Hessian calculation failed: ", e$message)
+          )
         }
       )
       cov_raw <- h_res$cov
@@ -818,7 +847,8 @@ kk_nowcast <- function(
 
     if (is.null(cov_used) && any(is.finite(se_raw))) {
       se <- se_raw
-      if (isTRUE(default_solver_options$transform_se) && length(tr$idx_sd) > 0) {
+      if (isTRUE(default_solver_options$transform_se) &&
+          length(tr$idx_sd) > 0) {
         se[tr$idx_sd] <- exp(params_raw[tr$idx_sd]) * se_raw[tr$idx_sd]
       }
     }
@@ -884,7 +914,10 @@ kk_nowcast <- function(
     frequency <- unique(round(as.numeric(diff(df$time)) / 30))
     if (length(frequency) > 1) {
       rlang::abort(
-        "The time series seems not to be regular,\n        please provide a regular time series!"
+        paste(
+          "The time series seems not to be regular.",
+          "Please provide a regular time series!"
+        )
       )
     }
 
@@ -905,16 +938,16 @@ kk_nowcast <- function(
   model_kfas <- KFAS::SSModel(
     y_kfas ~
       -1 +
-      SSMcustom(
-        Z = sur_ss_mat$Z,
-        T = sur_ss_mat$Tmat,
-        R = sur_ss_mat$R,
-        Q = sur_ss_mat$Q,
-        a1 = c(rep(0.2, n_states / 2), rep(0, n_states / 2)),
-        P1inf = diag(c(rep(1, n_states / 2), rep(0, n_states / 2)), n_states),
-        P1 = diag(c(rep(0, n_states / 2), rep(1, n_states / 2)), n_states),
-        index = seq_len(ncol(y_kfas))
-      ),
+        SSMcustom(
+          Z = sur_ss_mat$Z,
+          T = sur_ss_mat$Tmat,
+          R = sur_ss_mat$R,
+          Q = sur_ss_mat$Q,
+          a1 = c(rep(0.2, n_states / 2), rep(0, n_states / 2)),
+          P1inf = diag(c(rep(1, n_states / 2), rep(0, n_states / 2)), n_states),
+          P1 = diag(c(rep(0, n_states / 2), rep(1, n_states / 2)), n_states),
+          index = seq_len(ncol(y_kfas))
+        ),
     H = sur_ss_mat$H
   )
 
@@ -958,8 +991,8 @@ kk_nowcast <- function(
     state_results[[i]] <- dplyr::bind_rows(filtered_df, smoothed_df)
   }
 
-  states_long <- dplyr::bind_rows(state_results) %>%
-    dplyr::as_tibble() %>%
+  states_long <- dplyr::bind_rows(state_results) |>
+    dplyr::as_tibble() |>
     dplyr::arrange(.data$filter, .data$state, .data$time)
 
   results <- list(
@@ -1083,7 +1116,8 @@ kk_build_kfas_model <- function(params, kk_spec, Ymat, transform_se = TRUE) {
   }
 
   if (length(groups$dyn_idx) > 0 &&
-      any(!is.finite(theta[groups$dyn_idx]) | abs(theta[groups$dyn_idx]) >= 0.999)) {
+      any(!is.finite(theta[groups$dyn_idx]) |
+          abs(theta[groups$dyn_idx]) >= 0.999)) {
     return(NULL)
   }
 
@@ -1096,13 +1130,17 @@ kk_build_kfas_model <- function(params, kk_spec, Ymat, transform_se = TRUE) {
     ),
     error = function(e) NULL
   )
-  if (is.null(kk_mat)) return(NULL)
+  if (is.null(kk_mat)) {
+    return(NULL)
+  }
 
   ss_mat <- tryCatch(
     kk_to_ss(kk_mat$FF, kk_mat$GG, kk_mat$V, kk_mat$W),
     error = function(e) NULL
   )
-  if (is.null(ss_mat)) return(NULL)
+  if (is.null(ss_mat)) {
+    return(NULL)
+  }
 
   n_states <- kk_spec$n_states
   model_kfas <- tryCatch(
@@ -1123,7 +1161,9 @@ kk_build_kfas_model <- function(params, kk_spec, Ymat, transform_se = TRUE) {
     error = function(e) NULL
   )
 
-  if (is.null(model_kfas)) return(NULL)
+  if (is.null(model_kfas)) {
+    return(NULL)
+  }
 
   list(
     params = kk_mat$params,
@@ -1139,13 +1179,17 @@ kk_build_kfas_model <- function(params, kk_spec, Ymat, transform_se = TRUE) {
 kk_negloglik_contrib <- function(params, kk_spec, Ymat, transform_se = TRUE) {
   n_contrib <- max(1L, kk_spec$n_contrib)
   build <- kk_build_kfas_model(params, kk_spec, Ymat, transform_se)
-  if (is.null(build)) return(rep(1e8, n_contrib))
+  if (is.null(build)) {
+    return(rep(1e8, n_contrib))
+  }
 
   kfs <- tryCatch(
     KFAS::KFS(build$model, filtering = "state", smoothing = "none"),
     error = function(e) NULL
   )
-  if (is.null(kfs)) return(rep(1e8, n_contrib))
+  if (is.null(kfs)) {
+    return(rep(1e8, n_contrib))
+  }
 
   contrib_mat <- matrix(NA_real_, nrow = nrow(Ymat), ncol = ncol(Ymat))
   log2pi <- log(2 * pi)
@@ -1189,7 +1233,9 @@ kk_negloglik <- function(params, kk_spec, Ymat, transform_se = TRUE) {
   )
 
   contrib <- as.numeric(contrib)
-  if (length(contrib) == 0L || any(!is.finite(contrib))) return(1e10)
+  if (length(contrib) == 0L || any(!is.finite(contrib))) {
+    return(1e10)
+  }
 
   obj <- sum(contrib)
   if (!is.finite(obj)) 1e10 else obj
@@ -1199,7 +1245,12 @@ kk_negloglik <- function(params, kk_spec, Ymat, transform_se = TRUE) {
 #'
 #' @keywords internal
 #' @noRd
-kk_compute_hessian_cov <- function(theta_hat, kk_spec, Ymat, transform_se = TRUE) {
+kk_compute_hessian_cov <- function(
+  theta_hat,
+  kk_spec,
+  Ymat,
+  transform_se = TRUE
+) {
   H <- numDeriv::hessian(
     func = kk_negloglik,
     x = theta_hat,
@@ -1216,7 +1267,11 @@ kk_compute_hessian_cov <- function(theta_hat, kk_spec, Ymat, transform_se = TRUE
       warning = paste0(
         "Hessian is poorly conditioned",
         if (is.finite(cond_num)) {
-          paste0(" (cond = ", format(cond_num, scientific = TRUE, digits = 2), ")")
+          paste0(
+            " (cond = ",
+            format(cond_num, scientific = TRUE, digits = 2),
+            ")"
+          )
         } else {
           ""
         },
@@ -1248,10 +1303,12 @@ kk_compute_hessian_cov <- function(theta_hat, kk_spec, Ymat, transform_se = TRUE
 #'
 #' @keywords internal
 #' @noRd
-kk_transform_params_and_cov <- function(params_raw,
-                                        cov_raw,
-                                        param_names,
-                                        transform_se = TRUE) {
+kk_transform_params_and_cov <- function(
+  params_raw,
+  cov_raw,
+  param_names,
+  transform_se = TRUE
+) {
   params <- as.numeric(params_raw)
   names(params) <- param_names
   cov_used <- cov_raw
@@ -1284,17 +1341,21 @@ kk_transform_params_and_cov <- function(params_raw,
 #'
 #' @keywords internal
 #' @noRd
-kk_qml_covariance <- function(theta_hat,
-                              kk_spec,
-                              Ymat,
-                              transform_se = TRUE,
-                              score_eps = 1e-4,
-                              score_method = c("central", "forward"),
-                              qml_scale = c("sum", "mean", "hc"),
-                              hess_args = list(method.args = list(eps = 1e-4,
-                                                                  d = 0.01,
-                                                                  r = 6)),
-                              ridge_factor = 1e-6) {
+kk_qml_covariance <- function(
+  theta_hat,
+  kk_spec,
+  Ymat,
+  transform_se = TRUE,
+  score_eps = 1e-4,
+  score_method = c("central", "forward"),
+  qml_scale = c("sum", "mean", "hc"),
+  hess_args = list(method.args = list(
+    eps = 1e-4,
+    d = 0.01,
+    r = 6
+  )),
+  ridge_factor = 1e-6
+) {
   score_method <- match.arg(score_method)
   qml_scale <- match.arg(qml_scale)
 
@@ -1331,15 +1392,30 @@ kk_qml_covariance <- function(theta_hat,
     step <- rep(0, k)
     step[j] <- score_eps
 
-    c_plus <- kk_negloglik_contrib(theta_hat + step, kk_spec, Ymat, transform_se)
+    c_plus <- kk_negloglik_contrib(
+      theta_hat + step, kk_spec, Ymat, transform_se
+    )
     if (length(c_plus) != nT) {
-      stop("kk_negloglik_contrib returned different length under perturbation; cannot form scores.")
+      stop(
+        paste(
+          "kk_negloglik_contrib returned different length under perturbation;",
+          "cannot form scores."
+        )
+      )
     }
 
     if (score_method == "central") {
-      c_minus <- kk_negloglik_contrib(theta_hat - step, kk_spec, Ymat, transform_se)
+      c_minus <- kk_negloglik_contrib(
+        theta_hat - step, kk_spec, Ymat, transform_se
+      )
       if (length(c_minus) != nT) {
-        stop("kk_negloglik_contrib returned different length under perturbation; cannot form scores.")
+        stop(
+          paste(
+            "kk_negloglik_contrib returned different length under",
+            "perturbation;",
+            "cannot form scores."
+          )
+        )
       }
       scores[, j] <- (c_plus - c_minus) / (2 * score_eps)
     } else {
@@ -1415,8 +1491,9 @@ kk_equations <- function(kk_mat_sur) {
   rhs1 <- kk_mat_sur$FF %mx% z_lag_names
 
   lhs2 <- (y_names)
-  rhs2 <- (((II %diff% kk_mat_sur$GG) %prod% kk_mat_sur$FF) %mx%
-    (y_lag_names)) %sum%
+  rhs2 <- (
+    ((II %diff% kk_mat_sur$GG) %prod% kk_mat_sur$FF) %mx% y_lag_names
+  ) %sum%
     (kk_mat_sur$GG %mx% z_names)
 
   equations <- list()
@@ -1489,7 +1566,7 @@ kk_arrange_data <- function(df, e) {
 
   data <- cbind(z, y, y_lag)
   rownames(data) <- dates
-  data <- data %>% tidyr::drop_na()
+  data <- data |> tidyr::drop_na()
 
   return(data)
 }

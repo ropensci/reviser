@@ -198,7 +198,7 @@ test_that("plot_vintages warns if dim_col has more than 30 unique values", {
   df_many_vintages <- dplyr::slice(
     df_plot,
     rep(seq_len(dplyr::n()), each = 2)
-  ) %>%
+  ) |>
     dplyr::mutate(
       pub_date = as.Date(pub_date) + rep(0:35, length.out = dplyr::n())
     )
@@ -213,7 +213,7 @@ test_that("plot_vintages limits to 30 vintages when warning", {
   df_many_vintages <- dplyr::slice(
     df_plot,
     rep(seq_len(dplyr::n()), each = 2)
-  ) %>%
+  ) |>
     dplyr::mutate(
       pub_date = as.Date(pub_date) + rep(0:35, length.out = dplyr::n())
     )
@@ -256,7 +256,7 @@ test_that("plot_vintages adjusts legend position for many vintages", {
   df_many <- dplyr::slice(
     df_plot,
     rep(seq_len(dplyr::n()), each = 4)
-  ) %>%
+  ) |>
     dplyr::mutate(
       pub_date = as.Date(pub_date) + rep(0:9, length.out = dplyr::n())
     )
@@ -484,7 +484,6 @@ test_that("scale_fill_reviser accepts additional arguments", {
 
 test_that("complete plotting workflow with custom theme and scales", {
   p <- plot_vintages(df_plot, type = "line", dim_col = "pub_date") +
-    scale_color_reviser() +
     theme_reviser(base_size = 14, legend.position = "right")
 
   expect_s3_class(p, "ggplot")

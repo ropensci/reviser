@@ -16,7 +16,8 @@ include the columns:
 
 \item{n}{The release number to extract. Accepts:
 \itemize{
-\item Positive integer or vector (e.g., 0 for first release, 1 for  second, etc.)
+\item Non-negative integer or vector
+(e.g., 0 for first release, 1 for second, etc.)
 \item \code{"first"} to extract the first release.
 \item \code{"latest"} to extract the most recent release.
 Default is 0 (the first release).

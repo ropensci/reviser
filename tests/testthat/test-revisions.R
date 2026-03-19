@@ -29,15 +29,15 @@ expect_release_tbl <- function(result) {
 }
 
 add_test_pub_dates <- function(df) {
-  df %>%
-    dplyr::group_by(time) %>%
+  df |>
+    dplyr::group_by(time) |>
     dplyr::mutate(
       pub_date = seq.Date(
         as.Date("2020-02-01"),
         by = "month",
         length.out = dplyr::n()
       )[dplyr::row_number()]
-    ) %>%
+    ) |>
     dplyr::ungroup()
 }
 
@@ -58,10 +58,10 @@ df_long_rev <- data.frame(
 )
 
 # Create release based format (for get_first_efficient_release tests)
-df_release <- df_long_rev %>%
-  dplyr::group_by(time) %>%
-  dplyr::mutate(release = paste0("release_", 0:(dplyr::n() - 1))) %>%
-  dplyr::ungroup() %>%
+df_release <- df_long_rev |>
+  dplyr::group_by(time) |>
+  dplyr::mutate(release = paste0("release_", 0:(dplyr::n() - 1))) |>
+  dplyr::ungroup() |>
   dplyr::select(time, value, release)
 
 # Final release (most accurate)
@@ -72,8 +72,8 @@ final_release <- data.frame(
 )
 
 # Small datasets for faster tests (need at least 24 months for Friedman test)
-df_small_rev <- df_release %>%
-  dplyr::filter(release %in% c("release_0", "release_1", "release_2")) %>%
+df_small_rev <- df_release |>
+  dplyr::filter(release %in% c("release_0", "release_1", "release_2")) |>
   dplyr::slice(1:90)  # 30 obs × 3 releases
 
 final_small <- final_release[1:30, ]
@@ -390,8 +390,8 @@ test_that("get_nth_release diagonal works for multiple IDs", {
   df_multi <- dplyr::bind_rows(df_a, df_b)
 
   result <- get_nth_release(df_multi, n = "first", diagonal = TRUE)
-  counts <- result %>%
-    dplyr::count(id) %>%
+  counts <- result |>
+    dplyr::count(id) |>
     dplyr::arrange(id)
 
   expect_equal(counts$n[counts$id == "A"], 2)

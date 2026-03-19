@@ -33,7 +33,7 @@ df_wide_kk <- data.frame(
 
 # Add releases with decreasing measurement error
 for (i in 0:(n_releases - 1)) {
-  noise_sd <- 0.5 / (i + 1)  # Noise decreases with newer releases
+  noise_sd <- 0.5 / (i + 1) # Noise decreases with newer releases
   df_wide_kk[[paste0("release_", i)]] <- true_values + rnorm(n_obs, 0, noise_sd)
 }
 
@@ -196,7 +196,7 @@ test_that("kk_nowcast handles Howrey model", {
   expect_s3_class(result, "kk_model")
   # Howrey has e^2 G parameters (fewer than KK)
   n_g_params <- sum(grepl("^G", result$params$Parameter))
-  expect_equal(n_g_params, 1^2)  # e=1, so 1 G parameter
+  expect_equal(n_g_params, 1^2) # e=1, so 1 G parameter
 })
 
 test_that("kk_nowcast handles Classical model", {
@@ -271,7 +271,7 @@ test_that("kk_nowcast handles custom starting values with OLS", {
 })
 
 test_that("kk_nowcast validates startvals length", {
-  start_vals <- c(F0 = 0.5, G1_1 = 0.3)  # Wrong length
+  start_vals <- c(F0 = 0.5, G1_1 = 0.3) # Wrong length
 
   expect_error(
     kk_nowcast(
@@ -466,7 +466,11 @@ test_that("kk_nowcast MLE seed is reproducible and preserves RNG state", {
   )
 
   expect_identical(baseline_rng(), post_fit_rng())
-  expect_equal(result1$params$Estimate, result2$params$Estimate, tolerance = 1e-10)
+  expect_equal(
+    result1$params$Estimate,
+    result2$params$Estimate,
+    tolerance = 1e-10
+  )
 })
 
 test_that("kk_nowcast states output has correct structure", {
@@ -574,7 +578,7 @@ test_that("kk_matrices creates character matrices", {
   expect_true("params" %in% names(matrices))
 
   expect_true(is.character(matrices$FF))
-  expect_equal(dim(matrices$FF), c(3, 3))  # e+1 x e+1
+  expect_equal(dim(matrices$FF), c(3, 3)) # e+1 x e+1
 })
 
 test_that("kk_matrices creates numeric matrices with params", {
@@ -598,7 +602,7 @@ test_that("kk_matrices creates numeric matrices with params", {
   )
 
   expect_true(is.numeric(matrices$FF))
-  expect_equal(matrices$FF[3, 3], 0.8)  # F0 in bottom right
+  expect_equal(matrices$FF[3, 3], 0.8) # F0 in bottom right
 })
 
 test_that("kk_matrices validates e parameter", {
@@ -630,7 +634,7 @@ test_that("kk_matrices requires params for numeric type", {
 })
 
 test_that("kk_matrices validates params length", {
-  params <- c(F0 = 0.8)  # Too few parameters
+  params <- c(F0 = 0.8) # Too few parameters
 
   expect_error(
     kk_matrices(e = 1, model = "KK", params = params, type = "numeric"),
@@ -641,7 +645,12 @@ test_that("kk_matrices validates params length", {
 test_that("kk_matrices accepts unnamed params in canonical order", {
   params <- c(0.8, 0.4, 0.5, 0.1, 0.05)
 
-  matrices <- kk_matrices(e = 1, model = "KK", params = params, type = "numeric")
+  matrices <- kk_matrices(
+    e = 1,
+    model = "KK",
+    params = params,
+    type = "numeric"
+  )
 
   expect_equal(names(matrices$params), c("F0", "G0_0", "G0_1", "v0", "eps0"))
   expect_equal(matrices$FF[2, 2], 0.8)
@@ -658,7 +667,12 @@ test_that("kk_matrices normalizes named params to canonical order", {
     G0_0 = 0.4
   )
 
-  matrices <- kk_matrices(e = 1, model = "KK", params = params, type = "numeric")
+  matrices <- kk_matrices(
+    e = 1,
+    model = "KK",
+    params = params,
+    type = "numeric"
+  )
 
   expect_equal(
     unname(matrices$params),
@@ -672,7 +686,7 @@ test_that("kk_matrices handles Howrey model correctly", {
 
   # Howrey has e*e G parameters
   n_g_params <- sum(grepl("^G", names(matrices$params)))
-  expect_equal(n_g_params, 2^2)  # e=2, so 4 G parameters
+  expect_equal(n_g_params, 2^2) # e=2, so 4 G parameters
 })
 
 test_that("kk_matrices handles Classical model correctly", {
@@ -945,7 +959,7 @@ test_that("different methods produce consistent estimates", {
 # ===== Edge Cases =====
 
 test_that("kk_nowcast handles minimal data", {
-  df_minimal <- df_wide_kk[1:12, 1:3]  # 12 obs, 2 releases (e=1)
+  df_minimal <- df_wide_kk[1:12, 1:3] # 12 obs, 2 releases (e=1)
 
   result <- kk_nowcast(
     df = df_minimal,
@@ -972,9 +986,17 @@ test_that("kk_nowcast handles data with NAs at beginning", {
 })
 
 test_that("kk_nowcast handles extreme values", {
-  # Skip this test - extreme values (1e6, -1e6) cause numerical issues
-  # in the KFAS state-space model estimation
-  skip("Extreme values cause numerical instability in KFAS")
+  df_extreme <- df_small
+  df_extreme[, -1] <- df_extreme[, -1] * 1e3
+
+  result <- kk_nowcast(
+    df = df_extreme,
+    e = 1,
+    method = "OLS",
+    solver_options = list(trace = 0)
+  )
+
+  expect_s3_class(result, "kk_model")
 })
 
 test_that("kk_nowcast handles high frequency data", {

@@ -184,9 +184,9 @@ plot_vintages <- function(
 
   n <- length(unique(df[[dim_col]]))
 
-  df <- df %>%
-    dplyr::group_by(.data$time) %>%
-    dplyr::arrange(dplyr::desc(abs(.data$value)), .by_group = TRUE) %>%
+  df <- df |>
+    dplyr::group_by(.data$time) |>
+    dplyr::arrange(dplyr::desc(abs(.data$value)), .by_group = TRUE) |>
     dplyr::ungroup()
 
   if (n > 1) {
@@ -198,7 +198,7 @@ plot_vintages <- function(
       rlang::warn(
         paste0(n, " time series supplied. Showing recent 30.")
       )
-      df <- df %>%
+      df <- df |>
         dplyr::filter(!!dim_col %in% utils::tail(unique(!!dim_col), 30))
     }
   }

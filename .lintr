@@ -1,0 +1,8 @@
+linters: list(
+    brace_linter = brace_linter(),
+    indentation_linter = indentation_linter(hanging_indent_style = "never"),
+    line_length_linter = line_length_linter(80L),
+    semicolon_linter = semicolon_linter(),
+    T_and_F_symbol_linter = T_and_F_symbol_linter(),
+    trailing_whitespace_linter = trailing_whitespace_linter()
+  )

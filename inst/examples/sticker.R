@@ -9,12 +9,12 @@ file_path <- "man/figures/"
 file_path <- paste0(file_path, file_name)
 
 # Example dataset
-gdp_long_pc <- reviser::gdp %>%
-  filter(id == "US") %>%
-  ts_pc() %>%
+gdp_long_pc <- reviser::gdp |>
+  filter(id == "US") |>
+  ts_pc() |>
   na.omit()
 
-highlight_vintage <- gdp_long_pc %>%
+highlight_vintage <- gdp_long_pc |>
   filter(pub_date == as.Date("2012-10-01"))
 
 provence_colors <- c(
@@ -35,7 +35,7 @@ provence_colors <- c(
 )
 
 pt_provence <- reviser::plot_vintages(
-  gdp_long_pc %>%
+  gdp_long_pc |>
     filter(pub_date > as.Date("2009-01-01") & pub_date < as.Date("2012-10-01")),
   type = "line"
 ) +

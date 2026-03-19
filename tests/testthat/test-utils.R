@@ -83,7 +83,7 @@ test_that("vintages_long converts wide to long format", {
   expect_true("time" %in% colnames(result))
   expect_true("pub_date" %in% colnames(result))
   expect_true("value" %in% colnames(result))
-  expect_equal(nrow(result), 36)  # 12 time periods * 3 vintages
+  expect_equal(nrow(result), 36) # 12 time periods * 3 vintages
   expect_s3_class(result$pub_date, "Date")
 })
 
@@ -100,15 +100,14 @@ test_that("vintages_long handles list input", {
 
   expect_true("id" %in% colnames(result))
   expect_true(all(c("US", "EA") %in% result$id))
-  expect_equal(nrow(result), 48)  # 12 * 2 vintages * 2 ids
+  expect_equal(nrow(result), 48) # 12 * 2 vintages * 2 ids
 })
 
 test_that("vintages_long keeps ids for long-format list input", {
   long_list <- list(US = df_long, EA = df_long)
 
-  expect_warning(
-    result <- vintages_long(long_list, names_to = "pub_date"),
-    "already in long format"
+  expect_no_warning(
+    result <- vintages_long(long_list, names_to = "pub_date")
   )
 
   expect_true("id" %in% colnames(result))
@@ -185,7 +184,7 @@ test_that("vintages_wide converts long to wide format", {
 
   expect_true("time" %in% colnames(result))
   expect_equal(nrow(result), 12)
-  expect_equal(ncol(result), 4)  # time + 3 vintages
+  expect_equal(ncol(result), 4) # time + 3 vintages
 })
 
 test_that("vintages_wide handles release column", {
@@ -404,8 +403,9 @@ test_that("print.tbl_release handles long format", {
 
 test_that("print.tbl_release handles wide format", {
   df_rel <- vintages_wide(
-    dplyr::as_tibble(df_long_release), names_from = "release"
-    )
+    dplyr::as_tibble(df_long_release),
+    names_from = "release"
+  )
   output <- utils::capture.output(print(df_rel))
 
   expect_true(any(grepl("wide", output)))
@@ -537,7 +537,7 @@ test_that("functions handle minimal data", {
 
   wide <- vintages_wide(df_minimal)
   expect_equal(nrow(wide), 3)
-  expect_equal(ncol(wide), 2)  # time + 1 vintage
+  expect_equal(ncol(wide), 2) # time + 1 vintage
 
   long_again <- vintages_long(wide, names_to = "pub_date")
   expect_equal(nrow(long_again), 3)
@@ -552,7 +552,7 @@ test_that("functions handle minimal data (2 observations)", {
 
   wide <- vintages_wide(df_minimal)
   expect_equal(nrow(wide), 2)
-  expect_equal(ncol(wide), 2)  # time + 1 vintage
+  expect_equal(ncol(wide), 2) # time + 1 vintage
 
   format <- vintages_check(wide)
   expect_equal(format, "wide")
@@ -573,7 +573,7 @@ test_that("functions handle many vintages", {
   )
 
   wide <- vintages_wide(df_many, names_from = "pub_date")
-  expect_equal(ncol(wide), n_vintages + 1)  # time + vintages
+  expect_equal(ncol(wide), n_vintages + 1) # time + vintages
 
   long_again <- vintages_long(wide, names_to = "pub_date")
   expect_equal(nrow(long_again), 12 * n_vintages)

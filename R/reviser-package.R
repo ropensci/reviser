@@ -9,13 +9,11 @@
 #' @keywords internal
 "_PACKAGE"
 utils::globalVariables(c(
-  ".",
   ".data"
 ))
 
 # Import from KFAS necessary to overcome a bug when defining the model
 #' @importFrom KFAS SSModel SSMcustom
-#' @importFrom magrittr %>%
 #' @importFrom calculus %mx% %diff% %sum% %prod%
 #' @importFrom pillar tbl_sum
 #' @srrstats {G1.4} roxygen2 is used for all documentation.

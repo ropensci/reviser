@@ -781,7 +781,11 @@ test_that("jvn_nowcast seed is reproducible and preserves RNG state", {
   )
 
   expect_identical(baseline_rng(), post_fit_rng())
-  expect_equal(result1$params$Estimate, result2$params$Estimate, tolerance = 1e-10)
+  expect_equal(
+    result1$params$Estimate,
+    result2$params$Estimate,
+    tolerance = 1e-10
+  )
 })
 
 # ===== Edge Cases =====

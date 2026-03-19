@@ -14,3 +14,5 @@
 ^Meta$
 ^codecov\.yml$
 ^CODE_OF_CONDUCT\.md$
+^\.lintr$
+^codemeta\.json$

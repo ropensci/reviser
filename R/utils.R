@@ -70,10 +70,9 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
     long_list <- lapply(names(df), function(id) {
       check <- vintages_check(df[[id]])
       if (check == "long") {
-        rlang::warn("The input data is already in long format.")
         long_df_tmp <- df[[id]]
       } else {
-        long_df_tmp <- df[[id]] %>%
+        long_df_tmp <- df[[id]] |>
           tidyr::pivot_longer(
             cols = -"time",
             names_to = names_to,
@@ -85,7 +84,7 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
       if (keep_na) {
         return(long_df_tmp)
       } else {
-        long_df_tmp <- long_df_tmp %>%
+        long_df_tmp <- long_df_tmp |>
           dplyr::filter(!is.na(.data$value))
       }
     })
@@ -101,7 +100,7 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
       return(df)
     }
     # If input is a single wide data.frame
-    long_df <- df %>%
+    long_df <- df |>
       tidyr::pivot_longer(
         cols = -"time",
         names_to = names_to,
@@ -109,11 +108,11 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
       )
 
     if (names_to == "pub_date") {
-      long_df <- long_df %>%
-        dplyr::mutate(pub_date = as.Date(.data$pub_date)) %>%
+      long_df <- long_df |>
+        dplyr::mutate(pub_date = as.Date(.data$pub_date)) |>
         dplyr::arrange(.data$pub_date, .data$time) # Ensure data is sorted
     } else if (names_to == "release") {
-      long_df <- long_df %>%
+      long_df <- long_df |>
         dplyr::arrange(.data$time) # Ensure data is sorted by time
     }
 
@@ -121,7 +120,7 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
       long_df <- vintages_assign_class(long_df)
       return(long_df)
     } else {
-      long_df <- long_df %>%
+      long_df <- long_df |>
         dplyr::filter(!is.na(.data$value))
     }
     long_df <- vintages_assign_class(long_df)
@@ -216,24 +215,23 @@ vintages_wide <- function(df, names_from = "pub_date") {
 
   id_present <- "id" %in% colnames(df)
   if (id_present) {
-    n_id <- df$id %>%
-      unique() %>%
+    n_id <- df$id |>
+      unique() |>
       length()
-    df <- df %>%
+    df <- df |>
       dplyr::select(dplyr::all_of(c("id", required_cols)))
   } else {
     n_id <- 0
-    df <- df %>%
+    df <- df |>
       dplyr::select(dplyr::all_of(required_cols))
   }
 
   if (n_id > 0) {
     # Split data by id and create a named list of wide data.frames
-    wide_list <- df %>%
-      split(.$id) %>%
+    wide_list <- split(df, df$id) |>
       lapply(function(sub_df) {
-        sub_df <- sub_df %>%
-          dplyr::select("time", dplyr::all_of(names_from), "value") %>%
+        sub_df <- sub_df |>
+          dplyr::select("time", dplyr::all_of(names_from), "value") |>
           tidyr::pivot_wider(
             names_from = dplyr::all_of(names_from),
             values_from = "value"
@@ -248,7 +246,7 @@ vintages_wide <- function(df, names_from = "pub_date") {
     return(wide_list)
   } else {
     # Convert to wide format
-    wide_df <- df %>%
+    wide_df <- df |>
       tidyr::pivot_wider(
         names_from = dplyr::all_of(names_from),
         values_from = "value"
@@ -567,8 +565,8 @@ vintages_assign_class <- function(df) {
 #' @keywords internal
 #' @noRd
 standardize_val_col <- function(df) {
-  df %>%
-    dplyr::rename("value" = dplyr::any_of(c("value", "values"))) %>%
+  df |>
+    dplyr::rename("value" = dplyr::any_of(c("value", "values"))) |>
     suppressMessages()
 }
 
@@ -682,15 +680,15 @@ make_explicit_missing <- function(
   )
   names(complete_dates) <- time_col
 
-  data_subset <- data %>%
+  data_subset <- data |>
     dplyr::select(
       dplyr::all_of(time_col),
       dplyr::everything()
     )
 
   # Merge to create explicit NAs
-  complete_data <- complete_dates %>%
-    dplyr::left_join(data_subset, by = time_col) %>%
+  complete_data <- complete_dates |>
+    dplyr::left_join(data_subset, by = time_col) |>
     dplyr::arrange(!!rlang::sym(time_col))
 
   return(complete_data)
