@@ -70,7 +70,7 @@ A tibble with quarterly observations and 4 variables:
 
 Indergand, R., Leist, S. A Real-Time Data Set for Switzerland. Swiss J
 Economics Statistics 150, 331–352 (2014).
-<https://doi.org/10.1007/BF03399410>
+[doi:10.1007/BF03399410](https://doi.org/10.1007/BF03399410)
 
 ## Examples
 

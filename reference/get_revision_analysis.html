@@ -9,7 +9,7 @@ for revisions between initial and final data releases."><meta property="og:image
 
     <a class="navbar-brand me-2" href="../index.html">reviser</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -205,27 +205,19 @@ sign changes of growth rates in revisions.</p></li>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Example usage:</span></span></span>
+<span class="r-in"><span><span class="va">df_small</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="gdp.html">gdp</a></span>,</span></span>
+<span class="r-in"><span>  <span class="va">id</span> <span class="op">==</span> <span class="st">"US"</span>,</span></span>
+<span class="r-in"><span>  <span class="va">time</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2018-01-01"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="get_nth_release.html">get_nth_release</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>      <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>        <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="gdp.html">gdp</a></span></span></span>
-<span class="r-in"><span>      <span class="op">)</span></span></span>
-<span class="r-in"><span>    <span class="op">)</span>,</span></span>
-<span class="r-in"><span>    n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">10</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  <span class="fu"><a href="get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">df_small</span>, n <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="op">-</span><span class="st">"pub_date"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">final_release</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="get_nth_release.html">get_nth_release</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>      <span class="fu">tsbox</span><span class="fu">::</span><span class="fu"><a href="https://docs.ropensci.org/tsbox/reference/ts_pc.html" class="external-link">ts_pc</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>        <span class="fu">reviser</span><span class="fu">::</span><span class="va"><a href="gdp.html">gdp</a></span></span></span>
-<span class="r-in"><span>      <span class="op">)</span></span></span>
-<span class="r-in"><span>    <span class="op">)</span>,</span></span>
-<span class="r-in"><span>    n <span class="op">=</span> <span class="st">"latest"</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  <span class="fu"><a href="get_nth_release.html">get_nth_release</a></span><span class="op">(</span><span class="va">df_small</span>, n <span class="op">=</span> <span class="st">"latest"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  <span class="op">-</span><span class="st">"pub_date"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>

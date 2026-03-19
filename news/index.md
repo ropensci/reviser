@@ -1,6 +1,6 @@
 # Changelog
 
-## reviser 0.1.0.9000
+## reviser 0.1.0
 
 - Added Jacobs-van Norden nowcasting support via
   [`jvn_nowcast()`](https://p-wegmueller.github.io/reviser/reference/jvn_nowcast.md).
