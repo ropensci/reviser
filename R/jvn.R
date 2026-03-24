@@ -376,35 +376,6 @@ jvn_nowcast <- function(
     c("hessian", "qml", "none")
   )
 
-  with_local_seed <- function(seed, expr) {
-    if (is.null(seed)) {
-      return(force(expr))
-    }
-
-    has_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-    old_seed <- if (has_seed) {
-      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-    } else {
-      NULL
-    }
-
-    on.exit(
-      {
-        if (has_seed) {
-          assign(".Random.seed", old_seed, envir = .GlobalEnv)
-        } else if (
-          exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-        ) {
-          rm(".Random.seed", envir = .GlobalEnv)
-        }
-      },
-      add = TRUE
-    )
-
-    set.seed(as.integer(seed))
-    force(expr)
-  }
-
   abort_flag(default_solver_options$transform_se, "solver_options$transform_se")
   abort_flag(
     default_solver_options$return_states,
@@ -604,7 +575,7 @@ jvn_nowcast <- function(
 
   # Multi-start optimization ----
   seed <- default_solver_options$seed
-  with_local_seed(seed, {
+  reviser_with_seed(seed, {
     n_starts <- max(1L, as.integer(default_solver_options$n_starts))
     all_results <- vector("list", n_starts)
     all_values <- rep(NA_real_, n_starts)

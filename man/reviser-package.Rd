@@ -4,7 +4,7 @@
 \name{reviser-package}
 \alias{reviser}
 \alias{reviser-package}
-\title{reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages}
+\title{reviser: Analyzing Revisions in Real-Time Time Series Vintages}
 \description{
 \strong{reviser} is an R package designed for working with time-series vintages
 data. The package provides tools to clean, visualize, and analyze time-series

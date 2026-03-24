@@ -544,6 +544,25 @@ vintages_assign_class <- function(df) {
   return(df)
 }
 
+#' Evaluate an expression with a temporary random seed
+#' @param seed Optional integer seed
+#' @param expr Expression to evaluate
+#' @return The result of `expr`
+#' @keywords internal
+#' @noRd
+reviser_with_seed <- function(seed, expr) {
+  expr <- substitute(expr)
+
+  if (is.null(seed)) {
+    return(eval(expr, envir = parent.frame()))
+  }
+
+  withr::with_seed(
+    seed = as.integer(seed),
+    code = eval(expr, envir = parent.frame())
+  )
+}
+
 
 #' Standardize the time series data frame
 #' Value/s column is renamed to `value`

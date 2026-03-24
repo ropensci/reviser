@@ -165,35 +165,6 @@ kk_nowcast <- function(
     }
   }
 
-  with_local_seed <- function(seed, expr) {
-    if (is.null(seed)) {
-      return(force(expr))
-    }
-
-    has_old_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-    old_seed <- if (has_old_seed) {
-      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-    } else {
-      NULL
-    }
-
-    on.exit(
-      {
-        if (has_old_seed) {
-          assign(".Random.seed", old_seed, envir = .GlobalEnv)
-        } else if (
-          exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-        ) {
-          rm(".Random.seed", envir = .GlobalEnv)
-        }
-      },
-      add = TRUE
-    )
-
-    set.seed(as.integer(seed))
-    force(expr)
-  }
-
   default_solver_options <- list(
     trace = 0,
     maxiter = 1000,
@@ -627,7 +598,7 @@ kk_nowcast <- function(
       upper_bounds[param_groups$dyn_idx] <- 0.99
     }
 
-    with_local_seed(default_solver_options$seed, {
+    reviser_with_seed(default_solver_options$seed, {
       n_starts <- default_solver_options$n_starts
       all_results <- vector("list", n_starts)
       all_values <- rep(NA_real_, n_starts)
