@@ -9,7 +9,7 @@
 state and is being actively
 developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![CRAN status](https://www.r-pkg.org/badges/version/reviser)](https://CRAN.R-project.org/package=reviser)
-[![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/reviser)](https://r-pkg.org/pkg/reviser)
+[![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/grand-total/reviser)](https://r-pkg.org/pkg/reviser)
 [![R-CMD-check](https://github.com/p-wegmueller/reviser/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/p-wegmueller/reviser/actions/workflows/R-CMD-check.yaml)
 [![lint](https://github.com/p-wegmueller/reviser/actions/workflows/lint.yaml/badge.svg)](https://github.com/p-wegmueller/reviser/actions/workflows/lint.yaml)
 [![pkgcheck](https://github.com/p-wegmueller/reviser/workflows/pkgcheck/badge.svg)](https://github.com/p-wegmueller/reviser/actions?query=workflow%3Apkgcheck)
