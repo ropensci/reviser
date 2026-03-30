@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+    env:
+      REVISER_FULL_TESTS: "true"
     steps:
       - uses: ropensci-review-tools/pkgcheck-action@main
         continue-on-error: false
