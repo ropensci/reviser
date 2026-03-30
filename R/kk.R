@@ -825,7 +825,7 @@ kk_nowcast <- function(
     }
 
     if (!is.null(se_warning) && default_solver_options$trace > 0) {
-      warning(se_warning, call. = FALSE)
+      rlang::warn(se_warning)
     }
 
     n_ic <- if (default_solver_options$ic_n == "Tp") {
@@ -1367,11 +1367,12 @@ kk_qml_covariance <- function(
       theta_hat + step, kk_spec, Ymat, transform_se
     )
     if (length(c_plus) != nT) {
-      stop(
+      rlang::abort(
         paste(
           "kk_negloglik_contrib returned different length under perturbation;",
           "cannot form scores."
-        )
+        ),
+        call = rlang::caller_env()
       )
     }
 
@@ -1380,12 +1381,13 @@ kk_qml_covariance <- function(
         theta_hat - step, kk_spec, Ymat, transform_se
       )
       if (length(c_minus) != nT) {
-        stop(
+        rlang::abort(
           paste(
             "kk_negloglik_contrib returned different length under",
             "perturbation;",
             "cannot form scores."
-          )
+          ),
+          call = rlang::caller_env()
         )
       }
       scores[, j] <- (c_plus - c_minus) / (2 * score_eps)
@@ -1405,7 +1407,12 @@ kk_qml_covariance <- function(
   if (qml_scale == "mean") {
     Xproduct <- Xproduct / Tobs
   } else if (qml_scale == "hc") {
-    if (Tobs <= p) stop("hc scaling requires Tobs > number of parameters.")
+    if (Tobs <= p) {
+      rlang::abort(
+        "hc scaling requires Tobs > number of parameters.",
+        call = rlang::caller_env()
+      )
+    }
     Xproduct <- (Tobs / (Tobs - p)) * (Xproduct / Tobs)
   }
 

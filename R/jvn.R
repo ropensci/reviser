@@ -157,8 +157,7 @@ jvn_nowcast <- function(
 
   if (!include_news && !include_noise) {
     rlang::abort(
-      "At least one of `include_news` or `include_noise` must be TRUE.",
-      call = rlang::caller_env()
+      "At least one of `include_news` or `include_noise` must be TRUE."
     )
   }
 
@@ -320,7 +319,7 @@ jvn_nowcast <- function(
   abort_flag(standardize, "standardize")
 
   if (!is.list(solver_options)) {
-    rlang::abort("`solver_options` must be a list.", call = rlang::caller_env())
+    rlang::abort("`solver_options` must be a list.")
   }
 
   # Solver options (defaults + validation + legacy aliases) ----
@@ -362,8 +361,7 @@ jvn_nowcast <- function(
         "Valid options are: ",
         paste(names(default_solver_options), collapse = ", "),
         "."
-      ),
-      call = rlang::caller_env()
+      )
     )
   }
 
@@ -466,8 +464,7 @@ jvn_nowcast <- function(
           " IDs were provided: ",
           paste(names(check), collapse = ", "),
           "."
-        ),
-        call = rlang::caller_env()
+        )
       )
     }
     df <- df[[1]]
@@ -480,8 +477,7 @@ jvn_nowcast <- function(
         paste0(
           "`df` contains ", length(unique(df$id)), " different IDs. ",
           "Filter to a single ID first."
-        ),
-        call = rlang::caller_env()
+        )
       )
     }
     df <- suppressWarnings(vintages_wide(df, names_from = "release"))
@@ -489,9 +485,7 @@ jvn_nowcast <- function(
   }
 
   if (!("time" %in% names(df))) {
-    rlang::abort("After preprocessing, `df` must contain a `time` column.",
-      call = rlang::caller_env()
-    )
+    rlang::abort("After preprocessing, `df` must contain a `time` column.")
   }
 
   # Keep time first (predictable subsetting)
@@ -503,8 +497,7 @@ jvn_nowcast <- function(
       paste0(
         "Not enough vintage columns in `df`.\n",
         "Requested `e = ", e, "` but found ", n_vint_total, " vintage columns."
-      ),
-      call = rlang::caller_env()
+      )
     )
   }
 
@@ -515,9 +508,7 @@ jvn_nowcast <- function(
         is.numeric(time_in) ||
         is.integer(time_in)) &&
       any(diff(as.numeric(time_in)) <= 0, na.rm = TRUE)) {
-    rlang::abort("`time` must be strictly increasing.",
-      call = rlang::caller_env()
-    )
+    rlang::abort("`time` must be strictly increasing.")
   }
 
   # Internal working subset: time + first e vintages
@@ -550,8 +541,7 @@ jvn_nowcast <- function(
   if (!is.null(default_solver_options$startvals)) {
     if (length(default_solver_options$startvals) != model_struct$n_params) {
       rlang::abort(
-        paste0("`startvals` must have length ", model_struct$n_params, "."),
-        call = rlang::caller_env()
+        paste0("`startvals` must have length ", model_struct$n_params, ".")
       )
     }
     init_params <- default_solver_options$startvals
@@ -791,7 +781,7 @@ jvn_nowcast <- function(
     }
 
     if (!is.null(se_warning)) {
-      warning(se_warning, call. = FALSE)
+      rlang::warn(se_warning)
     }
   }
 
@@ -817,7 +807,7 @@ jvn_nowcast <- function(
   }
 
   if (!is.null(se_warning) && default_solver_options$trace > 0) {
-    warning(se_warning, call. = FALSE)
+    rlang::warn(se_warning)
   }
 
   # Update matrices at estimates + parameter table + IC ----
@@ -1624,7 +1614,7 @@ jvn_init_params <- function(model_struct, data, transform_se = TRUE) {
   data <- as.matrix(data)
   data_clean <- data[stats::complete.cases(data), , drop = FALSE]
   if (nrow(data_clean) < ar_order + 10) {
-    warning(
+    rlang::warn(
       "Insufficient data for smart initialization. Using fallback values."
     )
     return(fallback())
@@ -1753,7 +1743,9 @@ jvn_init_params <- function(model_struct, data, transform_se = TRUE) {
 
   # ---------- 6) final validation ----------
   if (any(!is.finite(params))) {
-    warning("Non-finite starting values detected. Using fallback values.")
+    rlang::warn(
+      "Non-finite starting values detected. Using fallback values."
+    )
     return(fallback())
   }
 
@@ -1841,11 +1833,12 @@ jvn_qml_covariance <- function(
     )
 
     if (length(c_plus) != nT) {
-      stop(
+      rlang::abort(
         paste(
           "jvn_negloglik_contrib returned different length under",
           "perturbation; cannot form scores."
-        )
+        ),
+        call = rlang::caller_env()
       )
     }
 
@@ -1854,11 +1847,12 @@ jvn_qml_covariance <- function(
         theta_hat - step, model_struct, y, transform_se
       )
       if (length(c_minus) != nT) {
-        stop(
+        rlang::abort(
           paste(
             "jvn_negloglik_contrib returned different length under",
             "perturbation; cannot form scores."
-          )
+          ),
+          call = rlang::caller_env()
         )
       }
       scores[, j] <- (c_plus - c_minus) / (2 * score_eps)
@@ -1883,7 +1877,12 @@ jvn_qml_covariance <- function(
   if (qml_scale == "mean") {
     Xproduct <- Xproduct / Tobs
   } else if (qml_scale == "hc") {
-    if (Tobs <= p) stop("hc scaling requires Tobs > number of parameters.")
+    if (Tobs <= p) {
+      rlang::abort(
+        "hc scaling requires Tobs > number of parameters.",
+        call = rlang::caller_env()
+      )
+    }
     Xproduct <- (Tobs / (Tobs - p)) * (Xproduct / Tobs)
   }
 
