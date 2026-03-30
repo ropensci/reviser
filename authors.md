@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/p-wegmueller/reviser/blob/v0.1.0/inst/CITATION)
+[`inst/CITATION`](https://github.com/p-wegmueller/reviser/blob/main/inst/CITATION)
 
 Burri and Wegmueller (2025). reviser: Tools for Studying Revision
 Properties in Real-Time Time Series Vintages
