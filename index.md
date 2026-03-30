@@ -102,16 +102,11 @@ Key features include:
 
 ## Installation
 
-Install the released version from CRAN with:
-
-``` r
-install.packages("reviser")
-```
-
-You can install the development version from
+You can install the development version of reviser from
 [GitHub](https://github.com/) with:
 
 ``` r
+# Install the reviser package
 remotes::install_github("p-wegmueller/reviser")
 ```
 

@@ -1,4 +1,4 @@
-# reviser: Analyzing Revisions in Real-Time Time Series Vintages
+# reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages
 
 **reviser** is an R package designed for working with time-series
 vintages data. The package provides tools to clean, visualize, and
