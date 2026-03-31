@@ -6,7 +6,8 @@ reviser.Rproj
 .Ruserdata
 .R-lib/
 .Rprofile
-docs
+docs/*
+!docs/index.html
 inst/doc
 .DS_Store
 /doc/

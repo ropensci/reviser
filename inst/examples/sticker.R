@@ -66,7 +66,7 @@ hexSticker::sticker(
   h_fill = "#F8ECD1", # Soft sandy beige
   h_color = "#A0522D", # Terracotta
   filename = file_path,
-  url = "github.com/p-wegmueller/reviser",
+  url = "github.com/ropensci/reviser",
   u_size = 3,
   u_color = "#5A3E2B"
 )

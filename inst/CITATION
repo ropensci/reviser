@@ -5,10 +5,10 @@ bibentry(
   title = "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
   author = c(as.person("Marc Burri"), as.person("Philipp Wegmueller")),
   year = "2025",
-  url = "https://p-wegmueller.github.io/reviser/",
+  url = "https://docs.ropensci.org/reviser",
   textVersion = paste(
     "Burri and Wegmueller (2025).",
     "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
-    "https://p-wegmueller.github.io/reviser/"
+    "https://docs.ropensci.org/reviser"
   )
 )
