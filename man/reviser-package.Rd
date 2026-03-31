@@ -11,12 +11,19 @@ data. The package provides tools to clean, visualize, and analyze time-series
 revisions. To learn more about reviser, start with the vignettes:
 \code{browseVignettes(package = "reviser")}
 The package will be actively developed and maintained.
+
+Useful links:
+\itemize{
+\item \url{https://docs.ropensci.org/reviser/}
+\item Report bugs at \url{https://github.com/ropensci/reviser/issues}
+}
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://p-wegmueller.github.io/reviser/}
-  \item Report bugs at \url{https://github.com/p-wegmueller/reviser/issues}
+  \item \url{https://docs.ropensci.org/reviser}
+  \item \url{https://github.com/ropensci/reviser}
+  \item Report bugs at \url{https://github.com/ropensci/reviser/issues}
 }
 
 }

@@ -9,6 +9,7 @@ bibentry(
   textVersion = paste(
     "Burri and Wegmueller (2025).",
     "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
+    "R package version 0.1.1,",
     "https://docs.ropensci.org/reviser"
   )
 )

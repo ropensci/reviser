@@ -18,7 +18,7 @@ downloads](https://cranlogs.r-pkg.org/badges/grand-total/reviser)](https://r-pkg
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![reviser status
-badge](https://marcburri.r-universe.dev/badges/reviser)](https://marcburri.r-universe.dev/reviser)
+badge](https://ropensci.r-universe.dev/badges/reviser)](https://ropensci.r-universe.dev/reviser)
 [![Codecov test
 coverage](https://codecov.io/gh/ropensci/reviser/graph/badge.svg)](https://app.codecov.io/gh/ropensci/reviser)
 <!-- badges: end -->
@@ -304,5 +304,5 @@ By contributing to this project, you agree to abide by its terms.
 ## Citation
 
 Burri M, Wegmueller P (2025). reviser: Tools for Studying Revision
-Properties in Real-Time Time Series Vintages. R package version
-0.1.0.9001, <https://docs.ropensci.org/reviser/>.
+Properties in Real-Time Time Series Vintages. R package version 0.1.1,
+<https://docs.ropensci.org/reviser/>.

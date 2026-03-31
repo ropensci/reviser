@@ -4,6 +4,10 @@
 #' revisions. To learn more about reviser, start with the vignettes:
 #' `browseVignettes(package = "reviser")`
 #' The package will be actively developed and maintained.
+#'
+#' Useful links:
+#' * <https://docs.ropensci.org/reviser/>
+#' * Report bugs at <https://github.com/ropensci/reviser/issues>
 #' @srrstats {G1.2} Life Cycle Statement
 #' @srrstats {G1.4} Using roxygen2 for function documentation
 #' @keywords internal

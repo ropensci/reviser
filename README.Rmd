@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
 [![lint](https://github.com/ropensci/reviser/actions/workflows/lint.yaml/badge.svg)](https://github.com/ropensci/reviser/actions/workflows/lint.yaml)
 [![pkgcheck](https://github.com/ropensci/reviser/workflows/pkgcheck/badge.svg)](https://github.com/ropensci/reviser/actions?query=workflow%3Apkgcheck)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
-[![reviser status badge](https://marcburri.r-universe.dev/badges/reviser)](https://marcburri.r-universe.dev/reviser)
+[![reviser status badge](https://ropensci.r-universe.dev/badges/reviser)](https://ropensci.r-universe.dev/reviser)
 [![Codecov test coverage](https://codecov.io/gh/ropensci/reviser/graph/badge.svg)](https://app.codecov.io/gh/ropensci/reviser)
 <!-- badges: end -->
 
@@ -138,4 +138,4 @@ Contributions are encouraged and appreciated. If you're uncertain about opening 
 Please note that the reviser project follows the [rOpenSci Code of Conduct](https://devguide.ropensci.org/collaboration.html#code-of-conduct). By contributing to this project, you agree to abide by its terms.
 
 ## Citation
-Burri M, Wegmueller P (2025). reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages. R package version 0.1.0.9001, https://docs.ropensci.org/reviser/.
+Burri M, Wegmueller P (2025). reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages. R package version 0.1.1, https://docs.ropensci.org/reviser/.
