@@ -21,7 +21,7 @@ Useful links:
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://docs.ropensci.org/reviser}
+  \item \url{https://docs.ropensci.org/reviser/}
   \item \url{https://github.com/ropensci/reviser}
   \item Report bugs at \url{https://github.com/ropensci/reviser/issues}
 }
