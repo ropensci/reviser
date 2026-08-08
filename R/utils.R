@@ -852,15 +852,29 @@ print.tbl_release <- function(x, ...) {
 #' @method summary tbl_pubdate
 #' @examples
 #' df <- dplyr::filter(reviser::gdp, id == "US")
+#' # Wide format
 #' wide_data <- vintages_wide(df)
 #' summary(wide_data$US)
+#'
+#' # Long format
+#' summary(get_revisions(df, interval = 1))
 #' @family helpers
 #' @export
 summary.tbl_pubdate <- function(object, ...) {
   cat("\n=== Vintages Data Summary (Publication Date Format) ===\n\n")
 
+  # Publication-date vintages may be stored in either layout, so the summary
+  # has to branch in the same way as `summary.tbl_release()`.
+  is_long <- "pub_date" %in% colnames(object) && "value" %in% colnames(object)
+
+  cat("Format:", ifelse(is_long, "long", "wide"), "\n")
+
   # Basic info
-  cat("Time periods:", nrow(object), "\n")
+  cat(
+    "Time periods:",
+    if (is_long) length(unique(object$time)) else nrow(object),
+    "\n"
+  )
   cat(
     "Time range:",
     as.character(min(object$time)),
@@ -874,19 +888,30 @@ summary.tbl_pubdate <- function(object, ...) {
     cat("IDs:", paste(unique(object$id), collapse = ", "), "\n")
   }
 
-  # Vintage info
-  date_cols <- colnames(object)[
-    colnames(object) != "time" &
-      colnames(object) != "id"
-  ]
-  cat("\nNumber of vintages:", length(date_cols), "\n")
+  # Vintage info: publication dates are a column in long format and the
+  # column names themselves in wide format.
+  if (is_long) {
+    pub_dates <- as.Date(unique(object$pub_date))
+  } else {
+    pub_dates <- as.Date(
+      colnames(object)[!colnames(object) %in% c("time", "id")]
+    )
+  }
+
+  cat("\nNumber of vintages:", length(pub_dates), "\n")
   cat("Publication dates:\n")
-  cat("  Earliest:", as.character(min(as.Date(date_cols))), "\n")
-  cat("  Latest:", as.character(max(as.Date(date_cols))), "\n")
+  cat("  Earliest:", as.character(min(pub_dates)), "\n")
+  cat("  Latest:", as.character(max(pub_dates)), "\n")
 
   # Missing values
-  n_missing <- sum(is.na(object[, date_cols]))
-  total_cells <- nrow(object) * length(date_cols)
+  if (is_long) {
+    n_missing <- sum(is.na(object$value))
+    total_cells <- nrow(object)
+  } else {
+    date_cols <- colnames(object)[!colnames(object) %in% c("time", "id")]
+    n_missing <- sum(is.na(object[, date_cols]))
+    total_cells <- nrow(object) * length(date_cols)
+  }
   pct_missing <- round(100 * n_missing / total_cells, 2)
   cat(
     "\nMissing values:",

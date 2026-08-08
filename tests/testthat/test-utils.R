@@ -429,6 +429,54 @@ test_that("summary.tbl_pubdate returns invisibly", {
   expect_identical(result, df_pub)
 })
 
+test_that("summary.tbl_pubdate handles long format", {
+  df_pub_long <- vintages_assign_class(dplyr::as_tibble(df_long))
+
+  output <- utils::capture.output(summary(df_pub_long))
+
+  expect_true(any(grepl("Format: long", output)))
+  expect_true(any(grepl("Number of vintages: 3", output)))
+  # Time periods must count distinct dates, not rows.
+  expect_true(any(grepl("Time periods: 12", output)))
+  expect_true(any(grepl("Earliest: 2020-02-01", output)))
+  expect_true(any(grepl("Latest: 2020-04-01", output)))
+})
+
+test_that("summary.tbl_pubdate works on get_revisions() output", {
+  # Regression test: get_revisions() always returns a long tbl_pubdate, which
+  # previously made summary() fail in as.Date() on the column names.
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  for (revisions in list(
+    get_revisions(df, interval = 1),
+    get_revisions(df, nth_release = 1),
+    get_revisions(df, ref_date = as.Date("2010-01-01"))
+  )) {
+    expect_s3_class(revisions, "tbl_pubdate")
+    expect_no_error(utils::capture.output(summary(revisions)))
+  }
+})
+
+test_that("every generic works on every exported vintages constructor", {
+  # Guards against method/class combinations that no example happens to cover.
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  objects <- list(
+    wide = vintages_wide(df)$US,
+    first = get_first_release(df),
+    latest = get_latest_release(df),
+    nth = get_nth_release(df, n = 0:3),
+    revisions = get_revisions(df, interval = 1)
+  )
+
+  for (nm in names(objects)) {
+    object <- objects[[nm]]
+    expect_no_error(utils::capture.output(print(object)))
+    expect_no_error(utils::capture.output(summary(object)))
+    expect_s3_class(plot(object), "ggplot")
+  }
+})
+
 test_that("summary.tbl_release handles long format", {
   df_rel_long <- df_long_release
   class(df_rel_long) <- c("tbl_release", class(df_rel_long))

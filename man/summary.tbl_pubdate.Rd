@@ -19,8 +19,12 @@ Summary Method for Publication Date Vintages
 }
 \examples{
 df <- dplyr::filter(reviser::gdp, id == "US")
+# Wide format
 wide_data <- vintages_wide(df)
 summary(wide_data$US)
+
+# Long format
+summary(get_revisions(df, interval = 1))
 }
 \seealso{
 Other helpers: 
