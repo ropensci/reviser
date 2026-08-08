@@ -2060,7 +2060,8 @@ summary.jvn_model <- function(object, ...) {
   cat("\n=== Jacobs-Van Norden Model ===\n\n")
 
   # Fall back for objects fitted before `model_type` was recorded.
-  cat("Specification:", rlang::`%||%`(object$model_type, "news and noise"), "\n")
+  model_type <- rlang::`%||%`(object$model_type, "news and noise")
+  cat("Specification:", model_type, "\n")
 
   if (!is.null(object$spec)) {
     cat("AR order:", object$spec$ar_order, "\n")
