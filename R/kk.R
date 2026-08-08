@@ -362,6 +362,10 @@ kk_nowcast <- function(
   n_param_cov <- e + 1
   n_param <- n_param_mat + n_param_cov
 
+  # Effective sample size behind the reported BIC; recorded on the fitted
+  # object so that logLik()/AIC()/BIC() reproduce the printed values.
+  n_ic <- NULL
+
   kk_mat_sur <- kk_matrices(e = e, model = model, type = "character")
   param_names <- names(kk_mat_sur$params)
 
@@ -874,6 +878,8 @@ kk_nowcast <- function(
       model_type = model_type,
       method = method,
       params = param_table,
+      n_param = n_param,
+      n_ic = n_ic,
       fit = fit,
       loglik = loglik,
       aic = aic,
@@ -981,6 +987,8 @@ kk_nowcast <- function(
     model_type = model_type,
     method = method,
     params = param_table,
+    n_param = n_param,
+    n_ic = n_ic,
     fit = fit,
     loglik = loglik,
     aic = aic,
