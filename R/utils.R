@@ -564,6 +564,226 @@ reviser_with_seed <- function(seed, expr) {
 }
 
 
+#' Vintages data classes
+#'
+#' @description
+#' `reviser` stores vintages in two S3 classes that sit on top of a tibble and
+#' record what the columns mean. Both are produced by the package's own
+#' constructors; you normally do not create them by hand.
+#'
+#' \describe{
+#'   \item{`tbl_pubdate`}{Vintages identified by publication date, as returned
+#'     by [vintages_wide()], [vintages_long()] and [get_revisions()].}
+#'   \item{`tbl_release`}{Vintages identified by release number, as returned by
+#'     [get_first_release()], [get_nth_release()], [get_latest_release()],
+#'     [get_fixed_release()] and [get_releases_by_date()].}
+#' }
+#'
+#' @section Data contract:
+#' Every object of either class has a `time` column of dates and may carry an
+#' optional `id` column identifying the series. Beyond that, each class has
+#' two permitted layouts:
+#'
+#' \describe{
+#'   \item{long}{A key column (`pub_date` for `tbl_pubdate`, `release` for
+#'     `tbl_release`) together with a `value` column.}
+#'   \item{wide}{One column per vintage. For `tbl_pubdate` the column names
+#'     are publication dates in `%Y-%m-%d` form; for `tbl_release` they are
+#'     release labels matching `release` or `final`.}
+#' }
+#'
+#' Columns must be atomic and scalar-valued; list columns are not permitted.
+#' Use [validate_vintages()] to check an object against this contract.
+#'
+#' @section Methods:
+#' Both classes support [print()], [summary()] and [plot()]. The plot methods
+#' dispatch to [plot_vintages()], which remains available for direct use when
+#' you want to pass its arguments explicitly. `print()` uses a pillar header
+#' that reports the layout, the number of periods and the number of vintages.
+#'
+#' @srrstats {TS1.0} Documents the explicit class system used for time series
+#'   vintages data
+#' @srrstats {TS1.2} Documents the validation routine for the class contract
+#' @srrstats {TS4.2} Documents the type and class of vintages objects
+#'
+#' @name reviser-vintages-classes
+#' @family helpers
+NULL
+
+#' Validate a vintages object against the class contract
+#'
+#' Checks that an object of class `tbl_pubdate` or `tbl_release` conforms to
+#' the layout documented in [reviser-vintages-classes]. Useful after
+#' manipulating a vintages object with external tools, which can leave the
+#' class attribute in place while breaking the assumptions the methods rely
+#' on.
+#'
+#' @param x An object of class `tbl_pubdate` or `tbl_release`.
+#'
+#' @return `x`, invisibly, if it is valid. Otherwise an error describing the
+#'   first problem found.
+#'
+#' @srrstats {G2.0} Asserts the expected structure of its input
+#' @srrstats {G2.1} Checks input types
+#' @srrstats {TS1.2} Implements an explicit validation routine for the
+#'   vintages classes
+#' @srrstats {TS2.0} Validates the time column, including implicit missings
+#'
+#' @examples
+#' df <- dplyr::filter(reviser::gdp, id == "US")
+#'
+#' releases <- get_nth_release(df, n = 0:3)
+#' validate_vintages(releases)
+#'
+#' # A malformed time column is rejected
+#' broken <- releases
+#' broken$time <- as.character(broken$time)
+#' broken$time[1] <- "not a date"
+#' try(validate_vintages(broken))
+#'
+#' # So is a class attribute that contradicts the columns
+#' mislabelled <- vintages_wide(df)$US
+#' class(mislabelled) <- c("tbl_release", class(mislabelled))
+#' try(validate_vintages(mislabelled))
+#'
+#' @family helpers
+#' @export
+validate_vintages <- function(x) {
+  if (!inherits(x, c("tbl_pubdate", "tbl_release"))) {
+    rlang::abort(
+      paste0(
+        "`x` must be a 'tbl_pubdate' or 'tbl_release' object, not ",
+        paste(class(x), collapse = "/"),
+        "."
+      )
+    )
+  }
+
+  if (!is.data.frame(x)) {
+    rlang::abort("A vintages object must be a data.frame or tibble.")
+  }
+
+  if (!"time" %in% colnames(x)) {
+    rlang::abort("A vintages object must have a 'time' column.")
+  }
+
+  # Checked up front so that a malformed time column produces a message that
+  # names the column, rather than a bare as.Date() parsing error.
+  parsed_time <- suppressWarnings(as.Date(x$time, format = "%Y-%m-%d"))
+  if (any(is.na(parsed_time) & !is.na(x$time))) {
+    rlang::abort(
+      "The 'time' column must contain dates in '%Y-%m-%d' format."
+    )
+  }
+
+  # vintages_check() performs the remaining structural checks and reports the
+  # layout; it aborts with a specific message when the object does not
+  # conform.
+  layout <- vintages_check(x)
+
+  # The class attribute must also agree with the columns actually present,
+  # which vintages_check() does not test because it accepts either class.
+  # Note the two classes are not mutually exclusive: a long release object
+  # carries both a `release` and a `pub_date` column and holds both classes.
+  vintage_cols <- setdiff(colnames(x), c("time", "id"))
+
+  if (inherits(x, "tbl_pubdate")) {
+    ok <- if (layout == "long") {
+      "pub_date" %in% colnames(x)
+    } else {
+      all(!is.na(suppressWarnings(as.Date(vintage_cols, format = "%Y-%m-%d"))))
+    }
+
+    if (!ok) {
+      rlang::abort(
+        paste(
+          "Object is classed as 'tbl_pubdate', so it must have a 'pub_date'",
+          "column (long format) or publication dates as column names",
+          "(wide format)."
+        )
+      )
+    }
+  }
+
+  if (inherits(x, "tbl_release")) {
+    ok <- if (layout == "long") {
+      "release" %in% colnames(x)
+    } else {
+      all(grepl("release|final", vintage_cols))
+    }
+
+    if (!ok) {
+      rlang::abort(
+        paste(
+          "Object is classed as 'tbl_release', so it must have a 'release'",
+          "column (long format) or release labels as column names",
+          "(wide format)."
+        )
+      )
+    }
+  }
+
+  invisible(x)
+}
+
+#' Invert a symmetric Hessian to obtain a parameter covariance matrix
+#'
+#' The Hessian of the negative log-likelihood is symmetric and, at a proper
+#' maximum, positive definite. `chol2inv(chol(H))` exploits both: it is about
+#' twice as cheap as a general LU solve and, more importantly, it *fails* when
+#' `H` is not positive definite. That failure is informative, because it means
+#' the optimizer did not reach a well-identified maximum, so it is surfaced as
+#' a diagnostic rather than silently absorbed.
+#'
+#' When `H` is symmetric but indefinite a general inverse may still exist. In
+#' that case the general solve is used, so results are unchanged relative to a
+#' plain `solve(H)`, but the caller is told that the Hessian was not positive
+#' definite. Only if that also fails is a ridge applied.
+#'
+#' @param H A symmetric numeric matrix.
+#' @param ridge_factor Relative size of the ridge used as a last resort.
+#' @return A list with `cov` (the inverse, symmetrised, or `NULL`) and
+#'   `warning` (a diagnostic string or `NULL`).
+#'
+#' @srrstats {G3.0} Exploits matrix structure for numerical stability and
+#'   reports loss of positive definiteness instead of masking it
+#' @keywords internal
+#' @noRd
+invert_hessian <- function(H, ridge_factor = 1e-6) {
+  warning_msg <- NULL
+
+  invH <- tryCatch(chol2inv(chol(H)), error = function(e) NULL)
+
+  if (is.null(invH)) {
+    # Not positive definite: report it, but keep the previous numerical
+    # behaviour by falling back to a general solve.
+    warning_msg <- paste(
+      "Hessian is not positive definite;",
+      "the optimum may not be a well-identified maximum",
+      "and standard errors may be unreliable."
+    )
+
+    invH <- tryCatch(solve(H), error = function(e) NULL)
+  }
+
+  if (is.null(invH)) {
+    ridge <- ridge_factor * mean(abs(diag(H)))
+    invH <- tryCatch(
+      solve(H + ridge * diag(nrow(H))),
+      error = function(e) NULL
+    )
+  }
+
+  if (is.null(invH)) {
+    return(list(
+      cov = NULL,
+      warning = "Failed to invert Hessian; standard errors unavailable."
+    ))
+  }
+
+  list(cov = (invH + t(invH)) / 2, warning = warning_msg)
+}
+
 #' Standardize the time series data frame
 #' Value/s column is renamed to `value`
 #' @param df data.frame
@@ -852,15 +1072,29 @@ print.tbl_release <- function(x, ...) {
 #' @method summary tbl_pubdate
 #' @examples
 #' df <- dplyr::filter(reviser::gdp, id == "US")
+#' # Wide format
 #' wide_data <- vintages_wide(df)
 #' summary(wide_data$US)
+#'
+#' # Long format
+#' summary(get_revisions(df, interval = 1))
 #' @family helpers
 #' @export
 summary.tbl_pubdate <- function(object, ...) {
   cat("\n=== Vintages Data Summary (Publication Date Format) ===\n\n")
 
+  # Publication-date vintages may be stored in either layout, so the summary
+  # has to branch in the same way as `summary.tbl_release()`.
+  is_long <- "pub_date" %in% colnames(object) && "value" %in% colnames(object)
+
+  cat("Format:", ifelse(is_long, "long", "wide"), "\n")
+
   # Basic info
-  cat("Time periods:", nrow(object), "\n")
+  cat(
+    "Time periods:",
+    if (is_long) length(unique(object$time)) else nrow(object),
+    "\n"
+  )
   cat(
     "Time range:",
     as.character(min(object$time)),
@@ -874,19 +1108,30 @@ summary.tbl_pubdate <- function(object, ...) {
     cat("IDs:", paste(unique(object$id), collapse = ", "), "\n")
   }
 
-  # Vintage info
-  date_cols <- colnames(object)[
-    colnames(object) != "time" &
-      colnames(object) != "id"
-  ]
-  cat("\nNumber of vintages:", length(date_cols), "\n")
+  # Vintage info: publication dates are a column in long format and the
+  # column names themselves in wide format.
+  if (is_long) {
+    pub_dates <- as.Date(unique(object$pub_date))
+  } else {
+    pub_dates <- as.Date(
+      colnames(object)[!colnames(object) %in% c("time", "id")]
+    )
+  }
+
+  cat("\nNumber of vintages:", length(pub_dates), "\n")
   cat("Publication dates:\n")
-  cat("  Earliest:", as.character(min(as.Date(date_cols))), "\n")
-  cat("  Latest:", as.character(max(as.Date(date_cols))), "\n")
+  cat("  Earliest:", as.character(min(pub_dates)), "\n")
+  cat("  Latest:", as.character(max(pub_dates)), "\n")
 
   # Missing values
-  n_missing <- sum(is.na(object[, date_cols]))
-  total_cells <- nrow(object) * length(date_cols)
+  if (is_long) {
+    n_missing <- sum(is.na(object$value))
+    total_cells <- nrow(object)
+  } else {
+    date_cols <- colnames(object)[!colnames(object) %in% c("time", "id")]
+    n_missing <- sum(is.na(object[, date_cols]))
+    total_cells <- nrow(object) * length(date_cols)
+  }
   pct_missing <- round(100 * n_missing / total_cells, 2)
   cat(
     "\nMissing values:",

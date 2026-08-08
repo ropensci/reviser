@@ -858,6 +858,50 @@ test_that("summary.kk_model returns invisibly", {
   expect_identical(returned, result)
 })
 
+test_that("kk_nowcast records the estimated specification", {
+  # Regression test: the fitted object used to discard the `model` argument,
+  # so print/summary could not report which specification was estimated.
+  specs <- list(
+    "Kishor-Koenig" = "Kishor-Koenig",
+    "KK" = "Kishor-Koenig",
+    "Howrey" = "Howrey",
+    "Classical" = "Classical"
+  )
+
+  for (arg in names(specs)) {
+    result <- kk_fit(
+      paste0("spec-", arg),
+      df = df_small,
+      e = 1,
+      h = 0,
+      model = arg,
+      method = "OLS"
+    )
+
+    expect_identical(result$model_type, specs[[arg]])
+
+    output <- utils::capture.output(summary(result))
+    expect_true(any(grepl(
+      paste0("Specification: ", specs[[arg]]),
+      output,
+      fixed = TRUE
+    )))
+  }
+})
+
+test_that("summary.kk_model distinguishes Howrey from Classical", {
+  howrey <- utils::capture.output(summary(kk_fit(
+    "spec-Howrey",
+    df = df_small, e = 1, h = 0, model = "Howrey", method = "OLS"
+  )))
+  classical <- utils::capture.output(summary(kk_fit(
+    "spec-Classical",
+    df = df_small, e = 1, h = 0, model = "Classical", method = "OLS"
+  )))
+
+  expect_false(identical(howrey, classical))
+})
+
 # ===== Tests for plot.kk_model =====
 
 test_that("plot.kk_model returns ggplot object", {
@@ -1035,4 +1079,109 @@ test_that("kk_nowcast confidence intervals have correct coverage", {
   states <- result$states
   expect_true(all(states$lower <= states$estimate, na.rm = TRUE))
   expect_true(all(states$estimate <= states$upper, na.rm = TRUE))
+})
+
+# ===== Tests for standard S3 methods on kk_model =====
+
+test_that("kk_model supports the standard extractor generics", {
+  result <- fit_kk_mle()
+
+  estimates <- coef(result)
+  expect_type(estimates, "double")
+  expect_identical(names(estimates), result$params$Parameter)
+  expect_identical(unname(estimates), result$params$Estimate)
+
+  covariance <- vcov(result)
+  expect_true(is.matrix(covariance))
+  expect_identical(rownames(covariance), result$params$Parameter)
+  expect_identical(colnames(covariance), result$params$Parameter)
+  expect_identical(nrow(covariance), length(estimates))
+
+  expect_identical(nobs(result), as.integer(result$n_ic))
+})
+
+test_that("logLik.kk_model makes AIC and BIC reproduce the reported values", {
+  result <- fit_kk_mle()
+
+  ll <- logLik(result)
+  expect_s3_class(ll, "logLik")
+  expect_equal(as.numeric(ll), result$loglik)
+  expect_identical(attr(ll, "df"), result$n_param)
+  expect_identical(attr(ll, "nobs"), result$n_ic)
+
+  # The whole point of carrying df and nobs: the stats generics must agree
+  # with the numbers summary() prints.
+  expect_equal(AIC(result), result$aic)
+  expect_equal(BIC(result), result$bic)
+})
+
+test_that("fitted, residuals and predict on kk_model are consistent", {
+  result <- fit_kk_ols_forecast()
+
+  fit_vals <- fitted(result)
+  expect_s3_class(fit_vals, "tbl_df")
+  expect_named(fit_vals, c("time", "estimate", "lower", "upper"))
+  expect_gt(nrow(fit_vals), 0)
+  expect_true(all(!is.na(fit_vals$estimate)))
+
+  resid <- residuals(result)
+  expect_named(resid, c("time", "residual"))
+  expect_identical(nrow(resid), nrow(fit_vals))
+
+  # residual = observed efficient release - fitted latent state
+  target <- result$data[[paste0("release_", result$e)]]
+  observed <- result$data$time
+  merged <- merge(
+    data.frame(time = observed, obs = target),
+    as.data.frame(fit_vals),
+    by = "time"
+  )
+  expect_equal(
+    resid$residual[order(resid$time)],
+    (merged$obs - merged$estimate)[order(merged$time)]
+  )
+
+  forecasts <- predict(result)
+  expect_named(forecasts, c("time", "estimate", "lower", "upper"))
+  expect_identical(nrow(forecasts), 3L) # h = 3
+  expect_true(all(forecasts$time > max(fit_vals$time)))
+})
+
+test_that("predict.kk_model returns no rows when fitted with h = 0", {
+  expect_identical(nrow(predict(fit_kk_ols())), 0L)
+})
+
+test_that("states.kk_model filters and validates", {
+  result <- fit_kk_ols()
+
+  smoothed <- states(result)
+  expect_true(all(smoothed$filter == "smoothed"))
+
+  filtered <- states(result, filter = "filtered")
+  expect_true(all(filtered$filter == "filtered"))
+
+  both <- states(result, filter = "all")
+  expect_identical(nrow(both), nrow(smoothed) + nrow(filtered))
+  expect_identical(both, result$states)
+
+  one <- states(result, state = kk_signal_state(result))
+  expect_identical(unique(one$state), kk_signal_state(result))
+
+  expect_error(states(result, state = "not_a_state"), "Unknown state")
+})
+
+test_that("kk_model accessors error informatively when data is absent", {
+  result <- kk_fit(
+    "no-states",
+    df = df_small,
+    e = 1,
+    h = 0,
+    model = "KK",
+    method = "OLS",
+    solver_options = list(return_states = FALSE)
+  )
+
+  expect_error(states(result), "return_states = FALSE")
+  # Parameter-level accessors still work without state estimates.
+  expect_gt(length(coef(result)), 0)
 })

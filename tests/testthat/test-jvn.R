@@ -595,6 +595,27 @@ test_that("summary.jvn_model returns invisibly", {
   expect_identical(returned, result)
 })
 
+test_that("jvn_nowcast records the estimated specification", {
+  result <- fit_jvn_news_fast()
+
+  expect_identical(result$model_type, "pure news")
+  expect_false(result$spec$include_noise)
+  expect_true(result$spec$include_news)
+  # ar_order is stored as the coerced integer used by the model.
+  expect_identical(result$spec$ar_order, 1L)
+
+  output <- utils::capture.output(summary(result))
+  expect_true(any(grepl("Specification: pure news", output, fixed = TRUE)))
+  expect_true(any(grepl("AR order: 1", output, fixed = TRUE)))
+  expect_true(any(grepl("news = TRUE", output, fixed = TRUE)))
+})
+
+test_that("jvn_model_label covers all component combinations", {
+  expect_identical(jvn_model_label(TRUE, TRUE), "news and noise")
+  expect_identical(jvn_model_label(TRUE, FALSE), "pure news")
+  expect_identical(jvn_model_label(FALSE, TRUE), "pure noise")
+})
+
 # ===== Tests for print.jvn_model =====
 
 test_that("print.jvn_model produces output", {
@@ -790,4 +811,91 @@ test_that("jvn_nowcast rejects e = 0", {
     ),
     "must be a single number > 0"
   )
+})
+
+# ===== Tests for standard S3 methods on jvn_model =====
+
+test_that("jvn_model supports the standard extractor generics", {
+  result <- fit_jvn_news_fast()
+
+  estimates <- coef(result)
+  expect_type(estimates, "double")
+  expect_identical(names(estimates), result$params$Parameter)
+  expect_identical(unname(estimates), result$params$Estimate)
+
+  covariance <- vcov(result)
+  expect_true(is.matrix(covariance))
+  expect_identical(rownames(covariance), result$params$Parameter)
+  expect_identical(nrow(covariance), length(estimates))
+
+  expect_identical(nobs(result), as.integer(result$n_ic))
+})
+
+test_that("logLik.jvn_model makes AIC and BIC reproduce the reported values", {
+  result <- fit_jvn_news_fast()
+
+  ll <- logLik(result)
+  expect_s3_class(ll, "logLik")
+  expect_equal(as.numeric(ll), result$loglik)
+  expect_identical(attr(ll, "df"), result$n_param)
+  expect_identical(attr(ll, "nobs"), result$n_ic)
+
+  expect_equal(AIC(result), result$aic)
+  expect_equal(BIC(result), result$bic)
+})
+
+test_that("fitted, residuals and predict on jvn_model are consistent", {
+  result <- fit_jvn_stateful()
+
+  fit_vals <- fitted(result)
+  expect_s3_class(fit_vals, "tbl_df")
+  expect_named(fit_vals, c("time", "estimate", "lower", "upper"))
+  expect_gt(nrow(fit_vals), 0)
+
+  resid <- residuals(result)
+  expect_named(resid, c("time", "residual"))
+  expect_identical(nrow(resid), nrow(fit_vals))
+
+  forecasts <- predict(result)
+  expect_identical(nrow(forecasts), 4L) # h = 4
+  expect_true(all(forecasts$time > max(fit_vals$time)))
+})
+
+test_that("states.jvn_model filters and validates", {
+  result <- fit_jvn_stateful()
+
+  smoothed <- states(result)
+  expect_true(all(smoothed$filter == "smoothed"))
+  expect_true("true_lag_0" %in% smoothed$state)
+
+  filtered <- states(result, filter = "filtered")
+  expect_true(all(filtered$filter == "filtered"))
+
+  both <- states(result, filter = "all")
+  expect_identical(nrow(both), nrow(smoothed) + nrow(filtered))
+
+  one <- states(result, state = "true_lag_0")
+  expect_identical(unique(one$state), "true_lag_0")
+
+  expect_error(states(result, state = "not_a_state"), "Unknown state")
+})
+
+test_that("jvn_model accessors error informatively when data is absent", {
+  # fit_jvn_news_fast() is fitted with return_states = FALSE.
+  expect_error(states(fit_jvn_news_fast()), "return_states = FALSE")
+})
+
+test_that("vcov errors when no covariance matrix was computed", {
+  result <- jvn_fit(
+    "no-se",
+    df = df_test_wide,
+    e = 2,
+    ar_order = 1,
+    h = 0,
+    include_news = TRUE,
+    include_noise = FALSE,
+    solver_options = list(return_states = FALSE, se_method = "none")
+  )
+
+  expect_error(vcov(result), "No parameter covariance matrix")
 })

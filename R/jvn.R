@@ -235,23 +235,7 @@ jvn_nowcast <- function(
       ))
     }
 
-    invH <- tryCatch(
-      solve(H),
-      error = function(e) {
-        ridge <- 1e-6 * mean(abs(diag(H)))
-        tryCatch(solve(H + ridge * diag(nrow(H))), error = function(e2) NULL)
-      }
-    )
-
-    if (is.null(invH)) {
-      return(list(
-        cov = NULL,
-        warning = "Failed to invert Hessian; standard errors unavailable."
-      ))
-    }
-
-    invH <- (invH + t(invH)) / 2
-    list(cov = invH, warning = NULL)
+    invert_hessian(H)
   }
 
   transform_params_and_cov <- function(
@@ -274,9 +258,13 @@ jvn_nowcast <- function(
       params[idx_sd] <- exp(params_raw[idx_sd])
 
       if (!is.null(cov_raw)) {
-        J <- diag(length(params_raw))
-        J[idx_sd, idx_sd] <- diag(exp(params_raw[idx_sd]))
-        cov_used <- J %*% cov_raw %*% t(J)
+        # The delta-method Jacobian is diagonal (see the KK counterpart), so
+        # it is applied as an outer-product scaling rather than as two dense
+        # matrix multiplications.
+        jac_diag <- rep(1, length(params_raw))
+        jac_diag[idx_sd] <- exp(params_raw[idx_sd])
+
+        cov_used <- outer(jac_diag, jac_diag) * cov_raw
         cov_used <- (cov_used + t(cov_used)) / 2
       } else {
         cov_used <- NULL
@@ -552,6 +540,19 @@ jvn_nowcast <- function(
       transform_se = default_solver_options$transform_se
     )
   }
+
+  # Record the estimated specification so that the fitted object reports
+  # which variant was run rather than only the model family.
+  spec_info <- list(
+    ar_order = ar_order,
+    include_news = include_news,
+    include_noise = include_noise,
+    include_spillovers = include_spillovers,
+    spillover_news = spillover_news,
+    spillover_noise = spillover_noise,
+    standardize = standardize
+  )
+  model_type <- jvn_model_label(include_news, include_noise)
 
   if (default_solver_options$trace > 0) {
     cat("Estimating JVN model with", model_struct$n_params, "parameters...\n")
@@ -847,7 +848,12 @@ jvn_nowcast <- function(
         H = model_struct$H,
         Q = model_struct$Q
       ),
+      model_type = model_type,
+      method = method,
+      spec = spec_info,
       params = param_table,
+      n_param = k,
+      n_ic = n_ic,
       fit = opt_result,
       loglik = loglik,
       aic = aic,
@@ -975,7 +981,12 @@ jvn_nowcast <- function(
       H = model_struct$H,
       Q = model_struct$Q
     ),
+    model_type = model_type,
+    method = method,
+    spec = spec_info,
     params = param_table,
+    n_param = k,
+    n_ic = n_ic,
     fit = opt_result,
     loglik = loglik,
     aic = aic,
@@ -989,6 +1000,25 @@ jvn_nowcast <- function(
 
   class(out) <- c("jvn_model", class(out))
   out
+}
+
+#' Canonical display label for a JVN model specification
+#'
+#' The JVN variant is determined by which revision components are estimated.
+#' At least one of the two is always TRUE, enforced in `jvn_nowcast()`.
+#'
+#' @param include_news,include_noise Logical flags.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+jvn_model_label <- function(include_news, include_noise) {
+  if (isTRUE(include_news) && isTRUE(include_noise)) {
+    "news and noise"
+  } else if (isTRUE(include_news)) {
+    "pure news"
+  } else {
+    "pure noise"
+  }
 }
 
 #' Build JVN state-space matrices and parameter indices
@@ -1271,7 +1301,7 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
   m <- nrow(Tmat)
   stopifnot(ncol(Tmat) == m)
 
-  S <- R %*% Q %*% t(R)
+  S <- tcrossprod(R %*% Q, R)
   A <- diag(m * m) - kronecker(Tmat, Tmat)
   b <- as.vector(S)
 
@@ -1339,7 +1369,10 @@ jvn_kalman_loglik <- function(
   P <- P1
   P <- (P + t(P)) / 2
 
-  RQR <- R %*% Q %*% t(R)
+  # `A %*% B %*% t(A)` is a tcrossprod; this matters here because the
+  # recursions below run once per period, per likelihood evaluation, per
+  # optimizer iteration.
+  RQR <- tcrossprod(R %*% Q, R)
 
   ll <- numeric(n)
   log2pi <- log(2 * pi)
@@ -1351,7 +1384,7 @@ jvn_kalman_loglik <- function(
     # Propagate-only when no observation
     if (k == 0L) {
       a <- Tmat %*% a
-      P <- Tmat %*% P %*% t(Tmat) + RQR
+      P <- tcrossprod(Tmat %*% P, Tmat) + RQR
       P <- (P + t(P)) / 2
       next
     }
@@ -1361,7 +1394,7 @@ jvn_kalman_loglik <- function(
     Ht <- H[obs, obs, drop = FALSE]
 
     v <- yt - Zt %*% a
-    F_mat <- Zt %*% P %*% t(Zt) + Ht
+    F_mat <- tcrossprod(Zt %*% P, Zt) + Ht
     F_mat <- (F_mat + t(F_mat)) / 2
 
     # Cholesky with tiny jitter retry for numerical PSD issues
@@ -1379,7 +1412,7 @@ jvn_kalman_loglik <- function(
     if (is.null(cholF)) {
       ll[t] <- -1e10
       a <- Tmat %*% a
-      P <- Tmat %*% P %*% t(Tmat) + RQR
+      P <- tcrossprod(Tmat %*% P, Tmat) + RQR
       P <- (P + t(P)) / 2
       next
     }
@@ -1402,12 +1435,12 @@ jvn_kalman_loglik <- function(
 
     # Update
     a <- a + K %*% v
-    P <- P - K %*% F_mat %*% t(K)
+    P <- P - tcrossprod(K %*% F_mat, K)
     P <- (P + t(P)) / 2
 
     # Propagate
     a <- Tmat %*% a
-    P <- Tmat %*% P %*% t(Tmat) + RQR
+    P <- tcrossprod(Tmat %*% P, Tmat) + RQR
     P <- (P + t(P)) / 2
   }
 
@@ -1887,17 +1920,20 @@ jvn_qml_covariance <- function(
   }
 
   # ---- Robust inversion of Hessian ----
-  invH <- tryCatch(
-    solve(H),
-    error = function(e) {
-      ridge <- ridge_factor * mean(abs(diag(H)))
-      solve(H + ridge * diag(nrow(H)))
-    }
-  )
+  inv_res <- invert_hessian(H, ridge_factor = ridge_factor)
 
-  # Symmetrise for numerical stability
-  invH <- (invH + t(invH)) / 2
-  cov_qml <- invH %*% Xproduct %*% invH
+  if (is.null(inv_res$cov)) {
+    rlang::abort(
+      "Failed to invert Hessian; QML covariance unavailable.",
+      call = rlang::caller_env()
+    )
+  }
+
+  invH <- inv_res$cov
+
+  # Sandwich estimator. `invH` is symmetric, so the outer product is a
+  # tcrossprod rather than a second general matrix multiplication.
+  cov_qml <- tcrossprod(invH %*% Xproduct, invH)
   cov_qml <- (cov_qml + t(cov_qml)) / 2
 
   list(
@@ -2022,6 +2058,23 @@ jvn_param_table <- function(params, se, param_info) {
 #' @export
 summary.jvn_model <- function(object, ...) {
   cat("\n=== Jacobs-Van Norden Model ===\n\n")
+
+  # Fall back for objects fitted before `model_type` was recorded.
+  model_type <- rlang::`%||%`(object$model_type, "news and noise")
+  cat("Specification:", model_type, "\n")
+
+  if (!is.null(object$spec)) {
+    cat("AR order:", object$spec$ar_order, "\n")
+    cat(
+      "Components: news =", object$spec$include_news,
+      "| noise =", object$spec$include_noise,
+      "| spillovers =", object$spec$include_spillovers, "\n"
+    )
+  }
+  if (!is.null(object$method)) {
+    cat("Estimation method:", toupper(object$method), "\n")
+  }
+
   cat(
     "Convergence:",
     ifelse(

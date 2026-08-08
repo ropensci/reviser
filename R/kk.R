@@ -189,6 +189,11 @@ kk_nowcast <- function(
   model <- tolower(model)
   method <- tolower(method)
 
+  # Keep a display label for the fitted object: "KK" and "Kishor-Koenig"
+  # select the same specification, so the label is canonical rather than a
+  # copy of what the user typed.
+  model_type <- kk_model_label(model)
+
   if (!is.list(solver_options)) {
     rlang::abort("'solver_options' must be a list!")
   }
@@ -356,6 +361,10 @@ kk_nowcast <- function(
   )
   n_param_cov <- e + 1
   n_param <- n_param_mat + n_param_cov
+
+  # Effective sample size behind the reported BIC; recorded on the fitted
+  # object so that logLik()/AIC()/BIC() reproduce the printed values.
+  n_ic <- NULL
 
   kk_mat_sur <- kk_matrices(e = e, model = model, type = "character")
   param_names <- names(kk_mat_sur$params)
@@ -866,7 +875,11 @@ kk_nowcast <- function(
       kk_model_mat = kk_mat_hat,
       ss_model_mat = sur_ss_mat,
       model = NULL,
+      model_type = model_type,
+      method = method,
       params = param_table,
+      n_param = n_param,
+      n_ic = n_ic,
       fit = fit,
       loglik = loglik,
       aic = aic,
@@ -971,7 +984,11 @@ kk_nowcast <- function(
     kk_model_mat = kk_mat_hat,
     ss_model_mat = sur_ss_mat,
     model = model_kfas,
+    model_type = model_type,
+    method = method,
     params = param_table,
+    n_param = n_param,
+    n_ic = n_ic,
     fit = fit,
     loglik = loglik,
     aic = aic,
@@ -984,6 +1001,26 @@ kk_nowcast <- function(
   )
   class(results) <- c("kk_model", class(results))
   results
+}
+
+#' Canonical display label for a KK model specification
+#'
+#' Maps the accepted `model` aliases onto the name used when reporting a
+#' fitted model. `"KK"` and `"Kishor-Koenig"` select the same specification.
+#'
+#' @param model Character, already lower-cased.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+kk_model_label <- function(model) {
+  switch(
+    tolower(model),
+    "kk" = "Kishor-Koenig",
+    "kishor-koenig" = "Kishor-Koenig",
+    "howrey" = "Howrey",
+    "classical" = "Classical",
+    model
+  )
 }
 
 #' Internal parameter grouping for KK estimation
@@ -1251,23 +1288,7 @@ kk_compute_hessian_cov <- function(
     ))
   }
 
-  invH <- tryCatch(
-    solve(H),
-    error = function(e) {
-      ridge <- 1e-6 * mean(abs(diag(H)))
-      tryCatch(solve(H + ridge * diag(nrow(H))), error = function(e2) NULL)
-    }
-  )
-
-  if (is.null(invH)) {
-    return(list(
-      cov = NULL,
-      warning = "Failed to invert Hessian; standard errors unavailable."
-    ))
-  }
-
-  invH <- (invH + t(invH)) / 2
-  list(cov = invH, warning = NULL)
+  invert_hessian(H)
 }
 
 #' Transform KK parameters and covariance back to the natural scale
@@ -1290,9 +1311,15 @@ kk_transform_params_and_cov <- function(
     params[idx_sd] <- exp(params_raw[idx_sd])
 
     if (!is.null(cov_raw)) {
-      J <- diag(length(params_raw))
-      J[idx_sd, idx_sd] <- diag(exp(params_raw[idx_sd]))
-      cov_used <- J %*% cov_raw %*% t(J)
+      # The delta-method Jacobian is diagonal: parameters estimated on the
+      # log scale are scaled by exp(theta), all others by 1. Applying it as
+      # a rank-1 outer-product scaling avoids building the matrix and two
+      # dense multiplications, and sidesteps the `diag()` scalar trap when
+      # exactly one parameter is transformed.
+      jac_diag <- rep(1, length(params_raw))
+      jac_diag[idx_sd] <- exp(params_raw[idx_sd])
+
+      cov_used <- outer(jac_diag, jac_diag) * cov_raw
       cov_used <- (cov_used + t(cov_used)) / 2
     } else {
       cov_used <- NULL
@@ -2065,13 +2092,13 @@ kk_to_ss <- function(FF, GG, V, W, epsilon = 1e-6) {
   Q <- array(0, c(2 * (e + 1), 2 * (e + 1)))
   v_t_2 <- V[1:(e + 1), 1:(e + 1)]
   Q[1:(e + 1), 1:(e + 1)] <- v_t_2
-  Q[(1:(e + 1)), ((e + 2):(2 * (e + 1)))] <- -v_t_2 %*% t(II - GG)
+  Q[(1:(e + 1)), ((e + 2):(2 * (e + 1)))] <- -tcrossprod(v_t_2, II - GG)
   Q[((e + 2):(2 * (e + 1))), 1:(e + 1)] <- -(II - GG) %*% v_t_2
   Q[((e + 2):(2 * (e + 1))), ((e + 2):(2 * (e + 1)))] <- W[
     1:(e + 1),
     1:(e + 1)
   ] +
-    (II - GG) %*% v_t_2 %*% t(II - GG)
+    tcrossprod((II - GG) %*% v_t_2, II - GG)
 
   for (jj in c(1:e, e + 2)) {
     Q[jj, jj] <- epsilon
@@ -2114,6 +2141,14 @@ kk_to_ss <- function(FF, GG, V, W, epsilon = 1e-6) {
 #' @export
 summary.kk_model <- function(object, ...) {
   cat("\n=== Kishor-Koenig Model ===\n\n")
+
+  # Fall back to the family name for objects fitted before `model_type` was
+  # recorded.
+  cat("Specification:", rlang::`%||%`(object$model_type, "Kishor-Koenig"), "\n")
+
+  if (!is.null(object$method)) {
+    cat("Estimation method:", toupper(object$method), "\n")
+  }
 
   if (!is.null(object$convergence)) {
     cat(

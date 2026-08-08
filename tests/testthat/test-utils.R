@@ -429,6 +429,54 @@ test_that("summary.tbl_pubdate returns invisibly", {
   expect_identical(result, df_pub)
 })
 
+test_that("summary.tbl_pubdate handles long format", {
+  df_pub_long <- vintages_assign_class(dplyr::as_tibble(df_long))
+
+  output <- utils::capture.output(summary(df_pub_long))
+
+  expect_true(any(grepl("Format: long", output)))
+  expect_true(any(grepl("Number of vintages: 3", output)))
+  # Time periods must count distinct dates, not rows.
+  expect_true(any(grepl("Time periods: 12", output)))
+  expect_true(any(grepl("Earliest: 2020-02-01", output)))
+  expect_true(any(grepl("Latest: 2020-04-01", output)))
+})
+
+test_that("summary.tbl_pubdate works on get_revisions() output", {
+  # Regression test: get_revisions() always returns a long tbl_pubdate, which
+  # previously made summary() fail in as.Date() on the column names.
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  for (revisions in list(
+    get_revisions(df, interval = 1),
+    get_revisions(df, nth_release = 1),
+    get_revisions(df, ref_date = as.Date("2010-01-01"))
+  )) {
+    expect_s3_class(revisions, "tbl_pubdate")
+    expect_no_error(utils::capture.output(summary(revisions)))
+  }
+})
+
+test_that("every generic works on every exported vintages constructor", {
+  # Guards against method/class combinations that no example happens to cover.
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  objects <- list(
+    wide = vintages_wide(df)$US,
+    first = get_first_release(df),
+    latest = get_latest_release(df),
+    nth = get_nth_release(df, n = 0:3),
+    revisions = get_revisions(df, interval = 1)
+  )
+
+  for (nm in names(objects)) {
+    object <- objects[[nm]]
+    expect_no_error(utils::capture.output(print(object)))
+    expect_no_error(utils::capture.output(summary(object)))
+    expect_s3_class(plot(object), "ggplot")
+  }
+})
+
 test_that("summary.tbl_release handles long format", {
   df_rel_long <- df_long_release
   class(df_rel_long) <- c("tbl_release", class(df_rel_long))
@@ -459,7 +507,146 @@ test_that("summary.tbl_pubdate calculates missing values correctly", {
   expect_true(any(grepl("Missing values", output)))
 })
 
+# ===== Tests for validate_vintages =====
+
+test_that("validate_vintages accepts every layout the constructors produce", {
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  valid <- list(
+    "wide pub_date" = vintages_wide(df)$US,
+    "long pub_date" = get_revisions(df, interval = 1),
+    "long release" = get_nth_release(df, n = 0:3),
+    "wide release" = vintages_wide(
+      get_nth_release(df, n = 0:3),
+      names_from = "release"
+    )$US
+  )
+
+  for (nm in names(valid)) {
+    expect_no_error(validate_vintages(valid[[nm]]))
+    # Returns its input invisibly so it can be used inline.
+    expect_identical(validate_vintages(valid[[nm]]), valid[[nm]])
+  }
+})
+
+test_that("validate_vintages rejects a non-vintages object", {
+  expect_error(validate_vintages(data.frame(a = 1)), "must be a 'tbl_pubdate'")
+})
+
+test_that("validate_vintages requires a well formed time column", {
+  releases <- get_nth_release(dplyr::filter(reviser::gdp, id == "US"), n = 0:3)
+
+  missing_time <- releases
+  missing_time$time <- NULL
+  expect_error(validate_vintages(missing_time), "must have a 'time' column")
+
+  bad_time <- releases
+  bad_time$time <- as.character(bad_time$time)
+  bad_time$time[1] <- "not a date"
+  expect_error(validate_vintages(bad_time), "'%Y-%m-%d' format")
+})
+
+test_that("validate_vintages catches a class that contradicts the columns", {
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  # Wide publication-date data mislabelled as releases.
+  as_release <- vintages_wide(df)$US
+  class(as_release) <- c("tbl_release", class(as_release))
+  expect_error(validate_vintages(as_release), "classed as 'tbl_release'")
+
+  # Wide release data mislabelled as publication dates.
+  wide_release <- vintages_wide(
+    get_nth_release(df, n = 0:3),
+    names_from = "release"
+  )$US
+  as_pubdate <- wide_release
+  class(as_pubdate) <- c(
+    "tbl_pubdate",
+    setdiff(class(wide_release), "tbl_release")
+  )
+  expect_error(validate_vintages(as_pubdate), "classed as 'tbl_pubdate'")
+})
+
+test_that("the two vintages classes are not mutually exclusive", {
+  # A long release object legitimately carries both a release and a pub_date
+  # column, and holds both classes; the validator must not reject that.
+  releases <- get_nth_release(dplyr::filter(reviser::gdp, id == "US"), n = 0:3)
+
+  expect_s3_class(releases, "tbl_release")
+  expect_s3_class(releases, "tbl_pubdate")
+  expect_true(all(c("release", "pub_date") %in% names(releases)))
+  expect_no_error(validate_vintages(releases))
+})
+
 # ===== Tests for internal helper functions =====
+
+test_that("invert_hessian matches solve() on positive definite input", {
+  set.seed(101)
+  a <- matrix(rnorm(25), 5, 5)
+  h <- crossprod(a) + diag(5) # symmetric positive definite
+
+  res <- invert_hessian(h)
+
+  expect_null(res$warning)
+  expect_equal(res$cov, solve(h), tolerance = 1e-10)
+  # Result must be exactly symmetric, not merely close.
+  expect_identical(res$cov, t(res$cov))
+  expect_equal(res$cov %*% h, diag(5), tolerance = 1e-10)
+})
+
+test_that("invert_hessian reports a non positive definite Hessian", {
+  # Symmetric and invertible, but indefinite: a saddle point rather than a
+  # maximum. The inverse is still returned, with a diagnostic attached.
+  h <- diag(c(2, -3, 4))
+
+  res <- invert_hessian(h)
+
+  expect_false(is.null(res$warning))
+  expect_match(res$warning, "not positive definite")
+  expect_equal(res$cov, solve(h), tolerance = 1e-10)
+})
+
+test_that("invert_hessian reports failure on a singular Hessian", {
+  h <- matrix(0, 3, 3)
+
+  res <- invert_hessian(h)
+
+  expect_null(res$cov)
+  expect_match(res$warning, "Failed to invert Hessian")
+})
+
+test_that("delta-method scaling equals the explicit Jacobian form", {
+  # The Jacobian is diagonal, so the covariance transform is an outer-product
+  # scaling. This checks the optimised form against the explicit matrix
+  # version, including the single-parameter case where diag() on a scalar
+  # would silently build a wrongly sized identity matrix.
+  set.seed(202)
+
+  for (n in c(1L, 2L, 5L)) {
+    a <- matrix(rnorm(n * n), n, n)
+    cov_raw <- crossprod(a) + diag(n)
+    theta <- rnorm(n)
+
+    jac_diag <- exp(theta)
+    optimised <- outer(jac_diag, jac_diag) * cov_raw
+
+    jac <- diag(jac_diag, nrow = n)
+    explicit <- jac %*% cov_raw %*% t(jac)
+
+    expect_equal(optimised, explicit, tolerance = 1e-12)
+  }
+})
+
+test_that("tcrossprod forms match the explicit products they replace", {
+  set.seed(303)
+  tmat <- matrix(rnorm(9), 3, 3)
+  p <- crossprod(matrix(rnorm(9), 3, 3))
+  k <- matrix(rnorm(6), 3, 2)
+  f <- crossprod(matrix(rnorm(4), 2, 2))
+
+  expect_equal(tcrossprod(tmat %*% p, tmat), tmat %*% p %*% t(tmat))
+  expect_equal(tcrossprod(k %*% f, k), k %*% f %*% t(k))
+})
 
 test_that("standardize_val_col renames values to value", {
   df_values <- df_long

@@ -39,12 +39,27 @@ result
 }
 \seealso{
 Other revision nowcasting: 
+\code{\link{coef.jvn_model}()},
+\code{\link{coef.kk_model}()},
+\code{\link{fitted.jvn_model}()},
+\code{\link{fitted.kk_model}()},
 \code{\link{jvn_nowcast}()},
 \code{\link{kk_nowcast}()},
+\code{\link{logLik.jvn_model}()},
+\code{\link{logLik.kk_model}()},
+\code{\link{nobs.jvn_model}()},
+\code{\link{nobs.kk_model}()},
 \code{\link{plot.jvn_model}()},
 \code{\link{plot.kk_model}()},
+\code{\link{predict.jvn_model}()},
+\code{\link{predict.kk_model}()},
 \code{\link{print.jvn_model}()},
+\code{\link{residuals.jvn_model}()},
+\code{\link{residuals.kk_model}()},
+\code{\link{states}()},
 \code{\link{summary.jvn_model}()},
-\code{\link{summary.kk_model}()}
+\code{\link{summary.kk_model}()},
+\code{\link{vcov.jvn_model}()},
+\code{\link{vcov.kk_model}()}
 }
 \concept{revision nowcasting}

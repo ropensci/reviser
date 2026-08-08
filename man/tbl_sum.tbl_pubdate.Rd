@@ -30,9 +30,11 @@ pillar::tbl_sum(wide_data$US)
 Other helpers: 
 \code{\link{print.tbl_pubdate}()},
 \code{\link{print.tbl_release}()},
+\code{\link{reviser-vintages-classes}},
 \code{\link{summary.tbl_pubdate}()},
 \code{\link{summary.tbl_release}()},
 \code{\link{tbl_sum.tbl_release}()},
+\code{\link{validate_vintages}()},
 \code{\link{vintages_long}()},
 \code{\link{vintages_wide}()}
 }
