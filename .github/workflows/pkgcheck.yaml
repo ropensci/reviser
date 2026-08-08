@@ -21,6 +21,23 @@ jobs:
     env:
       REVISER_FULL_TESTS: "true"
     steps:
+      # pkgcheck-action checks the repo out on the host (as uid 1001), then
+      # runs its checks in a Docker container as root. libgit2 in the image
+      # refuses to open a repository owned by a different user, so the job
+      # dies on the first git call:
+      #
+      #   repository path '/github/workspace/' is not owned by current user
+      #
+      # The container mounts $RUNNER_TEMP/_github_home as its HOME, so writing
+      # the git configuration there is what reaches it. Nothing in the package
+      # can prevent this; the image is pinned upstream to :latest and started
+      # enforcing ownership validation.
+      - name: Mark the workspace safe for the pkgcheck container
+        run: |
+          mkdir -p "${RUNNER_TEMP}/_github_home"
+          git config --file "${RUNNER_TEMP}/_github_home/.gitconfig" \
+            --add safe.directory /github/workspace
+
       - uses: ropensci-review-tools/pkgcheck-action@main
         continue-on-error: false
         with:
