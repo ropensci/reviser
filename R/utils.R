@@ -564,6 +564,168 @@ reviser_with_seed <- function(seed, expr) {
 }
 
 
+#' Vintages data classes
+#'
+#' @description
+#' `reviser` stores vintages in two S3 classes that sit on top of a tibble and
+#' record what the columns mean. Both are produced by the package's own
+#' constructors; you normally do not create them by hand.
+#'
+#' \describe{
+#'   \item{`tbl_pubdate`}{Vintages identified by publication date, as returned
+#'     by [vintages_wide()], [vintages_long()] and [get_revisions()].}
+#'   \item{`tbl_release`}{Vintages identified by release number, as returned by
+#'     [get_first_release()], [get_nth_release()], [get_latest_release()],
+#'     [get_fixed_release()] and [get_releases_by_date()].}
+#' }
+#'
+#' @section Data contract:
+#' Every object of either class has a `time` column of dates and may carry an
+#' optional `id` column identifying the series. Beyond that, each class has
+#' two permitted layouts:
+#'
+#' \describe{
+#'   \item{long}{A key column (`pub_date` for `tbl_pubdate`, `release` for
+#'     `tbl_release`) together with a `value` column.}
+#'   \item{wide}{One column per vintage. For `tbl_pubdate` the column names
+#'     are publication dates in `%Y-%m-%d` form; for `tbl_release` they are
+#'     release labels matching `release` or `final`.}
+#' }
+#'
+#' Columns must be atomic and scalar-valued; list columns are not permitted.
+#' Use [validate_vintages()] to check an object against this contract.
+#'
+#' @section Methods:
+#' Both classes support [print()], [summary()] and [plot()]. The plot methods
+#' dispatch to [plot_vintages()], which remains available for direct use when
+#' you want to pass its arguments explicitly. `print()` uses a pillar header
+#' that reports the layout, the number of periods and the number of vintages.
+#'
+#' @srrstats {TS1.0} Documents the explicit class system used for time series
+#'   vintages data
+#' @srrstats {TS1.2} Documents the validation routine for the class contract
+#' @srrstats {TS4.2} Documents the type and class of vintages objects
+#'
+#' @name reviser-vintages-classes
+#' @family helpers
+NULL
+
+#' Validate a vintages object against the class contract
+#'
+#' Checks that an object of class `tbl_pubdate` or `tbl_release` conforms to
+#' the layout documented in [reviser-vintages-classes]. Useful after
+#' manipulating a vintages object with external tools, which can leave the
+#' class attribute in place while breaking the assumptions the methods rely
+#' on.
+#'
+#' @param x An object of class `tbl_pubdate` or `tbl_release`.
+#'
+#' @return `x`, invisibly, if it is valid. Otherwise an error describing the
+#'   first problem found.
+#'
+#' @srrstats {G2.0} Asserts the expected structure of its input
+#' @srrstats {G2.1} Checks input types
+#' @srrstats {TS1.2} Implements an explicit validation routine for the
+#'   vintages classes
+#' @srrstats {TS2.0} Validates the time column, including implicit missings
+#'
+#' @examples
+#' df <- dplyr::filter(reviser::gdp, id == "US")
+#'
+#' releases <- get_nth_release(df, n = 0:3)
+#' validate_vintages(releases)
+#'
+#' # A malformed time column is rejected
+#' broken <- releases
+#' broken$time <- as.character(broken$time)
+#' broken$time[1] <- "not a date"
+#' try(validate_vintages(broken))
+#'
+#' # So is a class attribute that contradicts the columns
+#' mislabelled <- vintages_wide(df)$US
+#' class(mislabelled) <- c("tbl_release", class(mislabelled))
+#' try(validate_vintages(mislabelled))
+#'
+#' @family helpers
+#' @export
+validate_vintages <- function(x) {
+  if (!inherits(x, c("tbl_pubdate", "tbl_release"))) {
+    rlang::abort(
+      paste0(
+        "`x` must be a 'tbl_pubdate' or 'tbl_release' object, not ",
+        paste(class(x), collapse = "/"),
+        "."
+      )
+    )
+  }
+
+  if (!is.data.frame(x)) {
+    rlang::abort("A vintages object must be a data.frame or tibble.")
+  }
+
+  if (!"time" %in% colnames(x)) {
+    rlang::abort("A vintages object must have a 'time' column.")
+  }
+
+  # Checked up front so that a malformed time column produces a message that
+  # names the column, rather than a bare as.Date() parsing error.
+  parsed_time <- suppressWarnings(as.Date(x$time, format = "%Y-%m-%d"))
+  if (any(is.na(parsed_time) & !is.na(x$time))) {
+    rlang::abort(
+      "The 'time' column must contain dates in '%Y-%m-%d' format."
+    )
+  }
+
+  # vintages_check() performs the remaining structural checks and reports the
+  # layout; it aborts with a specific message when the object does not
+  # conform.
+  layout <- vintages_check(x)
+
+  # The class attribute must also agree with the columns actually present,
+  # which vintages_check() does not test because it accepts either class.
+  # Note the two classes are not mutually exclusive: a long release object
+  # carries both a `release` and a `pub_date` column and holds both classes.
+  vintage_cols <- setdiff(colnames(x), c("time", "id"))
+
+  if (inherits(x, "tbl_pubdate")) {
+    ok <- if (layout == "long") {
+      "pub_date" %in% colnames(x)
+    } else {
+      all(!is.na(suppressWarnings(as.Date(vintage_cols, format = "%Y-%m-%d"))))
+    }
+
+    if (!ok) {
+      rlang::abort(
+        paste(
+          "Object is classed as 'tbl_pubdate', so it must have a 'pub_date'",
+          "column (long format) or publication dates as column names",
+          "(wide format)."
+        )
+      )
+    }
+  }
+
+  if (inherits(x, "tbl_release")) {
+    ok <- if (layout == "long") {
+      "release" %in% colnames(x)
+    } else {
+      all(grepl("release|final", vintage_cols))
+    }
+
+    if (!ok) {
+      rlang::abort(
+        paste(
+          "Object is classed as 'tbl_release', so it must have a 'release'",
+          "column (long format) or release labels as column names",
+          "(wide format)."
+        )
+      )
+    }
+  }
+
+  invisible(x)
+}
+
 #' Invert a symmetric Hessian to obtain a parameter covariance matrix
 #'
 #' The Hessian of the negative log-likelihood is symmetric and, at a proper

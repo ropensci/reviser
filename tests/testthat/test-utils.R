@@ -507,6 +507,77 @@ test_that("summary.tbl_pubdate calculates missing values correctly", {
   expect_true(any(grepl("Missing values", output)))
 })
 
+# ===== Tests for validate_vintages =====
+
+test_that("validate_vintages accepts every layout the constructors produce", {
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  valid <- list(
+    "wide pub_date" = vintages_wide(df)$US,
+    "long pub_date" = get_revisions(df, interval = 1),
+    "long release" = get_nth_release(df, n = 0:3),
+    "wide release" = vintages_wide(
+      get_nth_release(df, n = 0:3),
+      names_from = "release"
+    )$US
+  )
+
+  for (nm in names(valid)) {
+    expect_no_error(validate_vintages(valid[[nm]]))
+    # Returns its input invisibly so it can be used inline.
+    expect_identical(validate_vintages(valid[[nm]]), valid[[nm]])
+  }
+})
+
+test_that("validate_vintages rejects a non-vintages object", {
+  expect_error(validate_vintages(data.frame(a = 1)), "must be a 'tbl_pubdate'")
+})
+
+test_that("validate_vintages requires a well formed time column", {
+  releases <- get_nth_release(dplyr::filter(reviser::gdp, id == "US"), n = 0:3)
+
+  missing_time <- releases
+  missing_time$time <- NULL
+  expect_error(validate_vintages(missing_time), "must have a 'time' column")
+
+  bad_time <- releases
+  bad_time$time <- as.character(bad_time$time)
+  bad_time$time[1] <- "not a date"
+  expect_error(validate_vintages(bad_time), "'%Y-%m-%d' format")
+})
+
+test_that("validate_vintages catches a class that contradicts the columns", {
+  df <- dplyr::filter(reviser::gdp, id == "US")
+
+  # Wide publication-date data mislabelled as releases.
+  as_release <- vintages_wide(df)$US
+  class(as_release) <- c("tbl_release", class(as_release))
+  expect_error(validate_vintages(as_release), "classed as 'tbl_release'")
+
+  # Wide release data mislabelled as publication dates.
+  wide_release <- vintages_wide(
+    get_nth_release(df, n = 0:3),
+    names_from = "release"
+  )$US
+  as_pubdate <- wide_release
+  class(as_pubdate) <- c(
+    "tbl_pubdate",
+    setdiff(class(wide_release), "tbl_release")
+  )
+  expect_error(validate_vintages(as_pubdate), "classed as 'tbl_pubdate'")
+})
+
+test_that("the two vintages classes are not mutually exclusive", {
+  # A long release object legitimately carries both a release and a pub_date
+  # column, and holds both classes; the validator must not reject that.
+  releases <- get_nth_release(dplyr::filter(reviser::gdp, id == "US"), n = 0:3)
+
+  expect_s3_class(releases, "tbl_release")
+  expect_s3_class(releases, "tbl_pubdate")
+  expect_true(all(c("release", "pub_date") %in% names(releases)))
+  expect_no_error(validate_vintages(releases))
+})
+
 # ===== Tests for internal helper functions =====
 
 test_that("invert_hessian matches solve() on positive definite input", {
