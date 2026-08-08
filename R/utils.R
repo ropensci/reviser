@@ -564,6 +564,64 @@ reviser_with_seed <- function(seed, expr) {
 }
 
 
+#' Invert a symmetric Hessian to obtain a parameter covariance matrix
+#'
+#' The Hessian of the negative log-likelihood is symmetric and, at a proper
+#' maximum, positive definite. `chol2inv(chol(H))` exploits both: it is about
+#' twice as cheap as a general LU solve and, more importantly, it *fails* when
+#' `H` is not positive definite. That failure is informative, because it means
+#' the optimizer did not reach a well-identified maximum, so it is surfaced as
+#' a diagnostic rather than silently absorbed.
+#'
+#' When `H` is symmetric but indefinite a general inverse may still exist. In
+#' that case the general solve is used, so results are unchanged relative to a
+#' plain `solve(H)`, but the caller is told that the Hessian was not positive
+#' definite. Only if that also fails is a ridge applied.
+#'
+#' @param H A symmetric numeric matrix.
+#' @param ridge_factor Relative size of the ridge used as a last resort.
+#' @return A list with `cov` (the inverse, symmetrised, or `NULL`) and
+#'   `warning` (a diagnostic string or `NULL`).
+#'
+#' @srrstats {G3.0} Exploits matrix structure for numerical stability and
+#'   reports loss of positive definiteness instead of masking it
+#' @keywords internal
+#' @noRd
+invert_hessian <- function(H, ridge_factor = 1e-6) {
+  warning_msg <- NULL
+
+  invH <- tryCatch(chol2inv(chol(H)), error = function(e) NULL)
+
+  if (is.null(invH)) {
+    # Not positive definite: report it, but keep the previous numerical
+    # behaviour by falling back to a general solve.
+    warning_msg <- paste(
+      "Hessian is not positive definite;",
+      "the optimum may not be a well-identified maximum",
+      "and standard errors may be unreliable."
+    )
+
+    invH <- tryCatch(solve(H), error = function(e) NULL)
+  }
+
+  if (is.null(invH)) {
+    ridge <- ridge_factor * mean(abs(diag(H)))
+    invH <- tryCatch(
+      solve(H + ridge * diag(nrow(H))),
+      error = function(e) NULL
+    )
+  }
+
+  if (is.null(invH)) {
+    return(list(
+      cov = NULL,
+      warning = "Failed to invert Hessian; standard errors unavailable."
+    ))
+  }
+
+  list(cov = (invH + t(invH)) / 2, warning = warning_msg)
+}
+
 #' Standardize the time series data frame
 #' Value/s column is renamed to `value`
 #' @param df data.frame

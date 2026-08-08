@@ -235,23 +235,7 @@ jvn_nowcast <- function(
       ))
     }
 
-    invH <- tryCatch(
-      solve(H),
-      error = function(e) {
-        ridge <- 1e-6 * mean(abs(diag(H)))
-        tryCatch(solve(H + ridge * diag(nrow(H))), error = function(e2) NULL)
-      }
-    )
-
-    if (is.null(invH)) {
-      return(list(
-        cov = NULL,
-        warning = "Failed to invert Hessian; standard errors unavailable."
-      ))
-    }
-
-    invH <- (invH + t(invH)) / 2
-    list(cov = invH, warning = NULL)
+    invert_hessian(H)
   }
 
   transform_params_and_cov <- function(
@@ -274,9 +258,13 @@ jvn_nowcast <- function(
       params[idx_sd] <- exp(params_raw[idx_sd])
 
       if (!is.null(cov_raw)) {
-        J <- diag(length(params_raw))
-        J[idx_sd, idx_sd] <- diag(exp(params_raw[idx_sd]))
-        cov_used <- J %*% cov_raw %*% t(J)
+        # The delta-method Jacobian is diagonal (see the KK counterpart), so
+        # it is applied as an outer-product scaling rather than as two dense
+        # matrix multiplications.
+        jac_diag <- rep(1, length(params_raw))
+        jac_diag[idx_sd] <- exp(params_raw[idx_sd])
+
+        cov_used <- outer(jac_diag, jac_diag) * cov_raw
         cov_used <- (cov_used + t(cov_used)) / 2
       } else {
         cov_used <- NULL
@@ -1306,7 +1294,7 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
   m <- nrow(Tmat)
   stopifnot(ncol(Tmat) == m)
 
-  S <- R %*% Q %*% t(R)
+  S <- tcrossprod(R %*% Q, R)
   A <- diag(m * m) - kronecker(Tmat, Tmat)
   b <- as.vector(S)
 
@@ -1374,7 +1362,10 @@ jvn_kalman_loglik <- function(
   P <- P1
   P <- (P + t(P)) / 2
 
-  RQR <- R %*% Q %*% t(R)
+  # `A %*% B %*% t(A)` is a tcrossprod; this matters here because the
+  # recursions below run once per period, per likelihood evaluation, per
+  # optimizer iteration.
+  RQR <- tcrossprod(R %*% Q, R)
 
   ll <- numeric(n)
   log2pi <- log(2 * pi)
@@ -1386,7 +1377,7 @@ jvn_kalman_loglik <- function(
     # Propagate-only when no observation
     if (k == 0L) {
       a <- Tmat %*% a
-      P <- Tmat %*% P %*% t(Tmat) + RQR
+      P <- tcrossprod(Tmat %*% P, Tmat) + RQR
       P <- (P + t(P)) / 2
       next
     }
@@ -1396,7 +1387,7 @@ jvn_kalman_loglik <- function(
     Ht <- H[obs, obs, drop = FALSE]
 
     v <- yt - Zt %*% a
-    F_mat <- Zt %*% P %*% t(Zt) + Ht
+    F_mat <- tcrossprod(Zt %*% P, Zt) + Ht
     F_mat <- (F_mat + t(F_mat)) / 2
 
     # Cholesky with tiny jitter retry for numerical PSD issues
@@ -1414,7 +1405,7 @@ jvn_kalman_loglik <- function(
     if (is.null(cholF)) {
       ll[t] <- -1e10
       a <- Tmat %*% a
-      P <- Tmat %*% P %*% t(Tmat) + RQR
+      P <- tcrossprod(Tmat %*% P, Tmat) + RQR
       P <- (P + t(P)) / 2
       next
     }
@@ -1437,12 +1428,12 @@ jvn_kalman_loglik <- function(
 
     # Update
     a <- a + K %*% v
-    P <- P - K %*% F_mat %*% t(K)
+    P <- P - tcrossprod(K %*% F_mat, K)
     P <- (P + t(P)) / 2
 
     # Propagate
     a <- Tmat %*% a
-    P <- Tmat %*% P %*% t(Tmat) + RQR
+    P <- tcrossprod(Tmat %*% P, Tmat) + RQR
     P <- (P + t(P)) / 2
   }
 
@@ -1922,17 +1913,20 @@ jvn_qml_covariance <- function(
   }
 
   # ---- Robust inversion of Hessian ----
-  invH <- tryCatch(
-    solve(H),
-    error = function(e) {
-      ridge <- ridge_factor * mean(abs(diag(H)))
-      solve(H + ridge * diag(nrow(H)))
-    }
-  )
+  inv_res <- invert_hessian(H, ridge_factor = ridge_factor)
 
-  # Symmetrise for numerical stability
-  invH <- (invH + t(invH)) / 2
-  cov_qml <- invH %*% Xproduct %*% invH
+  if (is.null(inv_res$cov)) {
+    rlang::abort(
+      "Failed to invert Hessian; QML covariance unavailable.",
+      call = rlang::caller_env()
+    )
+  }
+
+  invH <- inv_res$cov
+
+  # Sandwich estimator. `invH` is symmetric, so the outer product is a
+  # tcrossprod rather than a second general matrix multiplication.
+  cov_qml <- tcrossprod(invH %*% Xproduct, invH)
   cov_qml <- (cov_qml + t(cov_qml)) / 2
 
   list(

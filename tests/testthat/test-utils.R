@@ -509,6 +509,74 @@ test_that("summary.tbl_pubdate calculates missing values correctly", {
 
 # ===== Tests for internal helper functions =====
 
+test_that("invert_hessian matches solve() on positive definite input", {
+  set.seed(101)
+  a <- matrix(rnorm(25), 5, 5)
+  h <- crossprod(a) + diag(5) # symmetric positive definite
+
+  res <- invert_hessian(h)
+
+  expect_null(res$warning)
+  expect_equal(res$cov, solve(h), tolerance = 1e-10)
+  # Result must be exactly symmetric, not merely close.
+  expect_identical(res$cov, t(res$cov))
+  expect_equal(res$cov %*% h, diag(5), tolerance = 1e-10)
+})
+
+test_that("invert_hessian reports a non positive definite Hessian", {
+  # Symmetric and invertible, but indefinite: a saddle point rather than a
+  # maximum. The inverse is still returned, with a diagnostic attached.
+  h <- diag(c(2, -3, 4))
+
+  res <- invert_hessian(h)
+
+  expect_false(is.null(res$warning))
+  expect_match(res$warning, "not positive definite")
+  expect_equal(res$cov, solve(h), tolerance = 1e-10)
+})
+
+test_that("invert_hessian reports failure on a singular Hessian", {
+  h <- matrix(0, 3, 3)
+
+  res <- invert_hessian(h)
+
+  expect_null(res$cov)
+  expect_match(res$warning, "Failed to invert Hessian")
+})
+
+test_that("delta-method scaling equals the explicit Jacobian form", {
+  # The Jacobian is diagonal, so the covariance transform is an outer-product
+  # scaling. This checks the optimised form against the explicit matrix
+  # version, including the single-parameter case where diag() on a scalar
+  # would silently build a wrongly sized identity matrix.
+  set.seed(202)
+
+  for (n in c(1L, 2L, 5L)) {
+    a <- matrix(rnorm(n * n), n, n)
+    cov_raw <- crossprod(a) + diag(n)
+    theta <- rnorm(n)
+
+    jac_diag <- exp(theta)
+    optimised <- outer(jac_diag, jac_diag) * cov_raw
+
+    jac <- diag(jac_diag, nrow = n)
+    explicit <- jac %*% cov_raw %*% t(jac)
+
+    expect_equal(optimised, explicit, tolerance = 1e-12)
+  }
+})
+
+test_that("tcrossprod forms match the explicit products they replace", {
+  set.seed(303)
+  tmat <- matrix(rnorm(9), 3, 3)
+  p <- crossprod(matrix(rnorm(9), 3, 3))
+  k <- matrix(rnorm(6), 3, 2)
+  f <- crossprod(matrix(rnorm(4), 2, 2))
+
+  expect_equal(tcrossprod(tmat %*% p, tmat), tmat %*% p %*% t(tmat))
+  expect_equal(tcrossprod(k %*% f, k), k %*% f %*% t(k))
+})
+
 test_that("standardize_val_col renames values to value", {
   df_values <- df_long
   colnames(df_values)[colnames(df_values) == "value"] <- "values"
