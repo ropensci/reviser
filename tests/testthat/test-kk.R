@@ -858,6 +858,50 @@ test_that("summary.kk_model returns invisibly", {
   expect_identical(returned, result)
 })
 
+test_that("kk_nowcast records the estimated specification", {
+  # Regression test: the fitted object used to discard the `model` argument,
+  # so print/summary could not report which specification was estimated.
+  specs <- list(
+    "Kishor-Koenig" = "Kishor-Koenig",
+    "KK" = "Kishor-Koenig",
+    "Howrey" = "Howrey",
+    "Classical" = "Classical"
+  )
+
+  for (arg in names(specs)) {
+    result <- kk_fit(
+      paste0("spec-", arg),
+      df = df_small,
+      e = 1,
+      h = 0,
+      model = arg,
+      method = "OLS"
+    )
+
+    expect_identical(result$model_type, specs[[arg]])
+
+    output <- utils::capture.output(summary(result))
+    expect_true(any(grepl(
+      paste0("Specification: ", specs[[arg]]),
+      output,
+      fixed = TRUE
+    )))
+  }
+})
+
+test_that("summary.kk_model distinguishes Howrey from Classical", {
+  howrey <- utils::capture.output(summary(kk_fit(
+    "spec-Howrey",
+    df = df_small, e = 1, h = 0, model = "Howrey", method = "OLS"
+  )))
+  classical <- utils::capture.output(summary(kk_fit(
+    "spec-Classical",
+    df = df_small, e = 1, h = 0, model = "Classical", method = "OLS"
+  )))
+
+  expect_false(identical(howrey, classical))
+})
+
 # ===== Tests for plot.kk_model =====
 
 test_that("plot.kk_model returns ggplot object", {

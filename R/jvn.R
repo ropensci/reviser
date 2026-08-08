@@ -553,6 +553,19 @@ jvn_nowcast <- function(
     )
   }
 
+  # Record the estimated specification so that the fitted object reports
+  # which variant was run rather than only the model family.
+  spec_info <- list(
+    ar_order = ar_order,
+    include_news = include_news,
+    include_noise = include_noise,
+    include_spillovers = include_spillovers,
+    spillover_news = spillover_news,
+    spillover_noise = spillover_noise,
+    standardize = standardize
+  )
+  model_type <- jvn_model_label(include_news, include_noise)
+
   if (default_solver_options$trace > 0) {
     cat("Estimating JVN model with", model_struct$n_params, "parameters...\n")
     cat("AR order:", ar_order, "\n")
@@ -847,6 +860,9 @@ jvn_nowcast <- function(
         H = model_struct$H,
         Q = model_struct$Q
       ),
+      model_type = model_type,
+      method = method,
+      spec = spec_info,
       params = param_table,
       fit = opt_result,
       loglik = loglik,
@@ -989,6 +1005,25 @@ jvn_nowcast <- function(
 
   class(out) <- c("jvn_model", class(out))
   out
+}
+
+#' Canonical display label for a JVN model specification
+#'
+#' The JVN variant is determined by which revision components are estimated.
+#' At least one of the two is always TRUE, enforced in `jvn_nowcast()`.
+#'
+#' @param include_news,include_noise Logical flags.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+jvn_model_label <- function(include_news, include_noise) {
+  if (isTRUE(include_news) && isTRUE(include_noise)) {
+    "news and noise"
+  } else if (isTRUE(include_news)) {
+    "pure news"
+  } else {
+    "pure noise"
+  }
 }
 
 #' Build JVN state-space matrices and parameter indices
@@ -2022,6 +2057,22 @@ jvn_param_table <- function(params, se, param_info) {
 #' @export
 summary.jvn_model <- function(object, ...) {
   cat("\n=== Jacobs-Van Norden Model ===\n\n")
+
+  # Fall back for objects fitted before `model_type` was recorded.
+  cat("Specification:", rlang::`%||%`(object$model_type, "news and noise"), "\n")
+
+  if (!is.null(object$spec)) {
+    cat("AR order:", object$spec$ar_order, "\n")
+    cat(
+      "Components: news =", object$spec$include_news,
+      "| noise =", object$spec$include_noise,
+      "| spillovers =", object$spec$include_spillovers, "\n"
+    )
+  }
+  if (!is.null(object$method)) {
+    cat("Estimation method:", toupper(object$method), "\n")
+  }
+
   cat(
     "Convergence:",
     ifelse(

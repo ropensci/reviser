@@ -189,6 +189,11 @@ kk_nowcast <- function(
   model <- tolower(model)
   method <- tolower(method)
 
+  # Keep a display label for the fitted object: "KK" and "Kishor-Koenig"
+  # select the same specification, so the label is canonical rather than a
+  # copy of what the user typed.
+  model_type <- kk_model_label(model)
+
   if (!is.list(solver_options)) {
     rlang::abort("'solver_options' must be a list!")
   }
@@ -866,6 +871,8 @@ kk_nowcast <- function(
       kk_model_mat = kk_mat_hat,
       ss_model_mat = sur_ss_mat,
       model = NULL,
+      model_type = model_type,
+      method = method,
       params = param_table,
       fit = fit,
       loglik = loglik,
@@ -971,6 +978,8 @@ kk_nowcast <- function(
     kk_model_mat = kk_mat_hat,
     ss_model_mat = sur_ss_mat,
     model = model_kfas,
+    model_type = model_type,
+    method = method,
     params = param_table,
     fit = fit,
     loglik = loglik,
@@ -984,6 +993,26 @@ kk_nowcast <- function(
   )
   class(results) <- c("kk_model", class(results))
   results
+}
+
+#' Canonical display label for a KK model specification
+#'
+#' Maps the accepted `model` aliases onto the name used when reporting a
+#' fitted model. `"KK"` and `"Kishor-Koenig"` select the same specification.
+#'
+#' @param model Character, already lower-cased.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+kk_model_label <- function(model) {
+  switch(
+    tolower(model),
+    "kk" = "Kishor-Koenig",
+    "kishor-koenig" = "Kishor-Koenig",
+    "howrey" = "Howrey",
+    "classical" = "Classical",
+    model
+  )
 }
 
 #' Internal parameter grouping for KK estimation
@@ -2114,6 +2143,14 @@ kk_to_ss <- function(FF, GG, V, W, epsilon = 1e-6) {
 #' @export
 summary.kk_model <- function(object, ...) {
   cat("\n=== Kishor-Koenig Model ===\n\n")
+
+  # Fall back to the family name for objects fitted before `model_type` was
+  # recorded.
+  cat("Specification:", rlang::`%||%`(object$model_type, "Kishor-Koenig"), "\n")
+
+  if (!is.null(object$method)) {
+    cat("Estimation method:", toupper(object$method), "\n")
+  }
 
   if (!is.null(object$convergence)) {
     cat(

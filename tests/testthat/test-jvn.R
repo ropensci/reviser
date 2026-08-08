@@ -595,6 +595,26 @@ test_that("summary.jvn_model returns invisibly", {
   expect_identical(returned, result)
 })
 
+test_that("jvn_nowcast records the estimated specification", {
+  result <- fit_jvn_news_fast()
+
+  expect_identical(result$model_type, "pure news")
+  expect_false(result$spec$include_noise)
+  expect_true(result$spec$include_news)
+  expect_identical(result$spec$ar_order, 1)
+
+  output <- utils::capture.output(summary(result))
+  expect_true(any(grepl("Specification: pure news", output, fixed = TRUE)))
+  expect_true(any(grepl("AR order: 1", output, fixed = TRUE)))
+  expect_true(any(grepl("news = TRUE", output, fixed = TRUE)))
+})
+
+test_that("jvn_model_label covers all component combinations", {
+  expect_identical(jvn_model_label(TRUE, TRUE), "news and noise")
+  expect_identical(jvn_model_label(TRUE, FALSE), "pure news")
+  expect_identical(jvn_model_label(FALSE, TRUE), "pure noise")
+})
+
 # ===== Tests for print.jvn_model =====
 
 test_that("print.jvn_model produces output", {
