@@ -5,6 +5,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref }}
   cancel-in-progress: true
 
+# Known false positive in the report produced by this workflow.
+#
+# pkgcheck's own "continuous integration" check calls the GitHub API for
+# push-triggered runs, groups them by workflow name, keeps the most recently
+# *created* run of each workflow whose name matches "cmd" or "coverage", and
+# requires conclusion == "success". A run that is still in progress has a null
+# conclusion, which the check treats as a failure rather than falling back to
+# the previous completed run.
+#
+# All workflows start together on a push, and pkgcheck (~18 min) currently
+# finishes before R-CMD-check (~23 min, dominated by the ubuntu-devel leg
+# building dependencies from source). pkgcheck therefore reads a null
+# conclusion and reports
+#
+#   Package fails continuous integration checks.
+#
+# even when R-CMD-check, test-coverage and lint all pass. This is accepted
+# deliberately: chaining the workflows would remove it but roughly doubles the
+# wall-clock time of a push. Check the other workflows for the real CI status,
+# and ignore that one line of the pkgcheck report. It resolves itself whenever
+# R-CMD-check finishes before pkgcheck, which is how it behaved until the
+# ubuntu-devel leg slowed down.
 on:
   # Manually trigger the Action under Actions/pkgcheck
   workflow_dispatch:
