@@ -2,7 +2,8 @@
 % Please edit documentation in R/utils.R
 \name{validate_vintages}
 \alias{validate_vintages}
-\title{Validate a vintages object against the class contract}
+\alias{reviser-vintages-classes}
+\title{Vintages data classes and their validation}
 \usage{
 validate_vintages(x)
 }
@@ -14,12 +15,50 @@ validate_vintages(x)
 first problem found.
 }
 \description{
-Checks that an object of class \code{tbl_pubdate} or \code{tbl_release} conforms to
-the layout documented in \link{reviser-vintages-classes}. Useful after
-manipulating a vintages object with external tools, which can leave the
-class attribute in place while breaking the assumptions the methods rely
-on.
+\code{reviser} stores vintages in two S3 classes that sit on top of a tibble and
+record what the columns mean. Both are produced by the package's own
+constructors; you normally do not create them by hand.
+
+\describe{
+\item{\code{tbl_pubdate}}{Vintages identified by publication date, as returned
+by \code{\link[=vintages_wide]{vintages_wide()}}, \code{\link[=vintages_long]{vintages_long()}} and \code{\link[=get_revisions]{get_revisions()}}.}
+\item{\code{tbl_release}}{Vintages identified by release number, as returned by
+\code{\link[=get_first_release]{get_first_release()}}, \code{\link[=get_nth_release]{get_nth_release()}}, \code{\link[=get_latest_release]{get_latest_release()}},
+\code{\link[=get_fixed_release]{get_fixed_release()}} and \code{\link[=get_releases_by_date]{get_releases_by_date()}}.}
 }
+
+\code{validate_vintages()} checks that an object conforms to the contract below.
+This is useful after manipulating a vintages object with external tools,
+which can leave the class attribute in place while breaking the assumptions
+the methods rely on.
+}
+\section{Data contract}{
+
+Every object of either class has a \code{time} column of dates and may carry an
+optional \code{id} column identifying the series. Beyond that, each class has
+two permitted layouts:
+
+\describe{
+\item{long}{A key column (\code{pub_date} for \code{tbl_pubdate}, \code{release} for
+\code{tbl_release}) together with a \code{value} column.}
+\item{wide}{One column per vintage. For \code{tbl_pubdate} the column names
+are publication dates in \verb{\%Y-\%m-\%d} form; for \code{tbl_release} they are
+release labels matching \code{release} or \code{final}.}
+}
+
+Columns must be atomic and scalar-valued; list columns are not permitted.
+The two classes are not mutually exclusive: a long release table carries
+both a \code{release} and a \code{pub_date} column and holds both classes.
+}
+
+\section{Methods}{
+
+Both classes support \code{\link[=print]{print()}}, \code{\link[=summary]{summary()}} and \code{\link[=plot]{plot()}}. The plot methods
+dispatch to \code{\link[=plot_vintages]{plot_vintages()}}, which remains available for direct use when
+you want to pass its arguments explicitly. \code{print()} uses a pillar header
+that reports the layout, the number of periods and the number of vintages.
+}
+
 \examples{
 df <- dplyr::filter(reviser::gdp, id == "US")
 
@@ -42,7 +81,6 @@ try(validate_vintages(mislabelled))
 Other helpers: 
 \code{\link{print.tbl_pubdate}()},
 \code{\link{print.tbl_release}()},
-\code{\link{reviser-vintages-classes}},
 \code{\link{summary.tbl_pubdate}()},
 \code{\link{summary.tbl_release}()},
 \code{\link{tbl_sum.tbl_pubdate}()},

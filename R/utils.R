@@ -564,7 +564,7 @@ reviser_with_seed <- function(seed, expr) {
 }
 
 
-#' Vintages data classes
+#' Vintages data classes and their validation
 #'
 #' @description
 #' `reviser` stores vintages in two S3 classes that sit on top of a tibble and
@@ -578,6 +578,11 @@ reviser_with_seed <- function(seed, expr) {
 #'     [get_first_release()], [get_nth_release()], [get_latest_release()],
 #'     [get_fixed_release()] and [get_releases_by_date()].}
 #' }
+#'
+#' `validate_vintages()` checks that an object conforms to the contract below.
+#' This is useful after manipulating a vintages object with external tools,
+#' which can leave the class attribute in place while breaking the assumptions
+#' the methods rely on.
 #'
 #' @section Data contract:
 #' Every object of either class has a `time` column of dates and may carry an
@@ -593,30 +598,14 @@ reviser_with_seed <- function(seed, expr) {
 #' }
 #'
 #' Columns must be atomic and scalar-valued; list columns are not permitted.
-#' Use [validate_vintages()] to check an object against this contract.
+#' The two classes are not mutually exclusive: a long release table carries
+#' both a `release` and a `pub_date` column and holds both classes.
 #'
 #' @section Methods:
 #' Both classes support [print()], [summary()] and [plot()]. The plot methods
 #' dispatch to [plot_vintages()], which remains available for direct use when
 #' you want to pass its arguments explicitly. `print()` uses a pillar header
 #' that reports the layout, the number of periods and the number of vintages.
-#'
-#' @srrstats {TS1.0} Documents the explicit class system used for time series
-#'   vintages data
-#' @srrstats {TS1.2} Documents the validation routine for the class contract
-#' @srrstats {TS4.2} Documents the type and class of vintages objects
-#'
-#' @name reviser-vintages-classes
-#' @family helpers
-NULL
-
-#' Validate a vintages object against the class contract
-#'
-#' Checks that an object of class `tbl_pubdate` or `tbl_release` conforms to
-#' the layout documented in [reviser-vintages-classes]. Useful after
-#' manipulating a vintages object with external tools, which can leave the
-#' class attribute in place while breaking the assumptions the methods rely
-#' on.
 #'
 #' @param x An object of class `tbl_pubdate` or `tbl_release`.
 #'
@@ -625,9 +614,12 @@ NULL
 #'
 #' @srrstats {G2.0} Asserts the expected structure of its input
 #' @srrstats {G2.1} Checks input types
-#' @srrstats {TS1.2} Implements an explicit validation routine for the
-#'   vintages classes
+#' @srrstats {TS1.0} Documents the explicit class system used for time series
+#'   vintages data
+#' @srrstats {TS1.2} Implements and documents an explicit validation routine
+#'   for the vintages classes
 #' @srrstats {TS2.0} Validates the time column, including implicit missings
+#' @srrstats {TS4.2} Documents the type and class of vintages objects
 #'
 #' @examples
 #' df <- dplyr::filter(reviser::gdp, id == "US")
@@ -646,6 +638,7 @@ NULL
 #' class(mislabelled) <- c("tbl_release", class(mislabelled))
 #' try(validate_vintages(mislabelled))
 #'
+#' @aliases reviser-vintages-classes
 #' @family helpers
 #' @export
 validate_vintages <- function(x) {
