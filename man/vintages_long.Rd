@@ -48,7 +48,6 @@ long_data <- vintages_long(wide_list, names_to = "pub_date")
 Other helpers: 
 \code{\link{print.tbl_pubdate}()},
 \code{\link{print.tbl_release}()},
-\code{\link{reviser-vintages-classes}},
 \code{\link{summary.tbl_pubdate}()},
 \code{\link{summary.tbl_release}()},
 \code{\link{tbl_sum.tbl_pubdate}()},
