@@ -2,36 +2,45 @@ name: pkgcheck
 
 # This will cancel running jobs once a new run is triggered
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
-# Known false positive in the report produced by this workflow.
+# Chained to R-CMD-check rather than triggered directly by the push.
 #
 # pkgcheck's own "continuous integration" check calls the GitHub API for
 # push-triggered runs, groups them by workflow name, keeps the most recently
 # *created* run of each workflow whose name matches "cmd" or "coverage", and
-# requires conclusion == "success". A run that is still in progress has a null
-# conclusion, which the check treats as a failure rather than falling back to
-# the previous completed run.
+# requires conclusion == "success". A run still in progress has a null
+# conclusion, which the check treats as a failure; it does not fall back to the
+# previous completed run. It excludes this workflow, so this is not recursion.
 #
-# All workflows start together on a push, and pkgcheck (~18 min) currently
-# finishes before R-CMD-check (~23 min, dominated by the ubuntu-devel leg
-# building dependencies from source). pkgcheck therefore reads a null
-# conclusion and reports
+# The query runs early: pkgcheck() calls pkgcheck_fill_info(), which performs
+# it, *before* pkgcheck_fill_goodpractice(), which is the slow rcmdcheck and
+# covr phase. In practice the query happens roughly five minutes into the run,
+# not at the end. When all workflows start together on a push, R-CMD-check
+# would have to finish inside those five minutes to be read as successful, and
+# it cannot: its fastest single matrix leg is over six minutes and the run only
+# completes when all five finish (best observed total, 10m32s). So the report
+# would say
 #
 #   Package fails continuous integration checks.
 #
-# even when R-CMD-check, test-coverage and lint all pass. This is accepted
-# deliberately: chaining the workflows would remove it but roughly doubles the
-# wall-clock time of a push. Check the other workflows for the real CI status,
-# and ignore that one line of the pkgcheck report. It resolves itself whenever
-# R-CMD-check finishes before pkgcheck, which is how it behaved until the
-# ubuntu-devel leg slowed down.
+# on essentially every push, even though R-CMD-check, test-coverage and lint
+# all pass. This is not self-correcting, and it is not caused by R-CMD-check
+# being unusually slow.
+#
+# Waiting for R-CMD-check to complete removes it. The cost is a serialised run:
+# about 10 minutes for R-CMD-check, then about 15 for pkgcheck, rather than the
+# two overlapping.
 on:
   # Manually trigger the Action under Actions/pkgcheck
   workflow_dispatch:
-  # Run on every push to main
-  push:
+  workflow_run:
+    workflows: ["R-CMD-check.yaml"]
+    types:
+      - completed
     branches:
       - main
 
