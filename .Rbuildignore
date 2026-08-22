@@ -18,5 +18,5 @@
 ^codemeta\.json$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
-^CRAN-SUBMISSION$
 ^reviser-paper/
+^\.claude$

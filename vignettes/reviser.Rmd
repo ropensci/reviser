@@ -35,7 +35,7 @@ The most conventional way is to represent vintage data in a real-time data matri
 - `time`, the time period
 - Publication dates in  `'yyyy-mm-dd'` format or release numbers as `release_#`
 
-While wide format is practical for inspection, data manipulation is often easier in **long (tdy) format**, which consists of:
+While wide format is practical for inspection, data manipulation is often easier in **long (tidy) format**, which consists of:
 
 - `time`, the time period
 - `pub_date` and/or `release`, the publication date or release number

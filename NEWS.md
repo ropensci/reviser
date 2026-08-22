@@ -1,4 +1,4 @@
-# reviser (development version)
+# reviser 0.2.0
 
 ## Bug fixes
 

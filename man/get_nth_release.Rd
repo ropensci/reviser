@@ -11,7 +11,7 @@ get_nth_release(df, n = 0, diagonal = FALSE)
 include the columns:
 \itemize{
 \item \code{pub_date} (publication date of the release)
-\item \code{time} (thecorresponding time period for the data).
+\item \code{time} (the corresponding time period for the data).
 }}
 
 \item{n}{The release number to extract. Accepts:

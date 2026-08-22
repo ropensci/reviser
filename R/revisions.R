@@ -2270,7 +2270,7 @@ friedman_test <- function(series, frequency = 12) {
 #' include the columns:
 #'
 #' - `pub_date` (publication date of the release)
-#' - `time` (thecorresponding time period for the data).
+#' - `time` (the corresponding time period for the data).
 #' @param n The release number to extract. Accepts:
 #'
 #' - Non-negative integer or vector

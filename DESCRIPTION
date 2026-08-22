@@ -1,7 +1,7 @@
 Package: reviser
 Type: Package
 Title: Analyzing Revisions in Real-Time Time Series Vintages
-Version: 0.1.1
+Version: 0.2.0
 Authors@R: c(
     person(given = "Marc", family = "Burri", email = "marc.burri91@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-8974-9090")),
@@ -18,8 +18,6 @@ Description: Analyzes revisions in real-time time series vintages. The
     <doi:10.2307/1924972>, Jacobs and Van Norden (2011)
     <doi:10.1016/j.jeconom.2010.04.010>, and Kishor and Koenig (2012)
     <doi:10.1198/jbes.2010.08169>.
-Author: Marc Burri [aut, cre, cph] (ORCID: <https://orcid.org/0000-0001-8974-9090>), Philipp Wegmueller [aut, cph]
-Maintainer: Marc Burri <marc.burri91@gmail.com>
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
