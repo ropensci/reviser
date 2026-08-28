@@ -137,7 +137,7 @@ Contributions are encouraged and appreciated. If you're uncertain about opening 
 
 Please note that the reviser project follows the [rOpenSci Code of Conduct](https://devguide.ropensci.org/collaboration.html#code-of-conduct). By contributing to this project, you agree to abide by its terms.
 
-## Citation
+## Citation 
 
 ```{r citation, echo = FALSE, results = "asis"}
 cat(format(citation("reviser")[[1]], style = "text"))

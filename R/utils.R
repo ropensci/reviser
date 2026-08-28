@@ -885,9 +885,9 @@ check_implicit_missing <- function(data, time_col, freq = "auto") {
   } else {
     rlang::abort(
       paste0(
-      "Unsupported frequency. Use 'day', 'week', 'month', 'quarter', ",
-      "'year', or 'X days'."
-    )
+        "Unsupported frequency. Use 'day', 'week', 'month', 'quarter', ",
+        "'year', or 'X days'."
+      )
     )
   }
 
