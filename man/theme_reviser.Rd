@@ -5,7 +5,7 @@
 \alias{colors_reviser}
 \alias{scale_color_reviser}
 \alias{scale_fill_reviser}
-\title{Custom Visualization Theme and Color Scales for Reviser}
+\title{Custom Visualization Theme and Color Scales for reviser}
 \usage{
 theme_reviser(
   base_size = 12,
@@ -60,23 +60,19 @@ ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
 }
 \seealso{
 Other revision graphs: 
-\code{\link{plot.tbl_pubdate}()},
-\code{\link{plot.tbl_release}()},
+\code{\link{plot.tbl_vintage}()},
 \code{\link{plot_vintages}()}
 
 Other revision graphs: 
-\code{\link{plot.tbl_pubdate}()},
-\code{\link{plot.tbl_release}()},
+\code{\link{plot.tbl_vintage}()},
 \code{\link{plot_vintages}()}
 
 Other revision graphs: 
-\code{\link{plot.tbl_pubdate}()},
-\code{\link{plot.tbl_release}()},
+\code{\link{plot.tbl_vintage}()},
 \code{\link{plot_vintages}()}
 
 Other revision graphs: 
-\code{\link{plot.tbl_pubdate}()},
-\code{\link{plot.tbl_release}()},
+\code{\link{plot.tbl_vintage}()},
 \code{\link{plot_vintages}()}
 }
 \concept{revision graphs}

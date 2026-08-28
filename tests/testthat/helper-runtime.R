@@ -20,3 +20,15 @@ cached_fixture <- local({
     cache[[key]]
   }
 })
+
+# Is an S3 method registered for this generic and class in reviser's
+# namespace? Used to assert that shared methods live on the parent class and
+# not on the children.
+reviser_has_method <- function(generic, cls) {
+  !is.null(getS3method(
+    generic,
+    cls,
+    optional = TRUE,
+    envir = asNamespace("reviser")
+  ))
+}

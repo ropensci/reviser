@@ -2,7 +2,7 @@
 % Please edit documentation in R/revisions.R
 \name{diagnose.revision_summary}
 \alias{diagnose.revision_summary}
-\title{Diagnose Revision Quality}
+\title{Diagnose Method for Revision Summary}
 \usage{
 \method{diagnose}{revision_summary}(object, alpha = 0.05, ...)
 }

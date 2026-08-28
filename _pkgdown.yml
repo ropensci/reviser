@@ -39,6 +39,12 @@ reference:
     contents:
     - has_concept("dataset")
 
+  - subtitle: Package overview
+    desc: >
+      Package-level documentation.
+    contents:
+    - has_concept("package overview")
+
 
 articles:
 - title: "Main function"

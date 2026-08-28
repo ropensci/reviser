@@ -281,19 +281,32 @@ fit_kk <- load_or_build_vignette_result(
 summary(fit_kk)
 ```
 
-The parameter table reports the estimated transition coefficient \(F_0\), the
-gain-matrix elements \(G_{i,j}\), and the state and observation variances.
+A fitted model is an S3 object inheriting from `revision_model`, so it responds
+to the extractor generics you would use on any other model object rather than
+requiring you to index into it. `coef()` returns the estimated transition
+coefficient \(F_0\), the gain-matrix elements \(G_{i,j}\), and the state and
+observation variances as a named vector; `vcov()` returns their covariance
+matrix, and `summary()` shows estimates and standard errors together.
 
 ```{r warning = FALSE, message = FALSE}
-fit_kk$params
+coef(fit_kk)
 ```
 
-The `states` element contains filtered and smoothed estimates of the latent
+Fit criteria are reached the same way, and reproduce the values printed by
+`summary()`.
+
+```{r warning = FALSE, message = FALSE}
+logLik(fit_kk)
+AIC(fit_kk)
+BIC(fit_kk)
+nobs(fit_kk)
+```
+
+The `states()` accessor returns filtered and smoothed estimates of the latent
 state vector in tidy format.
 
 ```{r warning = FALSE, message = FALSE}
-fit_kk$states |>
-  dplyr::filter(filter == "smoothed") |>
+states(fit_kk, filter = "smoothed") |>
   dplyr::slice_tail(n = 8)
 ```
 

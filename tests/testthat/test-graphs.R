@@ -269,7 +269,7 @@ test_that("plot_vintages adjusts legend position for many vintages", {
 
 test_that("plot.tbl_pubdate calls plot_vintages correctly", {
   df_pubdate <- df_plot
-  class(df_pubdate) <- c("tbl_pubdate", class(df_pubdate))
+  class(df_pubdate) <- c("tbl_pubdate", "tbl_vintage", class(df_pubdate))
 
   p <- plot(df_pubdate)
   expect_s3_class(p, "ggplot")
@@ -277,7 +277,7 @@ test_that("plot.tbl_pubdate calls plot_vintages correctly", {
 
 test_that("plot.tbl_pubdate passes additional arguments", {
   df_pubdate <- df_plot
-  class(df_pubdate) <- c("tbl_pubdate", class(df_pubdate))
+  class(df_pubdate) <- c("tbl_pubdate", "tbl_vintage", class(df_pubdate))
 
   p <- plot(df_pubdate, type = "point", title = "Test")
   expect_s3_class(p, "ggplot")
@@ -292,7 +292,9 @@ test_that("plot.tbl_pubdate passes additional arguments", {
 
 test_that("plot.tbl_release calls plot_vintages correctly", {
   df_tbl_release <- df_release
-  class(df_tbl_release) <- c("tbl_release", class(df_tbl_release))
+  class(df_tbl_release) <- c(
+    "tbl_release", "tbl_vintage", class(df_tbl_release)
+  )
 
   p <- plot(df_tbl_release)
   expect_s3_class(p, "ggplot")
@@ -300,7 +302,9 @@ test_that("plot.tbl_release calls plot_vintages correctly", {
 
 test_that("plot.tbl_release passes additional arguments", {
   df_tbl_release <- df_release
-  class(df_tbl_release) <- c("tbl_release", class(df_tbl_release))
+  class(df_tbl_release) <- c(
+    "tbl_release", "tbl_vintage", class(df_tbl_release)
+  )
 
   p <- plot(df_tbl_release, type = "bar", ylab = "Values")
   expect_s3_class(p, "ggplot")

@@ -236,11 +236,7 @@ vintages_wide <- function(df, names_from = "pub_date") {
             names_from = dplyr::all_of(names_from),
             values_from = "value"
           )
-        if (names_from == "pub_date") {
-          class(sub_df) <- c("tbl_pubdate", "tbl_df", "tbl", "data.frame")
-        } else if (names_from == "release") {
-          class(sub_df) <- c("tbl_release", "tbl_df", "tbl", "data.frame")
-        }
+        class(sub_df) <- vintage_class(names_from)
         sub_df
       })
     return(wide_list)
@@ -252,11 +248,7 @@ vintages_wide <- function(df, names_from = "pub_date") {
         values_from = "value"
       )
 
-    if (names_from == "pub_date") {
-      class(wide_df) <- c("tbl_pubdate", "tbl_df", "tbl", "data.frame")
-    } else if (names_from == "release") {
-      class(wide_df) <- c("tbl_release", "tbl_df", "tbl", "data.frame")
-    }
+    class(wide_df) <- vintage_class(names_from)
     return(wide_df)
   }
 }
@@ -422,8 +414,8 @@ vintages_check <- function(df, time_col = "time") {
     if (!all(!is.na(as.Date(df$time, format = "%Y-%m-%d")))) {
       rlang::abort(paste0(
         prefix,
-        "The 'time' column contains values that
-                          are not in the '%Y-%m-%d' format."
+        "The 'time' column contains values that are not in ",
+        "'%Y-%m-%d' format."
       ))
     }
 
@@ -438,8 +430,8 @@ vintages_check <- function(df, time_col = "time") {
         if (!all(!is.na(as.Date(df$pub_date, format = "%Y-%m-%d")))) {
           rlang::abort(paste0(
             prefix,
-            "The 'pub_date' column contains values
-                              that are not in '%Y-%m-%d' format."
+            "The 'pub_date' column contains values that are not in ",
+            "'%Y-%m-%d' format."
           ))
         }
       }
@@ -457,16 +449,16 @@ vintages_check <- function(df, time_col = "time") {
       } else {
         rlang::abort(paste0(
           prefix,
-          "One or more column names in the 'wide
-                            format' are not labeled correctly."
+          "One or more column names in the 'wide format' are not ",
+          "labeled correctly."
         ))
       }
     }
 
     rlang::abort(paste0(
       prefix,
-      "The data.frame does not conform to either
-                        'long format' or 'wide format'."
+      "The data.frame does not conform to either 'long format' or ",
+      "'wide format'."
     ))
   }
 
@@ -482,8 +474,10 @@ vintages_check <- function(df, time_col = "time") {
     # Check if list has names
     if (is.null(names(df)) || any(names(df) == "")) {
       rlang::abort(
-        "All elements in the list must be named (these names
-                   serve as IDs)."
+        paste0(
+          "All elements in the list must be named (these names serve as ",
+          "IDs)."
+        )
       )
     }
 
@@ -522,7 +516,11 @@ vintages_check <- function(df, time_col = "time") {
 #' @keywords internal
 #' @noRd
 vintages_assign_class <- function(df) {
-  classes <- class(df) # Get the existing classes
+  vintage_classes <- c("tbl_pubdate", "tbl_release", "tbl_vintage")
+
+  # Start from whatever the object already is, minus the classes this helper
+  # owns, so that repeated calls stay idempotent.
+  classes <- setdiff(class(df), vintage_classes)
 
   # Define column-class mappings
   col_class_map <- list(
@@ -530,13 +528,20 @@ vintages_assign_class <- function(df) {
     "release" = "tbl_release"
   )
 
-  # Loop through the mapping and update classes
+  # Loop through the mapping and collect the applicable classes. A frame
+  # carrying both columns is classed as both, with `tbl_release` first, which
+  # is the class its methods dispatch on.
+  applicable <- character(0)
   for (col in names(col_class_map)) {
     if (col %in% names(df)) {
-      classes <- union(col_class_map[[col]], classes) # Add class
-    } else {
-      classes <- setdiff(classes, col_class_map[[col]]) # Remove class
+      applicable <- union(col_class_map[[col]], applicable)
     }
+  }
+
+  # The shared parent sits behind the specific classes but ahead of the
+  # tibble classes, so that `tbl_vintage` methods win over `tbl_df` ones.
+  if (length(applicable) > 0) {
+    classes <- c(applicable, "tbl_vintage", classes)
   }
 
   df <- standardize_val_col(df)
@@ -564,7 +569,7 @@ reviser_with_seed <- function(seed, expr) {
 }
 
 
-#' Vintages data classes and their validation
+#' Vintages Data Classes and Their Validation
 #'
 #' @description
 #' `reviser` stores vintages in two S3 classes that sit on top of a tibble and
@@ -599,13 +604,13 @@ reviser_with_seed <- function(seed, expr) {
 #'
 #' Columns must be atomic and scalar-valued; list columns are not permitted.
 #' The two classes are not mutually exclusive: a long release table carries
-#' both a `release` and a `pub_date` column and holds both classes.
+#' both a `release` and a `pub_date` column and holds both classes, with
+#' `tbl_release` taking precedence for method dispatch.
 #'
-#' @section Methods:
-#' Both classes support [print()], [summary()] and [plot()]. The plot methods
-#' dispatch to [plot_vintages()], which remains available for direct use when
-#' you want to pass its arguments explicitly. `print()` uses a pillar header
-#' that reports the layout, the number of periods and the number of vintages.
+#' A valid object also inherits from the shared parent class [tbl_vintage],
+#' which is where its methods live; `validate_vintages()` checks for that
+#' too. See [tbl_vintage] for the class hierarchy and the methods it
+#' provides.
 #'
 #' @param x An object of class `tbl_pubdate` or `tbl_release`.
 #'
@@ -648,6 +653,22 @@ validate_vintages <- function(x) {
         "`x` must be a 'tbl_pubdate' or 'tbl_release' object, not ",
         paste(class(x), collapse = "/"),
         "."
+      )
+    )
+  }
+
+  # The shared parent class carries the print, summary and plot methods, so an
+  # object missing it is classed as vintages data but would not dispatch to
+  # them. This is the signature of a class attribute assigned by hand.
+  if (!inherits(x, "tbl_vintage")) {
+    rlang::abort(
+      paste0(
+        "`x` is classed as vintages data but does not inherit from ",
+        "'tbl_vintage', so it would not dispatch to the vintages methods. ",
+        "Build vintages objects with the package's own functions (for ",
+        "example `get_nth_release()`, `vintages_long()` or ",
+        "`vintages_wide()`) rather than by assigning the class attribute ",
+        "directly."
       )
     )
   }
@@ -863,8 +884,10 @@ check_implicit_missing <- function(data, time_col, freq = "auto") {
     complete_seq <- seq(from = min_date, to = max_date, by = days_interval)
   } else {
     rlang::abort(
-      "Unsupported frequency. Use 'day', 'week', 'month',
-         'quarter', 'year', or 'X days'"
+      paste0(
+      "Unsupported frequency. Use 'day', 'week', 'month', 'quarter', ",
+      "'year', or 'X days'."
+    )
     )
   }
 
@@ -924,310 +947,4 @@ make_explicit_missing <- function(
     dplyr::arrange(!!rlang::sym(time_col))
 
   return(complete_data)
-}
-
-#' Tibble Summary for Publication Date Vintages
-#'
-#' Provides a custom header for objects of class \code{tbl_pubdate} when
-#' printed.
-#' This method is called automatically by pillar when printing tibbles.
-#'
-#' @param x An object of class \code{tbl_pubdate}.
-#' @param ... Additional arguments (unused).
-#'
-#' @return A named character vector where names are labels and values are
-#'   the corresponding information. The vector is used by pillar to format
-#'   the tibble header.
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' wide_data <- vintages_wide(df)
-#' pillar::tbl_sum(wide_data$US)
-#' @family helpers
-#' @export
-tbl_sum.tbl_pubdate <- function(x, ...) {
-  # Count vintages (columns that are not time or id)
-
-  is_long <- vintages_check(x) == "long"
-
-  # Calculate metadata
-  n_time <- if (is_long) length(unique(x$time)) else nrow(x)
-  n_vintages  <- if (is_long) length(unique(x$pub_date)) else ncol(x) - 1
-
-
-  # Build header lines
-  header <- c(
-    "Vintages data (publication date format)" = "",
-    "Time periods" = nrow(x),
-    "Vintages" = n_vintages
-  )
-
-  # Add ID count if present
-  if ("id" %in% names(x)) {
-    header <- c(header, "IDs" = length(unique(x$id)))
-  }
-
-  header
-}
-
-#' Print Method for Publication Date Vintages
-#'
-#' Print method for objects of class \code{tbl_pubdate}. This method delegates
-#' to the tibble print method, which will automatically call
-#' \code{tbl_sum.tbl_pubdate}
-#' to generate the custom header.
-#'
-#' @param x An object of class \code{tbl_pubdate}.
-#' @param ... Additional arguments passed to the next print method.
-#'
-#' @return The input \code{x} is returned invisibly.
-#' @method print tbl_pubdate
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' wide_data <- vintages_wide(df)
-#' print(wide_data$US)
-#' @family helpers
-#' @export
-print.tbl_pubdate <- function(x, ...) {
-  NextMethod("print")
-  invisible(x)
-}
-
-#' Tibble Summary for Release Vintages
-#'
-#' Provides a custom header for objects of class \code{tbl_release} when
-#' printed.
-#'
-#' @param x An object of class \code{tbl_release}.
-#' @param ... Additional arguments (unused).
-#'
-#' @return A named character vector where names are labels and values are
-#'   the corresponding information.
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' release_data <- get_nth_release(df, n = 0:3)
-#' pillar::tbl_sum(release_data)
-#' @family helpers
-#' @export
-tbl_sum.tbl_release <- function(x, ...) {
-  # Determine data orientation
-  is_long <- vintages_check(x) == "long"
-
-  # Calculate metadata
-  n_time <- if (is_long) length(unique(x$time)) else nrow(x)
-  n_rel <- if (is_long) {
-    length(unique(x$release))
-  } else {
-    sum(grepl("release|final", names(x)))
-  }
-
-  # Build header
-  header <- c(
-    "Vintages data (release format)" = "",
-    "Format" = if (is_long) "long" else "wide",
-    "Time periods" = n_time,
-    "Releases" = n_rel
-  )
-
-  # Add ID count if present
-  if ("id" %in% names(x)) {
-    header <- c(header, "IDs" = length(unique(x$id)))
-  }
-
-  header
-}
-
-#' Print Method for Release Vintages
-#'
-#' Print method for objects of class \code{tbl_release}.
-#'
-#' @param x An object of class \code{tbl_release}.
-#' @param ... Additional arguments passed to the next print method.
-#'
-#' @return The input \code{x} is returned invisibly.
-#' @method print tbl_release
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' release_data <- get_nth_release(df, n = 0:3)
-#' print(release_data)
-#' @family helpers
-#' @export
-print.tbl_release <- function(x, ...) {
-  NextMethod("print")
-  invisible(x)
-}
-
-#' Summary Method for Publication Date Vintages
-#'
-#' @param object An object of class \code{tbl_pubdate}.
-#' @param ... Additional arguments (not used).
-#'
-#' @return The function returns a summary tibble invisibly.
-#' @method summary tbl_pubdate
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' # Wide format
-#' wide_data <- vintages_wide(df)
-#' summary(wide_data$US)
-#'
-#' # Long format
-#' summary(get_revisions(df, interval = 1))
-#' @family helpers
-#' @export
-summary.tbl_pubdate <- function(object, ...) {
-  cat("\n=== Vintages Data Summary (Publication Date Format) ===\n\n")
-
-  # Publication-date vintages may be stored in either layout, so the summary
-  # has to branch in the same way as `summary.tbl_release()`.
-  is_long <- "pub_date" %in% colnames(object) && "value" %in% colnames(object)
-
-  cat("Format:", ifelse(is_long, "long", "wide"), "\n")
-
-  # Basic info
-  cat(
-    "Time periods:",
-    if (is_long) length(unique(object$time)) else nrow(object),
-    "\n"
-  )
-  cat(
-    "Time range:",
-    as.character(min(object$time)),
-    "to",
-    as.character(max(object$time)),
-    "\n"
-  )
-
-  if ("id" %in% colnames(object)) {
-    cat("Number of IDs:", length(unique(object$id)), "\n")
-    cat("IDs:", paste(unique(object$id), collapse = ", "), "\n")
-  }
-
-  # Vintage info: publication dates are a column in long format and the
-  # column names themselves in wide format.
-  if (is_long) {
-    pub_dates <- as.Date(unique(object$pub_date))
-  } else {
-    pub_dates <- as.Date(
-      colnames(object)[!colnames(object) %in% c("time", "id")]
-    )
-  }
-
-  cat("\nNumber of vintages:", length(pub_dates), "\n")
-  cat("Publication dates:\n")
-  cat("  Earliest:", as.character(min(pub_dates)), "\n")
-  cat("  Latest:", as.character(max(pub_dates)), "\n")
-
-  # Missing values
-  if (is_long) {
-    n_missing <- sum(is.na(object$value))
-    total_cells <- nrow(object)
-  } else {
-    date_cols <- colnames(object)[!colnames(object) %in% c("time", "id")]
-    n_missing <- sum(is.na(object[, date_cols]))
-    total_cells <- nrow(object) * length(date_cols)
-  }
-  pct_missing <- round(100 * n_missing / total_cells, 2)
-  cat(
-    "\nMissing values:",
-    n_missing,
-    "of",
-    total_cells,
-    paste0("(", pct_missing, "%)"),
-    "\n"
-  )
-
-  invisible(object)
-}
-
-#' Summary Method for Release Vintages
-#'
-#' @param object An object of class \code{tbl_release}.
-#' @param ... Additional arguments (not used).
-#'
-#' @return The function returns a summary tibble invisibly.
-#' @method summary tbl_release
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' # Long format
-#' release_data <- get_nth_release(df, n = 0:3)
-#' summary(release_data)
-#'
-#' # Wide format
-#' wide_release <- vintages_wide(release_data, names_from = "release")
-#' summary(wide_release$US)
-#' @family helpers
-#' @export
-summary.tbl_release <- function(object, ...) {
-  cat("\n=== Vintages Data Summary (Release Format) ===\n\n")
-
-  # Check if long or wide format
-  is_long <- "release" %in% colnames(object) && "value" %in% colnames(object)
-
-  cat("Format:", ifelse(is_long, "long", "wide"), "\n")
-
-  if (is_long) {
-    # Long format summary
-    cat("Time periods:", length(unique(object$time)), "\n")
-    cat(
-      "Time range:",
-      as.character(min(object$time)),
-      "to",
-      as.character(max(object$time)),
-      "\n"
-    )
-
-    if ("id" %in% colnames(object)) {
-      cat("Number of IDs:", length(unique(object$id)), "\n")
-      cat("IDs:", paste(unique(object$id), collapse = ", "), "\n")
-    }
-
-    cat("\nNumber of releases:", length(unique(object$release)), "\n")
-    cat("Releases:", paste(sort(unique(object$release)), collapse = ", "), "\n")
-
-    # Missing values
-    n_missing <- sum(is.na(object$value))
-    total_obs <- nrow(object)
-    pct_missing <- round(100 * n_missing / total_obs, 2)
-    cat(
-      "\nMissing values:",
-      n_missing,
-      "of",
-      total_obs,
-      paste0("(", pct_missing, "%)"),
-      "\n"
-    )
-  } else {
-    # Wide format summary
-    cat("Time periods:", nrow(object), "\n")
-    cat(
-      "Time range:",
-      as.character(min(object$time)),
-      "to",
-      as.character(max(object$time)),
-      "\n"
-    )
-
-    if ("id" %in% colnames(object)) {
-      cat("Number of IDs:", length(unique(object$id)), "\n")
-      cat("IDs:", paste(unique(object$id), collapse = ", "), "\n")
-    }
-
-    release_cols <- colnames(object)[grepl("release|final", colnames(object))]
-    cat("\nNumber of releases:", length(release_cols), "\n")
-    cat("Releases:", paste(sort(release_cols), collapse = ", "), "\n")
-
-    # Missing values
-    n_missing <- sum(is.na(object[, release_cols]))
-    total_cells <- nrow(object) * length(release_cols)
-    pct_missing <- round(100 * n_missing / total_cells, 2)
-    cat(
-      "\nMissing values:",
-      n_missing,
-      "of",
-      total_cells,
-      paste0("(", pct_missing, "%)"),
-      "\n"
-    )
-  }
-
-  invisible(object)
 }

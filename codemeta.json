@@ -2,18 +2,25 @@
   "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
   "@type": "SoftwareSourceCode",
   "identifier": "reviser",
-  "description": "Provides tools to analyze revision properties in real-time time series data.",
-  "name": "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
+  "description": "Analyzes revisions in real-time time series vintages. The package converts between wide revision triangles and tidy long vintages, extracts selected releases, computes revision series, visualizes vintage paths, and summarizes revision properties such as bias, dispersion, autocorrelation, and news-noise diagnostics. It also identifies efficient releases and estimates state-space models for revision nowcasting. Methods are based on Howrey (1978) <doi:10.2307/1924972>, Jacobs and Van Norden (2011) <doi:10.1016/j.jeconom.2010.04.010>, and Kishor and Koenig (2012) <doi:10.1198/jbes.2010.08169>.",
+  "name": "reviser: Analyzing Revisions in Real-Time Time Series Vintages",
+  "relatedLink": ["https://docs.ropensci.org/reviser/", "https://CRAN.R-project.org/package=reviser"],
   "codeRepository": "https://github.com/ropensci/reviser",
   "issueTracker": "https://github.com/ropensci/reviser/issues",
   "license": "https://spdx.org/licenses/MIT",
-  "version": "0.1.1",
+  "version": "0.3.0",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
     "url": "https://r-project.org"
   },
-  "runtimePlatform": "R version 4.5.3 (2026-03-11)",
+  "runtimePlatform": "R version 4.4.0 (2024-04-24)",
+  "provider": {
+    "@id": "https://cran.r-project.org",
+    "@type": "Organization",
+    "name": "Comprehensive R Archive Network (CRAN)",
+    "url": "https://cran.r-project.org"
+  },
   "author": [
     {
       "@type": "Person",
@@ -137,6 +144,11 @@
     },
     "3": {
       "@type": "SoftwareApplication",
+      "identifier": "stats",
+      "name": "stats"
+    },
+    "4": {
+      "@type": "SoftwareApplication",
       "identifier": "tidyr",
       "name": "tidyr",
       "provider": {
@@ -147,7 +159,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=tidyr"
     },
-    "4": {
+    "5": {
       "@type": "SoftwareApplication",
       "identifier": "pillar",
       "name": "pillar",
@@ -159,7 +171,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=pillar"
     },
-    "5": {
+    "6": {
       "@type": "SoftwareApplication",
       "identifier": "ggplot2",
       "name": "ggplot2",
@@ -171,7 +183,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=ggplot2"
     },
-    "6": {
+    "7": {
       "@type": "SoftwareApplication",
       "identifier": "car",
       "name": "car",
@@ -183,7 +195,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=car"
     },
-    "7": {
+    "8": {
       "@type": "SoftwareApplication",
       "identifier": "sandwich",
       "name": "sandwich",
@@ -195,7 +207,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=sandwich"
     },
-    "8": {
+    "9": {
       "@type": "SoftwareApplication",
       "identifier": "systemfit",
       "name": "systemfit",
@@ -207,7 +219,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=systemfit"
     },
-    "9": {
+    "10": {
       "@type": "SoftwareApplication",
       "identifier": "calculus",
       "name": "calculus",
@@ -219,7 +231,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=calculus"
     },
-    "10": {
+    "11": {
       "@type": "SoftwareApplication",
       "identifier": "rlang",
       "name": "rlang",
@@ -231,7 +243,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=rlang"
     },
-    "11": {
+    "12": {
       "@type": "SoftwareApplication",
       "identifier": "scales",
       "name": "scales",
@@ -243,7 +255,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=scales"
     },
-    "12": {
+    "13": {
       "@type": "SoftwareApplication",
       "identifier": "tibble",
       "name": "tibble",
@@ -255,7 +267,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=tibble"
     },
-    "13": {
+    "14": {
       "@type": "SoftwareApplication",
       "identifier": "lubridate",
       "name": "lubridate",
@@ -267,7 +279,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=lubridate"
     },
-    "14": {
+    "15": {
       "@type": "SoftwareApplication",
       "identifier": "KFAS",
       "name": "KFAS",
@@ -279,7 +291,7 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=KFAS"
     },
-    "15": {
+    "16": {
       "@type": "SoftwareApplication",
       "identifier": "numDeriv",
       "name": "numDeriv",
@@ -291,13 +303,25 @@
       },
       "sameAs": "https://CRAN.R-project.org/package=numDeriv"
     },
+    "17": {
+      "@type": "SoftwareApplication",
+      "identifier": "withr",
+      "name": "withr",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=withr"
+    },
     "SystemRequirements": null
   },
-  "fileSize": "4606.333KB",
+  "fileSize": "8943.946KB",
   "citation": [
     {
-      "@type": "CreativeWork",
-      "datePublished": "2025",
+      "@type": "SoftwareSourceCode",
+      "datePublished": "2026",
       "author": [
         {
           "@type": "Person",
@@ -310,13 +334,14 @@
           "familyName": "Wegmueller"
         }
       ],
-      "name": "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
-      "url": "https://docs.ropensci.org/reviser"
+      "name": "{reviser}: Analyzing Revisions in Real-Time Time Series Vintages",
+      "url": "https://docs.ropensci.org/reviser/",
+      "description": "R package version 0.3.0"
     }
   ],
-  "relatedLink": "https://docs.ropensci.org/reviser",
-  "releaseNotes": "https://github.com/ropensci/reviser/blob/main/NEWS.md",
+  "releaseNotes": "https://github.com/ropensci/reviser/blob/master/NEWS.md",
   "readme": "https://github.com/ropensci/reviser/blob/main/README.md",
-  "contIntegration": ["https://github.com/ropensci/reviser/actions/workflows/R-CMD-check.yaml", "https://github.com/ropensci/reviser/actions?query=workflow%3Apkgcheck", "https://app.codecov.io/gh/ropensci/reviser"],
-  "developmentStatus": ["https://www.repostatus.org/#active", "https://lifecycle.r-lib.org/articles/stages.html#stable"]
+  "contIntegration": ["https://github.com/ropensci/reviser/actions/workflows/R-CMD-check.yaml", "https://github.com/ropensci/reviser/actions/workflows/lint.yaml", "https://github.com/ropensci/reviser/actions?query=workflow%3Apkgcheck", "https://app.codecov.io/gh/ropensci/reviser"],
+  "developmentStatus": ["https://www.repostatus.org/#active", "https://lifecycle.r-lib.org/articles/stages.html#stable"],
+  "keywords": ["forecasting", "macroeconomics", "nowcasting", "revisions", "time-series"]
 }

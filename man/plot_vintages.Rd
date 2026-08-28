@@ -121,8 +121,7 @@ plot_vintages(
 \code{\link[=theme_reviser]{theme_reviser()}}, \code{\link[=scale_color_reviser]{scale_color_reviser()}}, \code{\link[=scale_fill_reviser]{scale_fill_reviser()}}
 
 Other revision graphs: 
-\code{\link{plot.tbl_pubdate}()},
-\code{\link{plot.tbl_release}()},
+\code{\link{plot.tbl_vintage}()},
 \code{\link{theme_reviser}()}
 }
 \concept{revision graphs}

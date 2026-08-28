@@ -392,7 +392,7 @@ test_that("print.tbl_release produces output", {
 
 test_that("print.tbl_release handles long format", {
   df_rel_long <- dplyr::as_tibble(df_long_release)
-  class(df_rel_long) <- c("tbl_release", class(df_rel_long))
+  class(df_rel_long) <- c("tbl_release", "tbl_vintage", class(df_rel_long))
 
   output <- utils::capture.output(print(df_rel_long))
 
@@ -479,7 +479,7 @@ test_that("every generic works on every exported vintages constructor", {
 
 test_that("summary.tbl_release handles long format", {
   df_rel_long <- df_long_release
-  class(df_rel_long) <- c("tbl_release", class(df_rel_long))
+  class(df_rel_long) <- c("tbl_release", "tbl_vintage", class(df_rel_long))
 
   output <- utils::capture.output(summary(df_rel_long))
 
@@ -551,7 +551,7 @@ test_that("validate_vintages catches a class that contradicts the columns", {
 
   # Wide publication-date data mislabelled as releases.
   as_release <- vintages_wide(df)$US
-  class(as_release) <- c("tbl_release", class(as_release))
+  class(as_release) <- c("tbl_release", "tbl_vintage", class(as_release))
   expect_error(validate_vintages(as_release), "classed as 'tbl_release'")
 
   # Wide release data mislabelled as publication dates.

@@ -2,18 +2,16 @@
 % Please edit documentation in R/model-methods.R
 \name{states}
 \alias{states}
-\alias{states.kk_model}
-\alias{states.jvn_model}
-\title{Extract the latent state estimates of a revision model}
+\alias{states.revision_model}
+\title{Extract the Latent State Estimates of a Revision Model}
 \usage{
 states(object, ...)
 
-\method{states}{kk_model}(object, filter = c("smoothed", "filtered", "all"), state = NULL, ...)
-
-\method{states}{jvn_model}(object, filter = c("smoothed", "filtered", "all"), state = NULL, ...)
+\method{states}{revision_model}(object, filter = c("smoothed", "filtered", "all"), state = NULL, ...)
 }
 \arguments{
-\item{object}{A fitted model object, such as \code{kk_model} or \code{jvn_model}.}
+\item{object}{A fitted model object inheriting from \link{revision_model}, such
+as a \code{kk_model} or a \code{jvn_model}.}
 
 \item{...}{Additional arguments passed to methods.}
 
@@ -31,7 +29,9 @@ A tibble with columns \code{time}, \code{state}, \code{estimate}, \code{lower},
 \description{
 Accessor for the state paths of a fitted revision-nowcasting model.
 Provides programmatic access to the estimated states instead of reaching
-into the object with \code{fit$states}.
+into the object with \code{fit$states}. The method is defined once for the
+parent class \link{revision_model} and is inherited by \code{kk_model} and
+\code{jvn_model} objects alike.
 }
 \examples{
 \donttest{
@@ -52,27 +52,18 @@ head(states(fit, filter = "filtered", state = "true_lag_0"))
 }
 \seealso{
 Other revision nowcasting: 
-\code{\link{coef.jvn_model}()},
-\code{\link{coef.kk_model}()},
-\code{\link{fitted.jvn_model}()},
-\code{\link{fitted.kk_model}()},
+\code{\link{coef.revision_model}()},
+\code{\link{fitted.revision_model}()},
 \code{\link{jvn_nowcast}()},
 \code{\link{kk_nowcast}()},
-\code{\link{logLik.jvn_model}()},
-\code{\link{logLik.kk_model}()},
-\code{\link{nobs.jvn_model}()},
-\code{\link{nobs.kk_model}()},
-\code{\link{plot.jvn_model}()},
-\code{\link{plot.kk_model}()},
-\code{\link{predict.jvn_model}()},
-\code{\link{predict.kk_model}()},
-\code{\link{print.jvn_model}()},
-\code{\link{print.kk_model}()},
-\code{\link{residuals.jvn_model}()},
-\code{\link{residuals.kk_model}()},
-\code{\link{summary.jvn_model}()},
-\code{\link{summary.kk_model}()},
-\code{\link{vcov.jvn_model}()},
-\code{\link{vcov.kk_model}()}
+\code{\link{logLik.revision_model}()},
+\code{\link{nobs.revision_model}()},
+\code{\link{plot.revision_model}()},
+\code{\link{predict.revision_model}()},
+\code{\link{print.revision_model}()},
+\code{\link{residuals.revision_model}()},
+\code{\link{revision_model}},
+\code{\link{summary.revision_model}()},
+\code{\link{vcov.revision_model}()}
 }
 \concept{revision nowcasting}

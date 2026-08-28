@@ -1,4 +1,4 @@
-#' Jacobs-Van Norden model for data revisions
+#' Jacobs-Van Norden Model for Data Revisions
 #'
 #' Estimate the Jacobs and Van Norden (2011) state-space model for real-time
 #' data revisions, allowing for news and noise components and optional
@@ -864,7 +864,7 @@ jvn_nowcast <- function(
       se_method = se_method_used,
       cov = cov_used
     )
-    class(out) <- c("jvn_model", class(out))
+    class(out) <- c("jvn_model", "revision_model", class(out))
     return(out)
   }
 
@@ -998,7 +998,7 @@ jvn_nowcast <- function(
     cov = cov_used
   )
 
-  class(out) <- c("jvn_model", class(out))
+  class(out) <- c("jvn_model", "revision_model", class(out))
   out
 }
 
@@ -1430,8 +1430,9 @@ jvn_kalman_loglik <- function(
     tmpZ <- backsolve(cholF, Zt, transpose = TRUE)
     Finv_Zt <- backsolve(cholF, tmpZ)
 
-    # Kalman gain: K = P Z' F^{-1}
-    K <- P %*% t(Finv_Zt)
+    # Kalman gain: K = P Z' F^{-1}, a tcrossprod rather than an explicit
+    # transpose-and-multiply.
+    K <- tcrossprod(P, Finv_Zt)
 
     # Update
     a <- a + K %*% v
@@ -1789,13 +1790,15 @@ jvn_init_params <- function(model_struct, data, transform_se = TRUE) {
 #' QML sandwich covariance for the JVN estimator
 #'
 #' Compute a quasi-maximum-likelihood sandwich covariance matrix of the form
-#' `solve(H) %*% X %*% solve(H)`, where `H` is the Hessian of the negative
-#' log-likelihood and `X` is the outer product of per-period score vectors.
+#' `H^{-1} X H^{-1}`, where `H` is the Hessian of the negative log-likelihood
+#' and `X` is the outer product of per-period score vectors. The bread is
+#' obtained through `invert_hessian()`, which uses the Cholesky factorization
+#' where it applies and reports a Hessian that is not positive definite rather
+#' than masking it.
 #'
-#' If the per-period contributions do not sum numerically to the full objective,
-#' the score contributions are rescaled accordingly before the sandwich
-#' matrix is
-#' formed.
+#' If the per-period contributions do not sum numerically to the full
+#' objective, the score contributions are rescaled accordingly before the
+#' sandwich matrix is formed.
 #'
 #' @keywords internal
 #' @noRd
@@ -2019,174 +2022,4 @@ jvn_param_table <- function(params, se, param_info) {
     Std.Error = se,
     row.names = NULL
   )
-}
-
-#' Summary method for JVN model objects
-#'
-#' Print a compact summary of a fitted `jvn_model`, including convergence
-#' status, information criteria, and parameter estimates.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Unused; included for method compatibility.
-#'
-#' @return The input object, invisibly.
-#'
-#' @method summary jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' result <- jvn_nowcast(
-#'   df = df,
-#'   e = 4,
-#'   ar_order = 2,
-#'   h = 0,
-#'   include_news = TRUE,
-#'   include_noise = TRUE
-#' )
-#' summary(result)
-#' }
-#'
-#' @family revision nowcasting
-#' @export
-summary.jvn_model <- function(object, ...) {
-  cat("\n=== Jacobs-Van Norden Model ===\n\n")
-
-  # Fall back for objects fitted before `model_type` was recorded.
-  model_type <- rlang::`%||%`(object$model_type, "news and noise")
-  cat("Specification:", model_type, "\n")
-
-  if (!is.null(object$spec)) {
-    cat("AR order:", object$spec$ar_order, "\n")
-    cat(
-      "Components: news =", object$spec$include_news,
-      "| noise =", object$spec$include_noise,
-      "| spillovers =", object$spec$include_spillovers, "\n"
-    )
-  }
-  if (!is.null(object$method)) {
-    cat("Estimation method:", toupper(object$method), "\n")
-  }
-
-  cat(
-    "Convergence:",
-    ifelse(
-      object$convergence == 0,
-      "Success",
-      "Failed"
-    ),
-    "\n"
-  )
-  cat("Log-likelihood:", round(object$loglik, 2), "\n")
-  cat("AIC:", round(object$aic, 2), "\n")
-  cat("BIC:", round(object$bic, 2), "\n\n")
-
-  cat("Parameter Estimates:\n")
-  df_print <- object$params
-  df_print$Estimate <- sprintf("%.3f", df_print$Estimate)
-  df_print$Std.Error <- sprintf("%.3f", df_print$Std.Error)
-  print(df_print, row.names = FALSE, quote = FALSE)
-
-  cat("\n")
-  invisible(object)
-}
-
-
-#' Print method for JVN model objects
-#'
-#' Default print method for `jvn_model` objects. This method dispatches to
-#' `summary.jvn_model()` for a consistent console display.
-#'
-#' @param x An object of class `jvn_model`.
-#' @param ... Additional arguments passed to `summary.jvn_model()`.
-#'
-#' @return The input object, invisibly.
-#'
-#' @method print jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' result <- jvn_nowcast(
-#'   df = df,
-#'   e = 4,
-#'   ar_order = 2,
-#'   h = 0,
-#'   include_news = TRUE,
-#'   include_noise = TRUE
-#' )
-#' result
-#' }
-#'
-#' @family revision nowcasting
-#' @export
-print.jvn_model <- function(x, ...) {
-  summary.jvn_model(x, ...)
-}
-
-#' Plot JVN model results
-#'
-#' Plot filtered or smoothed estimates for a selected state from a fitted
-#' `jvn_model`.
-#'
-#' @param x An object of class `jvn_model`.
-#' @param state Character scalar giving the state to visualize. Defaults to
-#'   `"true_lag_0"`.
-#' @param type Character scalar indicating whether `"filtered"` or `"smoothed"`
-#'   estimates should be plotted.
-#' @param ... Additional arguments passed to `plot.revision_model()`.
-#' @details This method requires `x$states` to be available. If the model was
-#'   fitted with `solver_options$return_states = FALSE`, plotting is not
-#'   possible.
-#'
-#' @srrstats {TS5.0} Implements default plot methods for class system
-#' @srrstats {TS5.1} Time axis labeling (delegates to base method)
-#' @srrstats {TS5.2} Time on horizontal axis (delegates to base method)
-#' @srrstats {TS5.6} Distributional limits shown (confidence intervals)
-#' @srrstats {TS5.7} Includes model and forecast values in plot
-#' @srrstats {TS5.8} Visual distinction between model and forecast values
-#'
-#' @return A `ggplot2` object.
-#'
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' result <- jvn_nowcast(
-#'   df = df,
-#'   e = 4,
-#'   ar_order = 2,
-#'   h = 0,
-#'   include_news = TRUE,
-#'   include_noise = TRUE
-#' )
-#' plot(result)
-#' }
-#'
-#' @family revision nowcasting
-#' @export
-plot.jvn_model <- function(x, state = "true_lag_0", type = "filtered", ...) {
-  # Forward to the base method with JVN defaults
-  plot.revision_model(x, state = state, type = type, ...)
 }

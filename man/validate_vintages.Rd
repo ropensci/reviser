@@ -3,7 +3,7 @@
 \name{validate_vintages}
 \alias{validate_vintages}
 \alias{reviser-vintages-classes}
-\title{Vintages data classes and their validation}
+\title{Vintages Data Classes and Their Validation}
 \usage{
 validate_vintages(x)
 }
@@ -48,15 +48,13 @@ release labels matching \code{release} or \code{final}.}
 
 Columns must be atomic and scalar-valued; list columns are not permitted.
 The two classes are not mutually exclusive: a long release table carries
-both a \code{release} and a \code{pub_date} column and holds both classes.
-}
+both a \code{release} and a \code{pub_date} column and holds both classes, with
+\code{tbl_release} taking precedence for method dispatch.
 
-\section{Methods}{
-
-Both classes support \code{\link[=print]{print()}}, \code{\link[=summary]{summary()}} and \code{\link[=plot]{plot()}}. The plot methods
-dispatch to \code{\link[=plot_vintages]{plot_vintages()}}, which remains available for direct use when
-you want to pass its arguments explicitly. \code{print()} uses a pillar header
-that reports the layout, the number of periods and the number of vintages.
+A valid object also inherits from the shared parent class \link{tbl_vintage},
+which is where its methods live; \code{validate_vintages()} checks for that
+too. See \link{tbl_vintage} for the class hierarchy and the methods it
+provides.
 }
 
 \examples{
@@ -79,12 +77,10 @@ try(validate_vintages(mislabelled))
 }
 \seealso{
 Other helpers: 
-\code{\link{print.tbl_pubdate}()},
-\code{\link{print.tbl_release}()},
-\code{\link{summary.tbl_pubdate}()},
-\code{\link{summary.tbl_release}()},
-\code{\link{tbl_sum.tbl_pubdate}()},
-\code{\link{tbl_sum.tbl_release}()},
+\code{\link{print.tbl_vintage}()},
+\code{\link{summary.tbl_vintage}()},
+\code{\link{tbl_sum.tbl_vintage}()},
+\code{\link{tbl_vintage}},
 \code{\link{vintages_long}()},
 \code{\link{vintages_wide}()}
 }

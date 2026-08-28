@@ -20,3 +20,6 @@
 ^CRAN-SUBMISSION$
 ^reviser-paper/
 ^\.claude$
+^vignettes/.*\.R$
+^\.Rhistory$
+^\.DS_Store$

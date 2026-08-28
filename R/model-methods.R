@@ -1,10 +1,243 @@
-#' Extract the latent state estimates of a revision model
+#' Fitted Revision Models
+#'
+#' @description
+#' `reviser` represents every fitted revision-nowcasting model as an S3 object
+#' that inherits from the common parent class `revision_model`. The two
+#' concrete classes are [kk_nowcast()], which returns a `kk_model`, and
+#' [jvn_nowcast()], which returns a `jvn_model`; both carry
+#' `c("<family>_model", "revision_model", "list")` as their class attribute.
+#'
+#' The parent class holds everything the two families share. The standard
+#' extractor generics [coef()], [vcov()], [logLik()], [nobs()], [fitted()],
+#' [residuals()], [predict()] and the `reviser` generic [states()], together
+#' with [print()], [summary()] and [plot()], are defined once for
+#' `revision_model` and inherited by both families. Only the handful of
+#' behaviors that genuinely differ between the families are dispatched
+#' separately, through the internal generics `model_family()`, `spec_lines()`,
+#' `signal_state()`, `target_column()` and `default_plot_state()`.
+#'
+#' A fitted object is a list with at least the components `params` (a data
+#' frame with columns `Parameter`, `Estimate` and `Std.Error`), `states` (a
+#' long tibble of state estimates, or `NULL` when the model was fitted with
+#' `return_states = FALSE`), `loglik`, `n_param`, `n_ic`, `cov` and `data`.
+#' A new model family becomes a full citizen of this system by returning an
+#' object with those components, prepending `"revision_model"` to its class
+#' attribute, and supplying methods for the five internal generics above.
+#'
+#' @return This topic documents a class rather than a function. [kk_nowcast()]
+#'   returns a list of the components described above with class attribute
+#'   `c("kk_model", "revision_model", "list")`, and [jvn_nowcast()] returns the
+#'   same with `"jvn_model"` in place of `"kk_model"`.
+#'
+#' @srrstats {TS4.2} Explicitly documents the type and class of return values
+#' @srrstats {TS5.0} Documents the class system implemented for model results
+#'
+#' @examples
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
+#' )
+#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
+#' fit <- kk_nowcast(df, e = 1, model = "KK", method = "OLS")
+#'
+#' # The fitted object carries the shared parent class.
+#' class(fit)
+#' inherits(fit, "revision_model")
+#'
+#' # The extractor generics are inherited from that parent.
+#' head(coef(fit))
+#' head(states(fit))
+#'
+#' @name revision_model
+#' @family revision nowcasting
+#' @seealso [kk_nowcast()], [jvn_nowcast()], [states()]
+NULL
+
+
+# ---- internal extension points ----------------------------------------------
+#
+# The parent-class methods below are written once against these five internal
+# generics. They are the only points at which the KK and JVN families differ,
+# and the only methods a new revision-model family has to supply.
+
+#' Display name of a fitted model's family
+#'
+#' Used to build the header line printed by `summary.revision_model()`.
+#'
+#' @param object A fitted `revision_model`.
+#' @return A single string, e.g. `"Kishor-Koenig"`.
+#' @keywords internal
+#' @noRd
+model_family <- function(object) {
+  UseMethod("model_family")
+}
+
+#' Specification lines printed by `summary.revision_model()`
+#'
+#' Returns the family-specific block that follows the header, as a character
+#' vector of complete lines. Always starts with the `Specification:` line.
+#'
+#' @param object A fitted `revision_model`.
+#' @return A character vector of lines.
+#' @keywords internal
+#' @noRd
+spec_lines <- function(object) {
+  UseMethod("spec_lines")
+}
+
+#' Name of the state holding a model's latent signal
+#'
+#' The state that [fitted()] and [predict()] report: the estimate of the
+#' latent quantity the model treats as the truth behind the observed releases.
+#'
+#' @param object A fitted `revision_model`.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+signal_state <- function(object) {
+  UseMethod("signal_state")
+}
+
+#' Column of `object$data` that [residuals()] measures against
+#'
+#' @param object A fitted `revision_model`.
+#' @return A single string naming a column of `object$data`.
+#' @keywords internal
+#' @noRd
+target_column <- function(object) {
+  UseMethod("target_column")
+}
+
+#' State plotted by `plot.revision_model()` when none is given
+#'
+#' @param object A fitted `revision_model`.
+#' @param type Either `"filtered"` or `"smoothed"`.
+#' @return A single string.
+#' @keywords internal
+#' @noRd
+default_plot_state <- function(object, type) {
+  UseMethod("default_plot_state")
+}
+
+
+# ---- kk_model ---------------------------------------------------------------
+
+#' @keywords internal
+#' @noRd
+model_family.kk_model <- function(object) {
+  "Kishor-Koenig"
+}
+
+#' @keywords internal
+#' @noRd
+spec_lines.kk_model <- function(object) {
+  # Fall back to the family name for objects fitted before `model_type` was
+  # recorded.
+  paste("Specification:", rlang::`%||%`(object$model_type, "Kishor-Koenig"))
+}
+
+#' @keywords internal
+#' @noRd
+signal_state.kk_model <- function(object) {
+  paste0("release_", object$e, "_lag_0")
+}
+
+#' @keywords internal
+#' @noRd
+target_column.kk_model <- function(object) {
+  paste0("release_", object$e)
+}
+
+#' @keywords internal
+#' @noRd
+default_plot_state.kk_model <- function(object, type) {
+  object$states[object$states$filter == type, ]$state[1]
+}
+
+
+# ---- jvn_model --------------------------------------------------------------
+
+#' @keywords internal
+#' @noRd
+model_family.jvn_model <- function(object) {
+  "Jacobs-Van Norden"
+}
+
+#' @keywords internal
+#' @noRd
+spec_lines.jvn_model <- function(object) {
+  # Fall back for objects fitted before `model_type` was recorded.
+  out <- paste(
+    "Specification:",
+    rlang::`%||%`(object$model_type, "news and noise")
+  )
+
+  if (!is.null(object$spec)) {
+    out <- c(
+      out,
+      paste("AR order:", object$spec$ar_order),
+      paste(
+        "Components: news =", object$spec$include_news,
+        "| noise =", object$spec$include_noise,
+        "| spillovers =", object$spec$include_spillovers
+      )
+    )
+  }
+
+  out
+}
+
+#' @keywords internal
+#' @noRd
+signal_state.jvn_model <- function(object) {
+  "true_lag_0"
+}
+
+#' @keywords internal
+#' @noRd
+target_column.jvn_model <- function(object) {
+  release_cols <- grep("^release_", names(object$data), value = TRUE)
+  release_cols[length(release_cols)]
+}
+
+#' @keywords internal
+#' @noRd
+default_plot_state.jvn_model <- function(object, type) {
+  signal_state(object)
+}
+
+
+# ---- shared helpers ---------------------------------------------------------
+
+#' Extract the smoothed latent signal of a fitted revision model
+#'
+#' @param object A fitted `revision_model`.
+#' @param sample Which observations to return.
+#' @return A tibble with `time`, `estimate`, `lower` and `upper`.
+#' @keywords internal
+#' @noRd
+signal_path <- function(object, sample = "in_sample") {
+  out <- states(object, filter = "smoothed", state = signal_state(object))
+  out <- out[out$sample %in% sample, , drop = FALSE]
+  out[order(out$time), c("time", "estimate", "lower", "upper")]
+}
+
+
+# ---- shared methods ---------------------------------------------------------
+
+#' Extract the Latent State Estimates of a Revision Model
 #'
 #' Accessor for the state paths of a fitted revision-nowcasting model.
 #' Provides programmatic access to the estimated states instead of reaching
-#' into the object with `fit$states`.
+#' into the object with `fit$states`. The method is defined once for the
+#' parent class [revision_model] and is inherited by `kk_model` and
+#' `jvn_model` objects alike.
 #'
-#' @param object A fitted model object, such as `kk_model` or `jvn_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param filter Which state estimates to return: `"smoothed"` (default) uses
 #'   the full sample, `"filtered"` uses information available up to each date,
 #'   and `"all"` returns both.
@@ -40,26 +273,21 @@ states <- function(object, ...) {
   UseMethod("states")
 }
 
-#' Shared implementation of the `states()` accessor
-#'
-#' @param object A fitted model object carrying a `states` tibble.
-#' @param filter,state See [states()].
-#' @param what Label used in error messages.
-#' @return A tibble of state estimates.
-#' @keywords internal
-#' @noRd
-states_impl <- function(
+#' @rdname states
+#' @method states revision_model
+#' @export
+states.revision_model <- function(
   object,
   filter = c("smoothed", "filtered", "all"),
   state = NULL,
-  what = "model"
+  ...
 ) {
   filter <- match.arg(filter)
 
   if (is.null(object$states)) {
     rlang::abort(paste0(
       "This ",
-      what,
+      class(object)[1],
       " was fitted with `return_states = FALSE`, so no state estimates ",
       "are available. Refit with `return_states = TRUE`."
     ))
@@ -88,49 +316,55 @@ states_impl <- function(
   out
 }
 
-#' Build a `logLik` object from a fitted revision model
+#' Extract Parameter Estimates from a Revision Model
 #'
-#' `df` and `nobs` are taken from the quantities the model actually used for
-#' its information criteria, so that [stats::AIC()] and [stats::BIC()] on the
-#' returned object reproduce the `aic` and `bic` shown by `summary()`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
+#' @param ... Ignored.
 #'
-#' @param object A fitted model object.
-#' @return An object of class `logLik`.
-#' @keywords internal
-#' @noRd
-loglik_impl <- function(object) {
-  if (is.null(object$loglik)) {
-    rlang::abort(
-      "No log-likelihood available; the model was not fitted by MLE."
-    )
-  }
-
-  out <- object$loglik
-  attr(out, "df") <- rlang::`%||%`(object$n_param, nrow(object$params))
-  attr(out, "nobs") <- rlang::`%||%`(object$n_ic, nrow(object$data))
-  class(out) <- "logLik"
-  out
-}
-
-#' Shared implementation of `coef()` for fitted revision models
-#'
-#' @param object A fitted model object with a `params` table.
 #' @return A named numeric vector of parameter estimates.
-#' @keywords internal
-#' @noRd
-coef_impl <- function(object) {
+#' @method coef revision_model
+#' @examples
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
+#' )
+#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
+#' fit <- kk_nowcast(df, e = 1, model = "KK", method = "OLS")
+#' coef(fit)
+#' @family revision nowcasting
+#' @export
+coef.revision_model <- function(object, ...) {
   out <- object$params$Estimate
   names(out) <- object$params$Parameter
   out
 }
 
-#' Shared implementation of `vcov()` for fitted revision models
+#' Extract the Parameter Covariance Matrix of a Revision Model
 #'
-#' @param object A fitted model object with a `cov` matrix.
-#' @return The parameter covariance matrix, with dimnames.
-#' @keywords internal
-#' @noRd
-vcov_impl <- function(object) {
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
+#' @param ... Ignored.
+#'
+#' @return The estimated parameter covariance matrix.
+#' @method vcov revision_model
+#' @examples
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
+#' )
+#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
+#' fit <- kk_nowcast(df, e = 1, model = "KK", method = "MLE")
+#' vcov(fit)
+#' @family revision nowcasting
+#' @export
+vcov.revision_model <- function(object, ...) {
   if (is.null(object$cov)) {
     rlang::abort(
       paste(
@@ -151,103 +385,18 @@ vcov_impl <- function(object) {
   out
 }
 
-#' Extract the estimated latent signal of a fitted revision model
-#'
-#' @param object A fitted model object.
-#' @param state_name Name of the state holding the latent signal.
-#' @param sample Which observations to return.
-#' @return A tibble with `time` and `estimate`.
-#' @keywords internal
-#' @noRd
-signal_impl <- function(object, state_name, sample = "in_sample") {
-  out <- states_impl(object, filter = "smoothed", state = state_name)
-  out <- out[out$sample %in% sample, , drop = FALSE]
-  out[order(out$time), c("time", "estimate", "lower", "upper")]
-}
-
-#' Name of the state holding the efficient estimate of a KK model
-#'
-#' @param object A `kk_model`.
-#' @return A single string.
-#' @keywords internal
-#' @noRd
-kk_signal_state <- function(object) {
-  paste0("release_", object$e, "_lag_0")
-}
-
-# ---- kk_model methods -------------------------------------------------------
-
-#' @rdname states
-#' @method states kk_model
-#' @export
-states.kk_model <- function(
-  object,
-  filter = c("smoothed", "filtered", "all"),
-  state = NULL,
-  ...
-) {
-  states_impl(object, filter = filter, state = state, what = "kk_model")
-}
-
-#' Extract parameter estimates from a KK model
-#'
-#' @param object An object of class `kk_model`.
-#' @param ... Ignored.
-#'
-#' @return A named numeric vector of parameter estimates.
-#' @method coef kk_model
-#' @examples
-#' df <- get_nth_release(
-#'   tsbox::ts_span(
-#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
-#'     start = "1980-01-01"
-#'   ),
-#'   n = 0:1
-#' )
-#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
-#' fit <- kk_nowcast(df, e = 1, model = "KK", method = "OLS")
-#' coef(fit)
-#' @family revision nowcasting
-#' @export
-coef.kk_model <- function(object, ...) {
-  coef_impl(object)
-}
-
-#' Extract the parameter covariance matrix of a KK model
-#'
-#' @param object An object of class `kk_model`.
-#' @param ... Ignored.
-#'
-#' @return The estimated parameter covariance matrix.
-#' @method vcov kk_model
-#' @examples
-#' df <- get_nth_release(
-#'   tsbox::ts_span(
-#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
-#'     start = "1980-01-01"
-#'   ),
-#'   n = 0:1
-#' )
-#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
-#' fit <- kk_nowcast(df, e = 1, model = "KK", method = "MLE")
-#' vcov(fit)
-#' @family revision nowcasting
-#' @export
-vcov.kk_model <- function(object, ...) {
-  vcov_impl(object)
-}
-
-#' Extract the log-likelihood of a KK model
+#' Extract the Log-Likelihood of a Revision Model
 #'
 #' The returned object carries the degrees of freedom and effective number of
 #' observations used by the model, so [stats::AIC()] and [stats::BIC()]
 #' reproduce the values reported by `summary()`.
 #'
-#' @param object An object of class `kk_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param ... Ignored.
 #'
 #' @return An object of class `logLik`.
-#' @method logLik kk_model
+#' @method logLik revision_model
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
@@ -263,21 +412,33 @@ vcov.kk_model <- function(object, ...) {
 #' BIC(fit)
 #' @family revision nowcasting
 #' @export
-logLik.kk_model <- function(object, ...) {
-  loglik_impl(object)
+logLik.revision_model <- function(object, ...) {
+  if (is.null(object$loglik)) {
+    rlang::abort(
+      "No log-likelihood available; the model was not fitted by MLE."
+    )
+  }
+
+  out <- object$loglik
+  attr(out, "df") <- rlang::`%||%`(object$n_param, nrow(object$params))
+  attr(out, "nobs") <- rlang::`%||%`(object$n_ic, nrow(object$data))
+  class(out) <- "logLik"
+  out
 }
 
-#' Number of observations used to fit a KK model
+#' Number of Observations Used to Fit a Revision Model
 #'
 #' Returns the effective number of observations behind the reported
 #' information criteria. Under the default `ic_n = "Tp"` this is the number
-#' of time periods times the number of releases modeled.
+#' of time periods times the number of releases (KK) or vintages (JVN)
+#' modeled.
 #'
-#' @param object An object of class `kk_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param ... Ignored.
 #'
 #' @return A single integer.
-#' @method nobs kk_model
+#' @method nobs revision_model
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
@@ -291,20 +452,23 @@ logLik.kk_model <- function(object, ...) {
 #' nobs(fit)
 #' @family revision nowcasting
 #' @export
-nobs.kk_model <- function(object, ...) {
+nobs.revision_model <- function(object, ...) {
   as.integer(rlang::`%||%`(object$n_ic, nrow(object$data)))
 }
 
-#' Fitted efficient estimates from a KK model
+#' Fitted Latent Values from a Revision Model
 #'
-#' Returns the smoothed estimate of the latent efficient value for the
-#' in-sample periods, i.e. the model's revision-adjusted signal.
+#' Returns the smoothed estimate of the model's latent signal for the
+#' in-sample periods, i.e. the revision-adjusted series. The signal is the
+#' latent efficient value for a `kk_model` and the latent true value for a
+#' `jvn_model`.
 #'
-#' @param object An object of class `kk_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param ... Ignored.
 #'
 #' @return A tibble with columns `time`, `estimate`, `lower` and `upper`.
-#' @method fitted kk_model
+#' @method fitted revision_model
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
@@ -318,22 +482,24 @@ nobs.kk_model <- function(object, ...) {
 #' head(fitted(fit))
 #' @family revision nowcasting
 #' @export
-fitted.kk_model <- function(object, ...) {
-  signal_impl(object, kk_signal_state(object))
+fitted.revision_model <- function(object, ...) {
+  signal_path(object)
 }
 
-#' Residuals of a KK model
+#' Residuals of a Revision Model
 #'
-#' Difference between the observed efficient release and the smoothed
-#' estimate of the latent efficient value. These are measurement residuals of
-#' the release used as the model's target, not one-step-ahead prediction
-#' errors.
+#' Difference between the observed target release and the smoothed estimate of
+#' the model's latent signal. These are measurement residuals of the release
+#' the model treats as its target -- the efficient release for a `kk_model`,
+#' the most mature release included in the estimation for a `jvn_model` --
+#' not one-step-ahead prediction errors.
 #'
-#' @param object An object of class `kk_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param ... Ignored.
 #'
 #' @return A tibble with columns `time` and `residual`.
-#' @method residuals kk_model
+#' @method residuals revision_model
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
@@ -347,11 +513,10 @@ fitted.kk_model <- function(object, ...) {
 #' head(residuals(fit))
 #' @family revision nowcasting
 #' @export
-residuals.kk_model <- function(object, ...) {
+residuals.revision_model <- function(object, ...) {
   fit_vals <- fitted(object)
-  target_col <- paste0("release_", object$e)
 
-  observed <- object$data[, c("time", target_col)]
+  observed <- object$data[, c("time", target_column(object))]
   names(observed) <- c("time", "observed")
 
   merged <- merge(as.data.frame(observed), as.data.frame(fit_vals), by = "time")
@@ -362,18 +527,20 @@ residuals.kk_model <- function(object, ...) {
   )
 }
 
-#' Forecasts from a KK model
+#' Forecasts from a Revision Model
 #'
-#' Returns the out-of-sample estimates of the latent efficient value produced
-#' by the forecast horizon `h` supplied to [kk_nowcast()]. The horizon is
-#' fixed at estimation time, so refit with a different `h` to change it.
+#' Returns the out-of-sample estimates of the model's latent signal produced
+#' by the forecast horizon `h` supplied to [kk_nowcast()] or [jvn_nowcast()].
+#' The horizon is fixed at estimation time, so refit with a different `h` to
+#' change it.
 #'
-#' @param object An object of class `kk_model`.
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
 #' @param ... Ignored.
 #'
 #' @return A tibble with columns `time`, `estimate`, `lower` and `upper`.
 #'   Has zero rows when the model was fitted with `h = 0`.
-#' @method predict kk_model
+#' @method predict revision_model
 #' @examples
 #' df <- get_nth_release(
 #'   tsbox::ts_span(
@@ -387,246 +554,107 @@ residuals.kk_model <- function(object, ...) {
 #' predict(fit)
 #' @family revision nowcasting
 #' @export
-predict.kk_model <- function(object, ...) {
-  signal_impl(object, kk_signal_state(object), sample = "out_of_sample")
+predict.revision_model <- function(object, ...) {
+  signal_path(object, sample = "out_of_sample")
 }
 
-# ---- jvn_model methods ------------------------------------------------------
-
-#' @rdname states
-#' @method states jvn_model
-#' @export
-states.jvn_model <- function(
-  object,
-  filter = c("smoothed", "filtered", "all"),
-  state = NULL,
-  ...
-) {
-  states_impl(object, filter = filter, state = state, what = "jvn_model")
-}
-
-#' Extract parameter estimates from a JVN model
+#' Summary Method for Revision Models
 #'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
+#' @description Computes and displays a summary of a fitted revision model,
+#' including the estimated specification, convergence status, information
+#' criteria, and parameter estimates. Defined once for the parent class
+#' [revision_model]; the family-specific header and specification block are
+#' supplied by the concrete class.
 #'
-#' @return A named numeric vector of parameter estimates.
-#' @method coef jvn_model
+#' @param object A fitted model object inheriting from [revision_model], such
+#'   as a `kk_model` or a `jvn_model`.
+#' @param ... Additional arguments passed to or from other methods.
+#'
+#' @return The input `object`, invisibly.
+#' @method summary revision_model
 #' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
 #' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' coef(fit)
-#' }
+#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
+#' fit <- kk_nowcast(df, e = 1, h = 2, model = "Kishor-Koenig", method = "MLE")
+#' summary(fit)
 #' @family revision nowcasting
 #' @export
-coef.jvn_model <- function(object, ...) {
-  coef_impl(object)
+summary.revision_model <- function(object, ...) {
+  cat(paste0("\n=== ", model_family(object), " Model ===\n\n"))
+
+  for (line in spec_lines(object)) {
+    cat(line, "\n")
+  }
+
+  if (!is.null(object$method)) {
+    cat("Estimation method:", toupper(object$method), "\n")
+  }
+
+  if (!is.null(object$convergence)) {
+    cat(
+      "Convergence:",
+      ifelse(
+        object$convergence == 0,
+        "Success",
+        "Failed"
+      ),
+      "\n"
+    )
+  }
+
+  if (!is.null(object$loglik)) {
+    cat("Log-likelihood:", round(object$loglik, 2), "\n")
+  }
+
+  if (!is.null(object$aic)) {
+    cat("AIC:", round(object$aic, 2), "\n")
+  }
+
+  if (!is.null(object$bic)) {
+    cat("BIC:", round(object$bic, 2), "\n")
+  }
+
+  cat("\nParameter Estimates:\n")
+  df_print <- object$params
+  df_print$Estimate <- sprintf("%.3f", df_print$Estimate)
+  df_print$Std.Error <- sprintf("%.3f", df_print$Std.Error)
+  print(df_print, row.names = FALSE, quote = FALSE)
+
+  cat("\n")
+  invisible(object)
 }
 
-#' Extract the parameter covariance matrix of a JVN model
+#' Print Method for Revision Models
 #'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
+#' @description Default print method for objects inheriting from
+#' [revision_model]. Dispatches to [summary.revision_model()] for a consistent
+#' console display.
 #'
-#' @return The estimated parameter covariance matrix.
-#' @method vcov jvn_model
+#' @param x A fitted model object inheriting from [revision_model], such as a
+#'   `kk_model` or a `jvn_model`.
+#' @param ... Additional arguments passed to [summary.revision_model()].
+#'
+#' @return The input `x`, invisibly.
+#' @method print revision_model
 #' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(dplyr::filter(reviser::gdp, id == "US")),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
 #' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' vcov(fit)
-#' }
+#' df <- na.omit(dplyr::select(df, -c("id", "pub_date")))
+#' fit <- kk_nowcast(df, e = 1, h = 2, model = "Kishor-Koenig", method = "MLE")
+#' fit
 #' @family revision nowcasting
 #' @export
-vcov.jvn_model <- function(object, ...) {
-  vcov_impl(object)
-}
-
-#' Extract the log-likelihood of a JVN model
-#'
-#' The returned object carries the degrees of freedom and effective number of
-#' observations used by the model, so [stats::AIC()] and [stats::BIC()]
-#' reproduce the values reported by `summary()`.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
-#'
-#' @return An object of class `logLik`.
-#' @method logLik jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' logLik(fit)
-#' AIC(fit)
-#' BIC(fit)
-#' }
-#' @family revision nowcasting
-#' @export
-logLik.jvn_model <- function(object, ...) {
-  loglik_impl(object)
-}
-
-#' Number of observations used to fit a JVN model
-#'
-#' Returns the effective number of observations behind the reported
-#' information criteria. Under the default `ic_n = "Tp"` this is the number
-#' of time periods times the number of vintages modeled.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
-#'
-#' @return A single integer.
-#' @method nobs jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' nobs(fit)
-#' }
-#' @family revision nowcasting
-#' @export
-nobs.jvn_model <- function(object, ...) {
-  as.integer(rlang::`%||%`(object$n_ic, nrow(object$data)))
-}
-
-#' Fitted true values from a JVN model
-#'
-#' Returns the smoothed estimate of the latent true value for the in-sample
-#' periods, i.e. the model's revision-adjusted signal.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
-#'
-#' @return A tibble with columns `time`, `estimate`, `lower` and `upper`.
-#' @method fitted jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' head(fitted(fit))
-#' }
-#' @family revision nowcasting
-#' @export
-fitted.jvn_model <- function(object, ...) {
-  signal_impl(object, "true_lag_0")
-}
-
-#' Residuals of a JVN model
-#'
-#' Difference between the most mature release included in the estimation and
-#' the smoothed estimate of the latent true value. These are measurement
-#' residuals of that release, not one-step-ahead prediction errors.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
-#'
-#' @return A tibble with columns `time` and `residual`.
-#' @method residuals jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(df = df, e = 4, ar_order = 2, include_noise = FALSE)
-#' head(residuals(fit))
-#' }
-#' @family revision nowcasting
-#' @export
-residuals.jvn_model <- function(object, ...) {
-  fit_vals <- fitted(object)
-
-  release_cols <- grep("^release_", names(object$data), value = TRUE)
-  target_col <- release_cols[length(release_cols)]
-
-  observed <- object$data[, c("time", target_col)]
-  names(observed) <- c("time", "observed")
-
-  merged <- merge(as.data.frame(observed), as.data.frame(fit_vals), by = "time")
-
-  dplyr::tibble(
-    time = merged$time,
-    residual = merged$observed - merged$estimate
-  )
-}
-
-#' Forecasts from a JVN model
-#'
-#' Returns the out-of-sample estimates of the latent true value produced by
-#' the forecast horizon `h` supplied to [jvn_nowcast()]. The horizon is fixed
-#' at estimation time, so refit with a different `h` to change it.
-#'
-#' @param object An object of class `jvn_model`.
-#' @param ... Ignored.
-#'
-#' @return A tibble with columns `time`, `estimate`, `lower` and `upper`.
-#'   Has zero rows when the model was fitted with `h = 0`.
-#' @method predict jvn_model
-#' @examples
-#' \donttest{
-#' gdp_growth <- dplyr::filter(
-#'   tsbox::ts_pc(reviser::gdp),
-#'   id == "EA",
-#'   time >= min(pub_date),
-#'   time <= as.Date("2020-01-01")
-#' )
-#' gdp_growth <- tidyr::drop_na(gdp_growth)
-#' df <- get_nth_release(gdp_growth, n = 0:3)
-#'
-#' fit <- jvn_nowcast(
-#'   df = df, e = 4, ar_order = 2, h = 2, include_noise = FALSE
-#' )
-#' predict(fit)
-#' }
-#' @family revision nowcasting
-#' @export
-predict.jvn_model <- function(object, ...) {
-  signal_impl(object, "true_lag_0", sample = "out_of_sample")
+print.revision_model <- function(x, ...) {
+  summary(x, ...)
 }

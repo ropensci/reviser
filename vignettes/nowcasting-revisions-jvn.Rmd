@@ -279,22 +279,33 @@ fit_jvn <- load_or_build_vignette_result(
 summary(fit_jvn)
 ```
 
-The parameter table contains the AR coefficients, the latent-process innovation
-scale \(\sigma_e\), the news and noise innovation scales, and, when selected,
-the diagonal spillover persistence parameters.
+A fitted model is an S3 object inheriting from `revision_model`, so it responds
+to the extractor generics you would use on any other model object rather than
+requiring you to index into it. `coef()` returns the AR coefficients, the
+latent-process innovation scale \(\sigma_e\), the news and noise innovation
+scales, and, when selected, the diagonal spillover persistence parameters;
+`vcov()` returns their covariance matrix, and `summary()` shows estimates and
+standard errors together.
 
 ```{r warning = FALSE, message = FALSE}
-fit_jvn$params
+coef(fit_jvn)
 ```
 
-The state named `true_lag_0` is the current latent true value.
+Fit criteria are reached the same way, and reproduce the values printed by
+`summary()`.
 
 ```{r warning = FALSE, message = FALSE}
-fit_jvn$states |>
-  dplyr::filter(
-    state == "true_lag_0",
-    filter == "smoothed"
-  ) |>
+logLik(fit_jvn)
+AIC(fit_jvn)
+BIC(fit_jvn)
+nobs(fit_jvn)
+```
+
+The `states()` accessor returns the estimated state paths, optionally restricted
+to named states. The state named `true_lag_0` is the current latent true value.
+
+```{r warning = FALSE, message = FALSE}
+states(fit_jvn, filter = "smoothed", state = "true_lag_0") |>
   dplyr::slice_tail(n = 8)
 ```
 
@@ -307,11 +318,8 @@ plot(fit_jvn)
 We can also inspect the smoothed news and noise states directly.
 
 ```{r warning = FALSE, message = FALSE}
-fit_jvn$states |>
-  dplyr::filter(
-    filter == "smoothed",
-    grepl("news|noise", state)
-  ) |>
+states(fit_jvn, filter = "smoothed") |>
+  dplyr::filter(grepl("news|noise", state)) |>
   ggplot(aes(x = time, y = estimate, color = state)) +
   geom_line() +
   labs(

@@ -1164,8 +1164,8 @@ test_that("states.kk_model filters and validates", {
   expect_identical(nrow(both), nrow(smoothed) + nrow(filtered))
   expect_identical(both, result$states)
 
-  one <- states(result, state = kk_signal_state(result))
-  expect_identical(unique(one$state), kk_signal_state(result))
+  one <- states(result, state = signal_state(result))
+  expect_identical(unique(one$state), signal_state(result))
 
   expect_error(states(result, state = "not_a_state"), "Unknown state")
 })

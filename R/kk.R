@@ -804,8 +804,14 @@ kk_nowcast <- function(
       if (!is.null(qml_res) && !is.null(qml_res$cov)) {
         cov_raw <- qml_res$cov
         se_raw <- sqrt(pmax(diag(cov_raw), 0))
+        if (is.null(se_warning)) {
+          se_warning <- qml_res$warning
+        }
       } else if (is.null(se_warning)) {
-        se_warning <- "QML covariance returned NULL/invalid; SEs unavailable."
+        se_warning <- rlang::`%||%`(
+          if (is.null(qml_res)) NULL else qml_res$warning,
+          "QML covariance returned NULL/invalid; SEs unavailable."
+        )
       }
     }
 
@@ -890,7 +896,7 @@ kk_nowcast <- function(
       se_method = se_method_used,
       cov = cov_used
     )
-    class(results) <- c("kk_model", class(results))
+    class(results) <- c("kk_model", "revision_model", class(results))
     return(results)
   }
 
@@ -999,7 +1005,7 @@ kk_nowcast <- function(
     se_method = se_method_used,
     cov = cov_used
   )
-  class(results) <- c("kk_model", class(results))
+  class(results) <- c("kk_model", "revision_model", class(results))
   results
 }
 
@@ -1337,6 +1343,18 @@ kk_transform_params_and_cov <- function(
 
 #' QML covariance for the KK estimator
 #'
+#' Forms the sandwich covariance `H^{-1} X H^{-1}`, where `H` is the Hessian of
+#' the negative log-likelihood and `X` the outer product of the score
+#' contributions. The bread is obtained through `invert_hessian()`, so the
+#' Cholesky factorization is used where it applies and a non-positive-definite
+#' Hessian is reported rather than silently regularized.
+#'
+#' @return A list with `cov` (the sandwich covariance, or `NULL` if the Hessian
+#'   could not be inverted), `H`, `Xproduct`, `cond_num`, `scale_factor` and
+#'   `warning` (a diagnostic string or `NULL`).
+#'
+#' @srrstats {G3.0} Exploits matrix structure for numerical stability and
+#' reports loss of positive definiteness instead of masking it
 #' @keywords internal
 #' @noRd
 kk_qml_covariance <- function(
@@ -1443,16 +1461,28 @@ kk_qml_covariance <- function(
     Xproduct <- (Tobs / (Tobs - p)) * (Xproduct / Tobs)
   }
 
-  invH <- tryCatch(
-    solve(H),
-    error = function(e) {
-      ridge <- ridge_factor * mean(abs(diag(H)))
-      solve(H + ridge * diag(nrow(H)))
-    }
-  )
+  # The Hessian of the negative log-likelihood is symmetric and, at a proper
+  # maximum, positive definite, so it is inverted through its Cholesky factor
+  # rather than by a general solve. `invert_hessian()` reports a loss of
+  # positive definiteness instead of masking it with a ridge.
+  inv_res <- invert_hessian(H, ridge_factor = ridge_factor)
+  invH <- inv_res$cov
 
-  invH <- (invH + t(invH)) / 2
-  cov_qml <- invH %*% Xproduct %*% invH
+  if (is.null(invH)) {
+    return(list(
+      cov = NULL,
+      H = H,
+      Xproduct = Xproduct,
+      cond_num = cond_num,
+      scale_factor = scale_factor,
+      warning = inv_res$warning
+    ))
+  }
+
+  # The sandwich `invH %*% Xproduct %*% invH` with symmetric `invH` is a
+  # crossprod against the bread, which keeps the result symmetric by
+  # construction.
+  cov_qml <- crossprod(invH, Xproduct %*% invH)
   cov_qml <- (cov_qml + t(cov_qml)) / 2
 
   list(
@@ -1460,7 +1490,8 @@ kk_qml_covariance <- function(
     H = H,
     Xproduct = Xproduct,
     cond_num = cond_num,
-    scale_factor = scale_factor
+    scale_factor = scale_factor,
+    warning = inv_res$warning
   )
 }
 
@@ -2105,162 +2136,4 @@ kk_to_ss <- function(FF, GG, V, W, epsilon = 1e-6) {
   }
 
   return(list(Z = Z, Tmat = Tmat, H = H, Q = Q, R = R))
-}
-
-
-#' Summary Method for KK Model
-#'
-#' @description Computes and displays a summary of the results from a
-#' Kishor-Koenig (KK) model fit, including convergence status,
-#' information criteria, and parameter estimates.
-#'
-#' @param object An object of class \code{kk_model}.
-#' @param ... Additional arguments passed to or from other methods.
-#'
-#' @return The function returns the input \code{object} invisibly.
-#' @method summary kk_model
-#' @examples
-#' df <- get_nth_release(
-#'   tsbox::ts_span(
-#'     tsbox::ts_pc(
-#'       dplyr::filter(reviser::gdp, id == "US")
-#'     ),
-#'     start = "1980-01-01"
-#'   ),
-#'   n = 0:1
-#' )
-#' df <- dplyr::select(df, -c("id", "pub_date"))
-#' df <- na.omit(df)
-#'
-#' e <- 1
-#' h <- 2
-#' result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig", method = "MLE")
-#' summary(result)
-#'
-#' @family revision nowcasting
-#' @export
-summary.kk_model <- function(object, ...) {
-  cat("\n=== Kishor-Koenig Model ===\n\n")
-
-  # Fall back to the family name for objects fitted before `model_type` was
-  # recorded.
-  cat("Specification:", rlang::`%||%`(object$model_type, "Kishor-Koenig"), "\n")
-
-  if (!is.null(object$method)) {
-    cat("Estimation method:", toupper(object$method), "\n")
-  }
-
-  if (!is.null(object$convergence)) {
-    cat(
-      "Convergence:",
-      ifelse(
-        object$convergence == 0,
-        "Success",
-        "Failed"
-      ),
-      "\n"
-    )
-  }
-
-  if (!is.null(object$loglik)) {
-    cat("Log-likelihood:", round(object$loglik, 2), "\n")
-  }
-
-  if (!is.null(object$aic)) {
-    cat("AIC:", round(object$aic, 2), "\n")
-  }
-
-  if (!is.null(object$bic)) {
-    cat("BIC:", round(object$bic, 2), "\n")
-  }
-
-  cat("\nParameter Estimates:\n")
-  df_print <- object$params
-  df_print$Estimate <- sprintf("%.3f", df_print$Estimate)
-  df_print$Std.Error <- sprintf("%.3f", df_print$Std.Error)
-  print(df_print, row.names = FALSE, quote = FALSE)
-
-  cat("\n")
-  invisible(object)
-}
-
-
-#' Print Method for KK Model
-#'
-#' @description Default print method for \code{kk_model} objects.
-#' Wraps the \code{summary} method for a consistent output.
-#'
-#' @param x An object of class \code{kk_model}.
-#' @param ... Additional arguments passed to \code{summary.kk_model}.
-#'
-#' @return The function returns the input \code{x} invisibly.
-#' @method print kk_model
-#' @examples
-#' df <- get_nth_release(
-#'   tsbox::ts_span(
-#'     tsbox::ts_pc(
-#'       dplyr::filter(reviser::gdp, id == "US")
-#'     ),
-#'     start = "1980-01-01"
-#'   ),
-#'   n = 0:1
-#' )
-#' df <- dplyr::select(df, -c("id", "pub_date"))
-#' df <- na.omit(df)
-#'
-#' e <- 1
-#' h <- 2
-#' result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig", method = "MLE")
-#' result
-#'
-#' @family revision nowcasting
-#' @export
-print.kk_model <- function(x, ...) {
-  summary.kk_model(x, ...)
-}
-
-
-#' Plot Kishor-Koenig Model Results
-#'
-#' Plot filtered or smoothed estimates for a selected state from a fitted
-#' `kk_model`.
-#'
-#' @param x An object of class `kk_model`.
-#' @param state Character scalar giving the state to visualize. If `NULL`, the
-#'   first available state is used.
-#' @param type Character scalar indicating whether `"filtered"` or `"smoothed"`
-#'   estimates should be plotted.
-#' @param ... Additional arguments passed to `plot.revision_model()`.
-#' @details This method requires `x$states` to be available. If the model was
-#'   fitted with `solver_options$return_states = FALSE`, plotting is not
-#'   possible.
-#'
-#' @return A `ggplot2` object visualizing the specified state estimates.
-#' @examples
-#' df <- get_nth_release(
-#'   tsbox::ts_span(
-#'     tsbox::ts_pc(
-#'       dplyr::filter(reviser::gdp, id == "US")
-#'     ),
-#'     start = "1980-01-01"
-#'   ),
-#'   n = 0:1
-#' )
-#' df <- dplyr::select(df, -c("id", "pub_date"))
-#' df <- na.omit(df)
-#'
-#' e <- 1 # Number of efficient release
-#' h <- 2 # Forecast horizon
-#' result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig")
-#'
-#' plot(result)
-#'
-#' @family revision nowcasting
-#' @export
-plot.kk_model <- function(x, state = NULL, type = "filtered", ...) {
-  if (is.null(state)) {
-    state <- x$states[x$states$filter == type, ]$state[1]
-  }
-  # Forward to the base method with KK defaults
-  plot.revision_model(x, state = state, type = type, ...)
 }

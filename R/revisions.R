@@ -947,8 +947,10 @@ get_revision_analysis <- function(
       is.null(grouping_var)
   ) {
     rlang::warn(
-      "Both 'release' and 'pub_date' columns are present in 'df.
-      The 'release' column will be used for grouping."
+      paste0(
+        "Both 'release' and 'pub_date' columns are present in 'df'. ",
+        "The 'release' column will be used for grouping."
+      )
     )
     df <- df |>
       dplyr::select(-"pub_date")
@@ -1376,8 +1378,8 @@ print.revision_summary <- function(x, interpretation = TRUE, digits = 3, ...) {
         if (!is.na(auto_p) && !is.na(auto_val)) {
           if (auto_p < 0.05) {
             cat(
-              "  \u2022 Significant autocorrelation in revisions
-              (\u03C1\u2081 =", round(auto_val, 3),
+              "  \u2022 Significant autocorrelation in revisions",
+              " (\u03C1\u2081 =", round(auto_val, 3),
               "): revisions are persistent\n"
             )
           }
@@ -1445,7 +1447,7 @@ print.revision_summary <- function(x, interpretation = TRUE, digits = 3, ...) {
   invisible(x)
 }
 
-#' Diagnose Revision Quality
+#' Diagnose Method for Revision Summary
 #'
 #' Provides a quick diagnostic summary of revision quality with color-coded
 #' pass/fail indicators for key metrics.

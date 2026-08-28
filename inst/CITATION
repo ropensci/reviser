@@ -1,15 +1,13 @@
 citHeader("To cite reviser in publications use:")
 
 bibentry(
-  bibtype = "Misc",
-  title = "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
-  author = c(as.person("Marc Burri"), as.person("Philipp Wegmueller")),
-  year = "2025",
-  url = "https://docs.ropensci.org/reviser/",
-  textVersion = paste(
-    "Burri and Wegmueller (2025).",
-    "reviser: Tools for Studying Revision Properties in Real-Time Time Series Vintages",
-    "R package version 0.1.1,",
-    "https://docs.ropensci.org/reviser/"
-  )
+  bibtype = "Manual",
+  title = paste0("{reviser}: ", meta$Title),
+  author = c(
+    person(given = "Marc", family = "Burri"),
+    person(given = "Philipp", family = "Wegmueller")
+  ),
+  year = "2026",
+  note = paste("R package version", meta$Version),
+  url = "https://docs.ropensci.org/reviser/"
 )

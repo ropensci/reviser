@@ -314,68 +314,59 @@ plot_vintages <- function(
   p
 }
 
-#' Plot Method for Publication Date Vintages
-#'
-#' @param x An object of class \code{tbl_pubdate}.
-#' @param ... Additional arguments passed to plot_vintages.
-#'
-#' @return A ggplot2 object.
-#' @srrstats {TS5.0} Implements default plot methods for implemented
-#'   class system
-#' @srrstats {TS4.2} Explicitly documents the type and class of return values
-#' @method plot tbl_pubdate
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' plot(df)
-#' @family revision graphs
-#' @export
-plot.tbl_pubdate <- function(x, ...) {
-  plot_vintages(x, dim_col = "pub_date", ...)
-}
-
-#' Plot Method for Release Vintages
-#'
-#' @param x An object of class \code{tbl_release}.
-#' @param ... Additional arguments passed to plot_vintages.
-#'
-#' @return A ggplot2 object.
-#' @srrstats {TS5.0} Implements default plot methods for implemented
-#'   class system
-#' @srrstats {TS4.2} Explicitly documents the type and class of return values
-#' @method plot tbl_release
-#' @examples
-#' df <- dplyr::filter(reviser::gdp, id == "US")
-#' df <- get_nth_release(df, n = 0:5)
-#' plot(df)
-#' @family revision graphs
-#' @export
-plot.tbl_release <- function(x, ...) {
-  plot_vintages(x, dim_col = "release", ...)
-}
-
 #' Plot Revision Model Results
 #'
-#' @param x An object of class 'revision_model'
-#' @param state String. The name of the state to visualize.
+#' Plot filtered or smoothed estimates for a selected state from a fitted
+#' revision model. Defined once for the parent class [revision_model] and
+#' inherited by `kk_model` and `jvn_model` objects alike; the state shown when
+#' `state` is not given is chosen by the concrete class.
+#'
+#' @param x A fitted model object inheriting from [revision_model], such as a
+#'   `kk_model` or a `jvn_model`.
+#' @param state String. The name of the state to visualize. If `NULL`, the
+#'   family's default state is used: the latent true value for a `jvn_model`,
+#'   and the first available state for a `kk_model`.
 #' @param type String. Type of estimate: "filtered" or "smoothed".
 #' @param ... Additional arguments passed to theme_reviser.
-#' @srrstats {G1.4a} Internal function documented with @noRd tag
-#' @srrstats {TS5.0} Implements plot methods for class system
+#' @details This method requires `x$states` to be available. If the model was
+#'   fitted with `solver_options$return_states = FALSE`, plotting is not
+#'   possible.
+#' @srrstats {TS5.0} Implements default plot methods for class system
+#' @srrstats {TS5.1} Time axis labeling
+#' @srrstats {TS5.2} Time on horizontal axis
 #' @srrstats {TS5.7} Includes model (input) values in plot with forecast
 #'   (output) values (in-sample vs out-of-sample)
 #' @srrstats {TS5.8} Provides clear visual distinction between model and
 #'   forecast values (different colors/samples)
 #' @srrstats {TS5.6} Indicates distributional limits (confidence
 #'   intervals) on plot by default
-#' @return ggplot object
+#' @return A `ggplot2` object.
 #'
-#' @keywords internal
-#' @noRd
+#' @method plot revision_model
+#' @examples
+#' df <- get_nth_release(
+#'   tsbox::ts_span(
+#'     tsbox::ts_pc(
+#'       dplyr::filter(reviser::gdp, id == "US")
+#'     ),
+#'     start = "1980-01-01"
+#'   ),
+#'   n = 0:1
+#' )
+#' df <- dplyr::select(df, -c("id", "pub_date"))
+#' df <- na.omit(df)
+#'
+#' e <- 1 # Number of efficient release
+#' h <- 2 # Forecast horizon
+#' result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig")
+#'
+#' plot(result)
+#'
+#' @family revision nowcasting
+#' @export
 plot.revision_model <- function(x, state = NULL, type = "filtered", ...) {
-  # Handle defaults if not provided by the child method
   if (is.null(state)) {
-    state <- x$states[x$states$filter == type, ]$state[1]
-    rlang::warn(paste("No state specified. Defaulting to first state:", state))
+    state <- default_plot_state(x, type)
   }
 
   # Filter data
@@ -501,7 +492,7 @@ plot.revision_model <- function(x, state = NULL, type = "filtered", ...) {
 }
 
 
-#' Custom Visualization Theme and Color Scales for Reviser
+#' Custom Visualization Theme and Color Scales for reviser
 #'
 #' These functions provide a custom visualization theme and color scales for
 #' use with ggplot2, inspired by the `tsbox` package.
