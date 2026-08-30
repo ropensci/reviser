@@ -12,9 +12,16 @@
 #' @param keep_na Logical. If `TRUE`, retains rows with `NA` values in the
 #' `value` column. Default is `FALSE`.
 #'
-#' @return A long-format data frame or tibble. If the input is a list of
-#' wide-format data frames, the output will be a single combined long-format
-#' data frame.
+#' @return A long-format vintages object: a tibble carrying the `tbl_pubdate`
+#' or `tbl_release` class and their shared parent [tbl_vintage]. If the input
+#' is a list of wide-format data frames, the output is a single combined
+#' long-format object.
+#'
+#' Long-format input is returned with the vintages class attached, which is
+#' also how to recover the class after an operation that dropped it (see the
+#' "Operations that drop the class" section of [validate_vintages()]). Input
+#' that is already a long-format vintages object warns, because the call is
+#' then a no-op.
 #'
 #' @srrstats {G2.0} Implements assertions on types of inputs through parameter
 #' validation
@@ -22,7 +29,7 @@
 #' allowed values
 #' @srrstats {G2.8} Provides appropriate conversion routines for tabular data
 #' @srrstats {G2.9} Issues diagnostic messages for data conversion (warning when
-#' already long format)
+#' the input is already a long-format vintages object, so the call is a no-op)
 #' @srrstats {G2.14} Provides option to specify how to handle missing data via
 #' `keep_na` parameter
 #' @srrstats {TS1.1} Explicitly documents input data types and classes
@@ -95,7 +102,14 @@ vintages_long <- function(df, names_to = "pub_date", keep_na = FALSE) {
   } else {
     check <- vintages_check(df)
     if (check == "long") {
-      rlang::warn("The input data is already in long format.")
+      # Only a no-op is worth warning about. Long data that carry no vintages
+      # class still need one, and attaching it is the documented way to
+      # recover the class after an operation that dropped it (see the
+      # "Operations that drop the class" section of ?validate_vintages), so
+      # warning there would make the recommended idiom noisy.
+      if (inherits(df, "tbl_vintage")) {
+        rlang::warn("The input data is already in long format.")
+      }
       df <- vintages_assign_class(df)
       return(df)
     }
@@ -612,6 +626,16 @@ reviser_with_seed <- function(seed, expr) {
 #' too. See [tbl_vintage] for the class hierarchy and the methods it
 #' provides.
 #'
+#' @section Operations that drop the class:
+#' The vintages classes sit on top of a tibble, so the `dplyr` verbs
+#' (`filter()`, `mutate()`, `select()`, `arrange()`, `slice()`) and `[`
+#' preserve them. A few functions rebuild the object from scratch and return a
+#' plain tibble instead; `tidyr::drop_na()` is the one most likely to be met
+#' in a vintages workflow. The data are unaffected, but `plot()`, `summary()`
+#' and the vintages print header no longer dispatch. Pass the result back
+#' through [vintages_long()] or [vintages_wide()], or apply the operation
+#' before the release-extraction step, to get the class back.
+#'
 #' @param x An object of class `tbl_pubdate` or `tbl_release`.
 #'
 #' @return `x`, invisibly, if it is valid. Otherwise an error describing the
@@ -688,6 +712,16 @@ validate_vintages <- function(x) {
     rlang::abort(
       "The 'time' column must contain dates in '%Y-%m-%d' format."
     )
+  }
+
+  # vintages_check() infers the layout from the column names alone, so an
+  # object that has lost a long-layout column -- `value`, or the vintage key
+  # itself -- looks to it like a wide object whose columns are badly labelled,
+  # and it names the wrong problem. Objects that match neither documented
+  # layout under either vintages class are therefore reported here first, in
+  # the same words the summary() method uses.
+  if (is.na(vintage_layout_any(x))) {
+    vintage_is_long(x)
   }
 
   # vintages_check() performs the remaining structural checks and reports the

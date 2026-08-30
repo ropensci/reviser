@@ -24,6 +24,17 @@
 * The pillar header printed for a long-format `tbl_pubdate` changed: it now
   reports the number of distinct dates rather than the number of rows (see
   below), and gained the `Format` row that `tbl_release` already showed.
+* The bundled `gdp` data set is now itself a vintages object, with class
+  attribute `c("tbl_pubdate", "tbl_vintage", "tbl_df", "tbl", "data.frame")`.
+  `print()`, `summary()`, `plot()` and `validate_vintages()` therefore work on
+  it as loaded, rather than only after a release-extraction step. The data are
+  unchanged; what changes is that printing `gdp` now shows the vintages header
+  instead of the plain tibble header.
+* `vintages_long()` no longer warns when it is handed long data that carry no
+  vintages class. Attaching the class is real work there, and it is the
+  documented way to recover the class after an operation that dropped it, so
+  the warning made the recommended idiom noisy. Long input that is *already* a
+  vintages object still warns, because the call is then a no-op.
 
 ## Bug fixes
 
@@ -48,6 +59,20 @@
 * Several validation messages contained hard-wrapped newlines and source
   indentation, which appeared verbatim in the console. They are now single
   lines.
+* `plot()` on a model fitted with `return_states = FALSE` failed with the base
+  error "argument is of length zero", because it read the dropped `states`
+  component without checking for it. It now reports the cause in the same
+  words as `states()`, `fitted()`, `residuals()` and `predict()`, all of which
+  now share a single definition of that message.
+* `validate_vintages()` misdiagnosed a vintages object that had lost a
+  long-layout column: because the layout was inferred from the column names
+  alone, an object missing `value` was reported as a wide object whose column
+  names were "not labeled correctly". It now reports what the object is
+  actually missing, matching the message `summary()` gives for the same
+  object. Objects whose class attribute contradicts their columns are still
+  reported as the class mismatch they are.
+* `predict()` on a model fitted with `h = 0` returned a zero-row tibble with
+  no explanation. It now says which argument decides that.
 
 ## New features
 
@@ -64,7 +89,7 @@
 
 * Help page titles now use a consistent title-case style throughout the
   package.
-* The Kishor-Koenig and Jacobs-van Norden vignettes now reach fitted models
+* The Kishor-Koenig and Jacobs-Van Norden vignettes now reach fitted models
   through the extractor generics -- `coef()`, `logLik()`, `AIC()`, `BIC()`,
   `nobs()` and `states()` -- rather than indexing into `fit$params` and
   `fit$states`.
@@ -72,6 +97,12 @@
   material: the former documents the data contract and `validate_vintages()`,
   the latter the class hierarchy and the methods the parent provides.
 * `inst/CITATION` reports the current version and title.
+* The `?kk_nowcast` example reached into the fitted object with
+  `result$params`. It now uses `coef()` and `logLik()`, matching the vignettes
+  and the rest of the documentation.
+* `?validate_vintages` gains an "Operations that drop the class" section,
+  which names `tidyr::drop_na()` as the case most likely to be met in a
+  vintages workflow and gives the idiom for recovering the class.
 
 ## Internal
 
@@ -86,7 +117,9 @@
   `tbl_release` objects are unchanged.
 * Test coverage of the multi-series (`id`-aware) code paths in
   `revisions.R`, and of the `revision_summary` print and diagnose branches,
-  has been substantially extended.
+  has been substantially extended. Every method that depends on the state
+  estimates is now tested to report `return_states = FALSE` as the cause.
+* Comments in `jvn.R` no longer contain non-ASCII typographic quotes.
 
 # reviser 0.2.0
 
@@ -138,6 +171,6 @@
 # reviser 0.1.0
 
 * Initial CRAN release.
-* Added Jacobs-van Norden nowcasting support via `jvn_nowcast()`.
+* Added Jacobs-Van Norden nowcasting support via `jvn_nowcast()`.
 * Improved estimation methods and solver behavior in `kk_nowcast()`.
 * Expanded examples, tests, and documentation.

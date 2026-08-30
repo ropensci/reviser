@@ -147,9 +147,19 @@ test_that("vintages_long keeps NA values when keep_na = TRUE", {
   expect_false(any(is.na(result_drop$value)))
 })
 
-test_that("vintages_long warns when data is already long", {
+test_that("vintages_long warns only when the call is a no-op", {
+  # Long data without the vintages class still need one, and attaching it is
+  # the documented way to recover the class after an operation that dropped
+  # it, so this is real work rather than a no-op.
+  expect_no_warning(
+    classed <- vintages_long(df_long, names_to = "pub_date")
+  )
+  expect_s3_class(classed, "tbl_pubdate")
+  expect_s3_class(classed, "tbl_vintage")
+
+  # Passing the result back in is a no-op, and says so.
   expect_warning(
-    vintages_long(df_long, names_to = "pub_date"),
+    vintages_long(classed, names_to = "pub_date"),
     "already in long format"
   )
 })
@@ -565,6 +575,35 @@ test_that("validate_vintages catches a class that contradicts the columns", {
     setdiff(class(wide_release), "tbl_release")
   )
   expect_error(validate_vintages(as_pubdate), "classed as 'tbl_pubdate'")
+})
+
+test_that("validate_vintages names the columns a broken object lost", {
+  releases <- get_nth_release(dplyr::filter(reviser::gdp, id == "US"), n = 0:3)
+
+  # Dropping a long-layout column leaves the class attribute in place. The
+  # object then matches neither layout, and the report must say so rather than
+  # blaming the wide-format column labels, which is what inferring the layout
+  # from the column names alone used to do.
+  no_value <- releases
+  no_value$value <- NULL
+  expect_error(validate_vintages(no_value), "match neither documented layout")
+  expect_error(validate_vintages(no_value), "'release' column together with")
+
+  no_key <- releases
+  no_key$release <- NULL
+  no_key$pub_date <- NULL
+  expect_error(validate_vintages(no_key), "match neither documented layout")
+
+  # summary() reports the same condition in the same words.
+  expect_error(summary(no_value), "match neither documented layout")
+})
+
+test_that("the bundled gdp data set is itself a vintages object", {
+  # The class is what makes print(), summary() and plot() work on the data as
+  # shipped, rather than only after a release-extraction step.
+  expect_s3_class(reviser::gdp, "tbl_pubdate")
+  expect_s3_class(reviser::gdp, "tbl_vintage")
+  expect_no_error(validate_vintages(reviser::gdp))
 })
 
 test_that("the two vintages classes are not mutually exclusive", {

@@ -17,9 +17,16 @@ column names. Must be either \code{"pub_date"} (default) or \code{"release"}.}
 \code{value} column. Default is \code{FALSE}.}
 }
 \value{
-A long-format data frame or tibble. If the input is a list of
-wide-format data frames, the output will be a single combined long-format
-data frame.
+A long-format vintages object: a tibble carrying the \code{tbl_pubdate}
+or \code{tbl_release} class and their shared parent \link{tbl_vintage}. If the input
+is a list of wide-format data frames, the output is a single combined
+long-format object.
+
+Long-format input is returned with the vintages class attached, which is
+also how to recover the class after an operation that dropped it (see the
+"Operations that drop the class" section of \code{\link[=validate_vintages]{validate_vintages()}}). Input
+that is already a long-format vintages object warns, because the call is
+then a no-op.
 }
 \description{
 Converts a vintages dataset from wide format to long format, optionally

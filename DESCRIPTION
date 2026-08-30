@@ -6,7 +6,7 @@ Authors@R: c(
     person(given = "Marc", family = "Burri", email = "marc.burri91@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-8974-9090")),
     person(given = "Philipp", family = "Wegmueller",
-        email = "philipp.wemueller@seco.admin.ch", role = c("aut", "cph"))
+        email = "philipp.wegmueller@seco.admin.ch", role = c("aut", "cph"))
   )
 Description: Analyzes revisions in real-time time series vintages. The
     package converts between wide revision triangles and tidy long

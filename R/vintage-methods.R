@@ -235,6 +235,35 @@ vintage_layout <- function(x) {
   NA_character_
 }
 
+#' Layout of a vintages object under any of the classes it carries
+#'
+#' `vintage_layout()` resolves the layout under the object's first class,
+#' which is what the methods need. Validation asks a different question: are
+#' these columns a valid vintages layout under *any* representation? If they
+#' are, but not under the class the object claims, the object is mislabelled
+#' and should be reported as a class mismatch, naming the offending class. If
+#' they are not, under either representation, the object is structurally
+#' broken and should be reported as such. So both classes are probed here,
+#' whether or not the object carries them.
+#'
+#' @param x A `tbl_vintage`.
+#' @return `"long"`, `"wide"`, or `NA_character_`.
+#' @keywords internal
+#' @noRd
+vintage_layout_any <- function(x) {
+  for (cls in c("tbl_release", "tbl_pubdate")) {
+    probe <- x
+    class(probe) <- c(cls, setdiff(class(probe), cls))
+
+    layout <- vintage_layout(probe)
+    if (!is.na(layout)) {
+      return(layout)
+    }
+  }
+
+  NA_character_
+}
+
 #' Layout of a vintages object, aborting when it matches neither
 #'
 #' @param x A `tbl_vintage`.

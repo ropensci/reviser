@@ -139,7 +139,10 @@ e <- 1 # Number of efficient release
 h <- 2 # Forecast horizon
 result <- kk_nowcast(df, e, h = h, model = "Kishor-Koenig")
 
-result$params
+# Fitted models are reached through the extractor generics inherited from
+# the parent class, not by indexing into the object.
+coef(result)
+logLik(result)
 
 }
 \references{

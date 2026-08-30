@@ -6,7 +6,7 @@
   2026-08-22).
 
 * checking CRAN incoming feasibility ... NOTE
-  "Days since last update: 6". This release is out of the usual cadence
+  "Days since last update". This release is out of the usual cadence
   because it is the version described in a manuscript under review at the
   Journal of Statistical Software, and the reviewing editor asked for the
   class system to be reorganized around S3 inheritance. Version 0.3.0

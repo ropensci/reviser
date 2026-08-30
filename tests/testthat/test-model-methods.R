@@ -102,6 +102,42 @@ test_that("the inherited accessors fail informatively when data is absent", {
   expect_error(logLik(fit_shared_kk()), "not fitted by MLE")
 })
 
+test_that("every state-dependent method names return_states = FALSE", {
+  no_states <- kk_nowcast(
+    df_shared,
+    e = 2,
+    model = "KK",
+    method = "OLS",
+    solver_options = list(trace = 0, return_states = FALSE)
+  )
+
+  # plot() reads the same component as the accessors, so it has to report the
+  # same cause. It previously failed inside nrow(NULL) with an unrelated
+  # "argument is of length zero".
+  for (f in list(states, fitted, residuals, predict, plot)) {
+    expect_error(f(no_states), "return_states = FALSE")
+  }
+
+  # Everything that does not depend on the states keeps working.
+  expect_no_error(coef(no_states))
+  expect_no_error(capture.output(print(no_states)))
+  expect_no_error(capture.output(summary(no_states)))
+})
+
+test_that("predict says why it has nothing to return at h = 0", {
+  no_horizon <- kk_nowcast(
+    df_shared,
+    e = 2,
+    h = 0,
+    model = "KK",
+    method = "OLS",
+    solver_options = list(trace = 0)
+  )
+
+  expect_message(out <- predict(no_horizon), "`h = 0`")
+  expect_identical(nrow(out), 0L)
+})
+
 # ===== Family-specific dispatch behind the shared methods =====
 
 test_that("the family-specific generics resolve for both model families", {

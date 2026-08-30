@@ -32,7 +32,7 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Philipp Wegmueller \email{philipp.wemueller@seco.admin.ch} [copyright holder]
+  \item Philipp Wegmueller \email{philipp.wegmueller@seco.admin.ch} [copyright holder]
 }
 
 }

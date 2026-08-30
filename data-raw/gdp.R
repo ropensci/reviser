@@ -95,4 +95,11 @@ gdp <- dplyr::bind_rows(
     time = as.Date(time)
   )
 
+# The bundled data set is itself a vintages object, so that print(), summary()
+# and plot() work on it directly rather than only after it has been passed
+# through one of the package's own functions. vintages_long() is the
+# constructor for the publication-date representation; the data are already
+# long, so it only attaches the class.
+gdp <- suppressWarnings(reviser::vintages_long(gdp))
+
 usethis::use_data(gdp, overwrite = TRUE)

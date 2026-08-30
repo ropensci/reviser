@@ -1310,7 +1310,7 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
 
   # If solve failed or matrix is nasty, add ridge (scaled) and retry
   if (is.null(vecP)) {
-    # scale ridge to typical magnitude of A (avoids “too small to matter” ridge)
+    # scale ridge to typical magnitude of A (avoids "too small to matter" ridge)
     scaleA <- mean(abs(diag(A)))
     if (!is.finite(scaleA) || scaleA <= 0) scaleA <- 1
     vecP <- solve(A + (ridge * scaleA) * diag(m * m), b)
@@ -1478,7 +1478,7 @@ jvn_negloglik_contrib <- function(
     if (length(idx_sd) > 0) theta[idx_sd] <- exp(theta[idx_sd])
   }
 
-  # GAUSS-like “keep AR sane” soft constraint: sum(rho) in (-1,1)
+  # GAUSS-like "keep AR sane" soft constraint: sum(rho) in (-1,1)
   rho <- theta[info$ar_coef_idx]
   s <- sum(rho)
   if (!is.finite(s) || abs(s) >= 0.999) {
@@ -1488,7 +1488,7 @@ jvn_negloglik_contrib <- function(
   # Update matrices
   ms <- jvn_update_matrices(model_struct, theta)
 
-  # Stationary P0 (InitP0) — fail-safe
+  # Stationary P0 (InitP0) -- fail-safe
   P0 <- tryCatch(
     jvn_stationary_P0(ms$Tmat, ms$R, ms$Q),
     error = function(e) NULL

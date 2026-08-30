@@ -5,13 +5,19 @@
 \alias{gdp}
 \title{Vintages Data}
 \format{
-A tibble with quarterly observations and 4 variables:
+A \code{tbl_pubdate} vintages object in the long layout: a tibble
+carrying the class attribute \code{c("tbl_pubdate", "tbl_vintage", "tbl_df", "tbl", "data.frame")}, with quarterly observations and 4 variables:
 \describe{
 \item{time}{Date of the observation}
 \item{pub_date}{Publication date of the vintage}
 \item{value}{Numeric, real GDP (seasonally adjusted)}
 \item{id}{Country code}
 }
+
+Because it is a vintages object rather than a plain tibble, the generics
+\code{\link[=print]{print()}}, \code{\link[=summary]{summary()}} and \code{\link[=plot]{plot()}} work on it directly. See
+\code{\link[=validate_vintages]{validate_vintages()}} for the data contract and \link{tbl_vintage} for the class
+hierarchy.
 }
 \usage{
 gdp
@@ -58,11 +64,18 @@ A collection of real-time datasets.
 # Load gdp dataset
 data(gdp)
 head(gdp)
+
+# It is a vintages object, so the generics dispatch on it directly.
+class(gdp)
+summary(gdp)
 }
 \references{
 Indergand, R., Leist, S. A Real-Time Data Set for Switzerland.
-Swiss J Economics Statistics 150, 331–352 (2014).
+Swiss J Economics Statistics 150, 331--352 (2014).
 \doi{10.1007/BF03399410}
+}
+\seealso{
+\code{\link[=validate_vintages]{validate_vintages()}}, \link{tbl_vintage}
 }
 \concept{dataset}
 \keyword{datasets}

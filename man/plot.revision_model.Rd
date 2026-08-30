@@ -28,9 +28,10 @@ inherited by \code{kk_model} and \code{jvn_model} objects alike; the state shown
 \code{state} is not given is chosen by the concrete class.
 }
 \details{
-This method requires \code{x$states} to be available. If the model was
-fitted with \code{solver_options$return_states = FALSE}, plotting is not
-possible.
+This method requires the state estimates to be available. A model
+fitted with \code{solver_options$return_states = FALSE} did not retain them,
+and plotting it fails with a message naming that option, in the same way
+\code{\link[=states]{states()}}, \code{\link[=fitted]{fitted()}}, \code{\link[=residuals]{residuals()}} and \code{\link[=predict]{predict()}} do.
 }
 \examples{
 df <- get_nth_release(

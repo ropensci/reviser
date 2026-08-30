@@ -57,6 +57,18 @@ too. See \link{tbl_vintage} for the class hierarchy and the methods it
 provides.
 }
 
+\section{Operations that drop the class}{
+
+The vintages classes sit on top of a tibble, so the \code{dplyr} verbs
+(\code{filter()}, \code{mutate()}, \code{select()}, \code{arrange()}, \code{slice()}) and \code{[}
+preserve them. A few functions rebuild the object from scratch and return a
+plain tibble instead; \code{tidyr::drop_na()} is the one most likely to be met
+in a vintages workflow. The data are unaffected, but \code{plot()}, \code{summary()}
+and the vintages print header no longer dispatch. Pass the result back
+through \code{\link[=vintages_long]{vintages_long()}} or \code{\link[=vintages_wide]{vintages_wide()}}, or apply the operation
+before the release-extraction step, to get the class back.
+}
+
 \examples{
 df <- dplyr::filter(reviser::gdp, id == "US")
 

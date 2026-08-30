@@ -328,9 +328,10 @@ plot_vintages <- function(
 #'   and the first available state for a `kk_model`.
 #' @param type String. Type of estimate: "filtered" or "smoothed".
 #' @param ... Additional arguments passed to theme_reviser.
-#' @details This method requires `x$states` to be available. If the model was
-#'   fitted with `solver_options$return_states = FALSE`, plotting is not
-#'   possible.
+#' @details This method requires the state estimates to be available. A model
+#'   fitted with `solver_options$return_states = FALSE` did not retain them,
+#'   and plotting it fails with a message naming that option, in the same way
+#'   [states()], [fitted()], [residuals()] and [predict()] do.
 #' @srrstats {TS5.0} Implements default plot methods for class system
 #' @srrstats {TS5.1} Time axis labeling
 #' @srrstats {TS5.2} Time on horizontal axis
@@ -365,6 +366,11 @@ plot_vintages <- function(
 #' @family revision nowcasting
 #' @export
 plot.revision_model <- function(x, state = NULL, type = "filtered", ...) {
+  # Checked before anything reads `x$states`, so that a model fitted with
+  # `return_states = FALSE` reports that cause rather than failing on a NULL
+  # further down, as every other accessor on the parent class already does.
+  require_states(x)
+
   if (is.null(state)) {
     state <- default_plot_state(x, type)
   }

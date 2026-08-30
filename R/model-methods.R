@@ -273,6 +273,33 @@ states <- function(object, ...) {
   UseMethod("states")
 }
 
+#' Abort when a fitted model did not retain its state estimates
+#'
+#' `return_states = FALSE` drops the component that [states()], [fitted()],
+#' [residuals()], [predict()] and [plot()] all read. The single definition
+#' here is what keeps every one of them reporting the actual cause, rather
+#' than failing later on a `NULL` with an unrelated message.
+#'
+#' @param object A fitted `revision_model`.
+#' @return `invisible(NULL)`, or an error.
+#' @keywords internal
+#' @noRd
+require_states <- function(object) {
+  if (is.null(object$states)) {
+    rlang::abort(
+      paste0(
+        "This ",
+        class(object)[1],
+        " was fitted with `return_states = FALSE`, so no state estimates ",
+        "are available. Refit with `return_states = TRUE`."
+      ),
+      call = rlang::caller_env()
+    )
+  }
+
+  invisible(NULL)
+}
+
 #' @rdname states
 #' @method states revision_model
 #' @export
@@ -284,14 +311,7 @@ states.revision_model <- function(
 ) {
   filter <- match.arg(filter)
 
-  if (is.null(object$states)) {
-    rlang::abort(paste0(
-      "This ",
-      class(object)[1],
-      " was fitted with `return_states = FALSE`, so no state estimates ",
-      "are available. Refit with `return_states = TRUE`."
-    ))
-  }
+  require_states(object)
 
   out <- object$states
 
@@ -555,7 +575,21 @@ residuals.revision_model <- function(object, ...) {
 #' @family revision nowcasting
 #' @export
 predict.revision_model <- function(object, ...) {
-  signal_path(object, sample = "out_of_sample")
+  out <- signal_path(object, sample = "out_of_sample")
+
+  # An empty result here is not an error -- the horizon is simply zero -- but
+  # silently returning no rows reads like a failure, so say which argument
+  # decides it.
+  if (nrow(out) == 0) {
+    rlang::inform(paste0(
+      "This ",
+      class(object)[1],
+      " was fitted with `h = 0`, so it has no out-of-sample estimates. ",
+      "Refit with `h > 0` to forecast beyond the observed sample."
+    ))
+  }
+
+  out
 }
 
 #' Summary Method for Revision Models
