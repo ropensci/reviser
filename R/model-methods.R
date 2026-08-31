@@ -187,6 +187,17 @@ spec_lines.jvn_model <- function(object) {
     )
   }
 
+  if (isTRUE(object$p0_regularized)) {
+    out <- c(
+      out,
+      paste(
+        "Note: the initial-state covariance required numerical",
+        "regularization at the converged estimate (a near-nonstationary",
+        "fit); see ?jvn_nowcast."
+      )
+    )
+  }
+
   out
 }
 

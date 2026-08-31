@@ -123,6 +123,11 @@ optimizer.}
 \item{se_method}{The standard-error method used.}
 \item{cov}{Estimated covariance matrix of the parameter estimates, if
 available; otherwise \code{NULL}.}
+\item{p0_regularized}{Logical; whether computing the Kalman filter's
+stationary initial-state covariance at the converged estimate required
+numerical regularization, which can happen for a fit close to a
+non-stationary boundary. \code{NULL} when \code{solver_options$return_states = FALSE}, since the initial-state covariance is then not computed.
+\code{summary()} reports this when \code{TRUE}.}
 }
 }
 \description{

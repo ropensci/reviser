@@ -93,6 +93,12 @@
 #'   \item{se_method}{The standard-error method used.}
 #'   \item{cov}{Estimated covariance matrix of the parameter estimates, if
 #'   available; otherwise `NULL`.}
+#'   \item{p0_regularized}{Logical; whether computing the Kalman filter's
+#'   stationary initial-state covariance at the converged estimate required
+#'   numerical regularization, which can happen for a fit close to a
+#'   non-stationary boundary. `NULL` when `solver_options$return_states =
+#'   FALSE`, since the initial-state covariance is then not computed.
+#'   `summary()` reports this when `TRUE`.}
 #' }
 #'
 #' @references Jacobs, Jan P. A. M. and Van Norden, Simon (2011). Modeling data
@@ -869,7 +875,17 @@ jvn_nowcast <- function(
   }
 
   # KFAS: stationary initialization (matches likelihood engine) ----
-  P0 <- jvn_stationary_P0(model_struct$Tmat, model_struct$R, model_struct$Q)
+  # This is the converged estimate, evaluated once, so unlike the inner-loop
+  # call in jvn_negloglik_contrib(), whether P0 required regularization is
+  # worth reporting: it is carried on the fitted object and surfaced by
+  # summary.revision_model() through spec_lines.jvn_model().
+  p0_result <- jvn_stationary_P0(
+    model_struct$Tmat,
+    model_struct$R,
+    model_struct$Q
+  )
+  P0 <- p0_result$P0
+  p0_regularized <- p0_result$regularized
 
   if (default_solver_options$kfas_init == "stationary") {
     a1 <- rep(0, model_struct$m)
@@ -995,7 +1011,8 @@ jvn_nowcast <- function(
     data = df,
     scale = scale_info,
     se_method = se_method_used,
-    cov = cov_used
+    cov = cov_used,
+    p0_regularized = p0_regularized
   )
 
   class(out) <- c("jvn_model", "revision_model", class(out))
@@ -1289,12 +1306,35 @@ jvn_update_matrices <- function(model_struct, params) {
 #' Compute the stationary initial covariance matrix
 #'
 #' Compute the stationary state covariance matrix `P0` from the discrete
-#' Lyapunov equation
-#' \deqn{vec(P) = (I - T \otimes T)^{-1} vec(R Q R').}
+#' Lyapunov equation \eqn{P = T P T' + S} with \eqn{S = R Q R'}. This is the
+#' initialization used by the custom likelihood engine and matches the
+#' `InitP0()` logic in the original GAUSS code.
 #'
-#' This is the initialization used by the custom likelihood engine and matches
-#' the `InitP0()` logic in the original GAUSS code.
+#' The transition matrix `T` in this model is diagonalizable for every
+#' parameter value the estimator can reach: the AR block is a companion
+#' matrix (diagonalizable whenever its roots are simple, which holds off a
+#' measure-zero boundary), and the news/noise blocks are already diagonal. In
+#' the eigenbasis `T = V diag(lambda) V^{-1}`, the Lyapunov equation becomes,
+#' with `S_tilde = V^{-1} S V^{-T}`,
+#' \deqn{\tilde P_{ij} = \tilde S_{ij} / (1 - \lambda_i \lambda_j),}
+#' an elementwise divide instead of a dense linear solve on the
+#' \eqn{m^2 \times m^2} matrix `I - T \otimes T`. This is cheaper (`O(m^3)`
+#' versus `O(m^6)`) and, importantly, isolates exactly which mode is
+#' responsible when the system is near a non-stationary boundary: it is the
+#' pair `(i, j)` with `lambda_i * lambda_j` near 1, not a generic condition
+#' number on the full Kronecker system.
 #'
+#' During optimizer search, trial parameter vectors routinely imply a
+#' momentarily non-stationary or defective `T`; regularizing those cases here
+#' is expected and is not reported (a fitted object's `p0_regularized` field
+#' reports the diagnosis only for the converged estimate, once, in
+#' [summary.revision_model()]). When `T` is not diagonalizable, or its
+#' eigenvector matrix is too ill-conditioned to trust, this falls back to
+#' the general dense solve via [jvn_stationary_p0_dense()].
+#'
+#' @return A list with components `P0` (the stationary covariance matrix) and
+#'   `regularized` (logical; whether any near-singular mode had to be
+#'   floored to keep the solve finite).
 #' @keywords internal
 #' @noRd
 jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
@@ -1302,14 +1342,92 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
   stopifnot(ncol(Tmat) == m)
 
   S <- tcrossprod(R %*% Q, R)
+
+  eig <- tryCatch(eigen(Tmat), error = function(e) NULL)
+  use_eigen <- !is.null(eig)
+
+  if (use_eigen) {
+    V <- eig$vectors
+    lambda <- eig$values
+    v_cond <- tryCatch(kappa(V, exact = FALSE), error = function(e) Inf)
+    use_eigen <- is.finite(v_cond) && v_cond <= cond_max
+  }
+
+  regularized <- FALSE
+  P0 <- NULL
+
+  if (use_eigen) {
+    Vinv <- solve(V)
+    S_tilde <- Vinv %*% S %*% t(Vinv)
+    denom <- 1 - outer(lambda, lambda)
+
+    mod_denom <- Mod(denom)
+    near_singular <- mod_denom < ridge
+    if (any(near_singular)) {
+      regularized <- TRUE
+      # Floor the magnitude at `ridge` while keeping the original phase, so
+      # a mode that is merely small keeps its direction (persistent-but-
+      # stable vs. mildly explosive); a mode that underflows to exactly
+      # zero has no phase to preserve, so it defaults to positive real
+      # (the stable side) rather than collapsing the floor itself to zero.
+      has_phase <- mod_denom >= .Machine$double.eps
+      sgn <- denom
+      sgn[has_phase] <- denom[has_phase] / mod_denom[has_phase]
+      sgn[!has_phase] <- 1 + 0i
+      denom[near_singular] <- sgn[near_singular] * ridge
+    }
+
+    P_tilde <- S_tilde / denom
+    P_complex <- V %*% P_tilde %*% t(V)
+
+    # T is real, so P should be real; a non-negligible imaginary part means
+    # the eigenbasis was numerically untrustworthy despite passing the
+    # conditioning check above, so fall back to the dense solve instead.
+    im_scale <- max(Mod(Im(P_complex)))
+    re_scale <- max(1, max(Mod(Re(P_complex))))
+    if (is.finite(im_scale) && im_scale <= 1e-6 * re_scale) {
+      P0 <- Re(P_complex)
+    } else {
+      use_eigen <- FALSE
+    }
+  }
+
+  if (!use_eigen) {
+    dense <- jvn_stationary_p0_dense(
+      Tmat, S,
+      ridge = ridge, cond_max = cond_max
+    )
+    P0 <- dense$P0
+    regularized <- dense$regularized
+  }
+
+  P0 <- (P0 + t(P0)) / 2 # symmetrize
+  list(P0 = P0, regularized = regularized)
+}
+
+#' Dense fallback for the stationary initial covariance matrix
+#'
+#' Solves the same Lyapunov equation as [jvn_stationary_P0()] via the general
+#' `vec(P) = (I - T \otimes T)^{-1} vec(S)` system, for the rare case where
+#' `T` is not (numerically) diagonalizable. Kept as a fallback rather than
+#' the default because it forms a dense \eqn{m^2 \times m^2} matrix.
+#'
+#' @return A list with components `P0` and `regularized`, as in
+#'   [jvn_stationary_P0()].
+#' @keywords internal
+#' @noRd
+jvn_stationary_p0_dense <- function(Tmat, S, ridge = 1e-10, cond_max = 1e12) {
+  m <- nrow(Tmat)
   A <- diag(m * m) - kronecker(Tmat, Tmat)
   b <- as.vector(S)
+  regularized <- FALSE
 
   # Try direct solve first
   vecP <- tryCatch(solve(A, b), error = function(e) NULL)
 
   # If solve failed or matrix is nasty, add ridge (scaled) and retry
   if (is.null(vecP)) {
+    regularized <- TRUE
     # scale ridge to typical magnitude of A (avoids "too small to matter" ridge)
     scaleA <- mean(abs(diag(A)))
     if (!is.finite(scaleA) || scaleA <= 0) scaleA <- 1
@@ -1318,6 +1436,7 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
     # optional conditioning check (helps avoid garbage P0 when nearly singular)
     cond <- tryCatch(kappa(A, exact = FALSE), error = function(e) Inf)
     if (!is.finite(cond) || cond > cond_max) {
+      regularized <- TRUE
       scaleA <- mean(abs(diag(A)))
       if (!is.finite(scaleA) || scaleA <= 0) scaleA <- 1
       vecP <- solve(A + (ridge * scaleA) * diag(m * m), b)
@@ -1326,7 +1445,7 @@ jvn_stationary_P0 <- function(Tmat, R, Q, ridge = 1e-10, cond_max = 1e12) {
 
   P0 <- matrix(vecP, nrow = m, ncol = m)
   P0 <- (P0 + t(P0)) / 2 # symmetrize
-  P0
+  list(P0 = P0, regularized = regularized)
 }
 
 
@@ -1488,9 +1607,12 @@ jvn_negloglik_contrib <- function(
   # Update matrices
   ms <- jvn_update_matrices(model_struct, theta)
 
-  # Stationary P0 (InitP0) -- fail-safe
+  # Stationary P0 (InitP0) -- fail-safe. Trial parameter vectors during
+  # search routinely imply a momentarily non-stationary system, so whether
+  # this particular trial needed regularization is not reported here; only
+  # the converged estimate's P0 is checked (see the call in jvn_nowcast()).
   P0 <- tryCatch(
-    jvn_stationary_P0(ms$Tmat, ms$R, ms$Q),
+    jvn_stationary_P0(ms$Tmat, ms$R, ms$Q)$P0,
     error = function(e) NULL
   )
   if (is.null(P0)) {

@@ -73,6 +73,14 @@
   reported as the class mismatch they are.
 * `predict()` on a model fitted with `h = 0` returned a zero-row tibble with
   no explanation. It now says which argument decides that.
+* The Kalman filter's stationary initial-state covariance in `jvn_nowcast()`
+  fell back to a ridge-regularized solve near a non-stationary boundary
+  without reporting it, unlike the parameter-covariance fallback added
+  earlier in this version. The converged estimate's fitted object now
+  carries a `p0_regularized` flag, which `summary()` reports when `TRUE`.
+  Trial parameter vectors evaluated during optimization are unaffected and
+  still regularize silently, since a momentarily non-stationary trial point
+  is expected there and reporting it would be noise, not diagnosis.
 
 ## New features
 
@@ -120,6 +128,16 @@
   has been substantially extended. Every method that depends on the state
   estimates is now tested to report `return_states = FALSE` as the cause.
 * Comments in `jvn.R` no longer contain non-ASCII typographic quotes.
+* The stationary initial-state covariance in `jvn_nowcast()` is now obtained
+  by diagonalizing the transition matrix and solving the resulting Lyapunov
+  equation elementwise in the eigenbasis, rather than by forming and solving
+  the dense `m^2 x m^2` linear system `vec(P) = (I - T %x% T)^{-1} vec(S)`.
+  This is cheaper (`O(m^3)` versus `O(m^6)`) and exploits the same
+  transition-matrix structure -- an AR companion block plus diagonal
+  news/noise blocks -- that motivated the earlier Cholesky and `tcrossprod()`
+  changes in this version. The dense solve remains as a fallback for the
+  rare case of a non-diagonalizable transition matrix. Estimates are
+  unchanged.
 
 # reviser 0.2.0
 
