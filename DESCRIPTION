@@ -1,12 +1,14 @@
 Package: reviser
 Type: Package
 Title: Analyzing Revisions in Real-Time Time Series Vintages
-Version: 0.3.1
+Version: 0.3.1.9000
 Authors@R: c(
-    person(given = "Marc", family = "Burri", email = "marc.burri91@gmail.com", role = c("aut", "cre", "cph"),
+    person(given = "Marc", family = "Burri", 
+           email = "marc.burri91@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-8974-9090")),
     person(given = "Philipp", family = "Wegmueller",
-        email = "philipp.wegmueller@seco.admin.ch", role = c("aut", "cph"))
+           email = "philipp.wegmueller@seco.admin.ch", role = c("aut", "cph"), 
+           comment = c(ORCID = "0000-0001-7122-5838"))
   )
 Description: Analyzes revisions in real-time time series vintages. The
     package converts between wide revision triangles and tidy long
