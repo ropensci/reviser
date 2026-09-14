@@ -763,6 +763,113 @@ test_that("kk_matrices parameter sorting is consistent", {
   expect_true(grepl("^v0$", param_names[length(param_names) - 1]))
 })
 
+# ===== Tests for kk symbolic helpers =====
+
+test_that("kk_sym_is_zero identifies zero tokens", {
+  expect_equal(
+    reviser:::kk_sym_is_zero(c("0", "(0)", "1", "(1)", "G0_0", "(0.0)")),
+    c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+  )
+})
+
+test_that("kk_sym_mul drops terms with a zero operand", {
+  expect_equal(reviser:::kk_sym_mul("0", "(G0_0)"), "0")
+  expect_equal(reviser:::kk_sym_mul("(F0)", "(0)"), "0")
+  expect_equal(reviser:::kk_sym_mul("(F0)", "(x1)"), "(F0) * (x1)")
+  expect_equal(
+    reviser:::kk_sym_mul(c("0", "(F0)"), c("(x1)", "(x2)")),
+    c("0", "(F0) * (x2)")
+  )
+})
+
+test_that("kk_sym_add drops an identity-zero side", {
+  expect_equal(reviser:::kk_sym_add("0", "(x1)"), "(x1)")
+  expect_equal(reviser:::kk_sym_add("(x1)", "0"), "(x1)")
+  expect_equal(reviser:::kk_sym_add("(0)", "(0)"), "(0)")
+  expect_equal(reviser:::kk_sym_add("(x1)", "(x2)"), "(x1) + (x2)")
+})
+
+test_that("kk_sym_sub cancels equal operands and simplifies zeros", {
+  expect_equal(reviser:::kk_sym_sub("(x1)", "(x1)"), "0")
+  expect_equal(reviser:::kk_sym_sub("0", "(0)"), "0")
+  expect_equal(reviser:::kk_sym_sub("0", "(G0_0)"), " - (G0_0)")
+  expect_equal(reviser:::kk_sym_sub("(x1)", "0"), "(x1)")
+  expect_equal(reviser:::kk_sym_sub("(x1)", "(x2)"), "(x1) - (x2)")
+})
+
+test_that("kk_sym_mx computes a symbolic matrix-vector product", {
+  mat <- matrix(c("0", "1", "0", "0", "0", "1", "0", "0", "F0"),
+    nrow = 3, byrow = TRUE
+  )
+  vec <- c("z3", "z2", "z1")
+
+  expect_equal(
+    reviser:::kk_sym_mx(mat, vec),
+    c("(1) * (z2)", "(1) * (z1)", "(F0) * (z1)")
+  )
+
+  all_zero <- matrix("0", nrow = 1, ncol = 2)
+  expect_equal(reviser:::kk_sym_mx(all_zero, c("x1", "x2")), "0")
+})
+
+test_that("kk_sym_diff_mat subtracts a symbolic matrix from a numeric one", {
+  II <- diag(2)
+  GG <- matrix(c("1", "0", "G1_0", "G0_0"), nrow = 2, byrow = TRUE)
+
+  expect_equal(
+    reviser:::kk_sym_diff_mat(II, GG),
+    matrix(c("1 - (1)", "0", " - (G1_0)", "1 - (G0_0)"),
+      nrow = 2, byrow = TRUE
+    )
+  )
+})
+
+test_that("kk_sym_prod_mat multiplies two symbolic matrices elementwise", {
+  m1 <- matrix(c("1 - (1)", "0", " - (G1_0)", "1 - (G0_0)"),
+    nrow = 2, byrow = TRUE
+  )
+  m2 <- matrix(c("0", "1", "0", "F0"), nrow = 2, byrow = TRUE)
+
+  expect_equal(
+    reviser:::kk_sym_prod_mat(m1, m2),
+    matrix(c("0", "0", "0", "(1 - (G0_0)) * (F0)"), nrow = 2, byrow = TRUE)
+  )
+})
+
+test_that("kk_equations produces the expected formulas for a KK model", {
+  km <- kk_matrices(e = 1, model = "KK", type = "character")
+  eqs <- reviser:::kk_equations(km)
+
+  expect_equal(
+    deparse1(eqs$eq1),
+    "release_1_lag_0 ~ (F0) * (release_1_lag_1)"
+  )
+  expect_equal(
+    deparse1(eqs$eq2),
+    paste0(
+      "release_0_lag_0 ~ ((1 - (G0_0)) * (F0)) * (release_0_lag_1) + ",
+      "(G0_1) * (release_1_lag_1) + (G0_0) * (release_1_lag_0)"
+    )
+  )
+})
+
+test_that("kk_equations produces the expected formulas for a Classical model", {
+  km <- kk_matrices(e = 1, model = "Classical", type = "character")
+  eqs <- reviser:::kk_equations(km)
+
+  expect_equal(
+    deparse1(eqs$eq1),
+    "release_1_lag_0 ~ (F0) * (release_1_lag_1)"
+  )
+  expect_equal(
+    deparse1(eqs$eq2),
+    paste0(
+      "release_0_lag_0 ~ ((1 - (1)) * (F0)) * (release_0_lag_1) + ",
+      "(1) * (release_1_lag_0)"
+    )
+  )
+})
+
 # ===== Tests for kk_to_ss =====
 
 test_that("kk_to_ss converts KK matrices to state-space form", {
