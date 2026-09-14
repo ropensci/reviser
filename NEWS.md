@@ -1,3 +1,17 @@
+# reviser 0.3.1
+
+## Internal
+
+* Removed the dependency on `calculus`, which CRAN has scheduled for
+  archival. The four symbolic operators it provided (`%mx%`, `%diff%`,
+  `%sum%`, `%prod%`) were used only in `kk_equations()`, to build the
+  `nlsystemfit()` formulas for the Kishor-Koenig model from character
+  matrices of parameter names. They are replaced by small internal
+  equivalents (`kk_sym_mx()`, `kk_sym_diff_mat()`, `kk_sym_prod_mat()`,
+  `kk_sym_add()`) scoped to that exact use. Verified to produce identical
+  formulas to the `calculus`-based implementation across all models and
+  `e` values. No user-visible change.
+
 # reviser 0.3.0
 
 ## Breaking changes

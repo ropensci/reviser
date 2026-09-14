@@ -1498,6 +1498,124 @@ kk_qml_covariance <- function(
   )
 }
 
+#' Check for a Symbolic Zero Token
+#'
+#' @param x A character vector of symbolic tokens.
+#'
+#' @return A logical vector, `TRUE` where `x` is the literal token `"0"` or
+#'   its parenthesized form `"(0)"`.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_is_zero <- function(x) {
+  x == "0" | x == "(0)"
+}
+
+#' Symbolic Elementwise Multiplication
+#'
+#' @param x,y Character vectors of (already parenthesized) symbolic tokens.
+#'
+#' @return A character vector with each pair multiplied, or `"0"` if either
+#'   side is a symbolic zero.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_mul <- function(x, y) {
+  ifelse(kk_sym_is_zero(x) | kk_sym_is_zero(y), "0", paste0(x, " * ", y))
+}
+
+#' Symbolic Elementwise Addition
+#'
+#' @param x,y Character vectors of symbolic tokens.
+#'
+#' @return A character vector with each pair added; a symbolic zero on
+#'   either side is dropped rather than kept as a literal `+ 0` term.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_add <- function(x, y) {
+  ifelse(
+    kk_sym_is_zero(x), y,
+    ifelse(kk_sym_is_zero(y), x, paste0(x, " + ", y))
+  )
+}
+
+#' Symbolic Elementwise Subtraction
+#'
+#' @param x,y Character vectors of symbolic tokens.
+#'
+#' @return A character vector with each pair subtracted. Equal operands
+#'   cancel to `"0"`, and a symbolic zero on either side is simplified away.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_sub <- function(x, y) {
+  ifelse(
+    x == y, "0",
+    ifelse(
+      kk_sym_is_zero(x),
+      ifelse(kk_sym_is_zero(y), "0", paste0(" - ", y)),
+      ifelse(kk_sym_is_zero(y), x, paste0(x, " - ", y))
+    )
+  )
+}
+
+#' Symbolic Matrix-Vector Product
+#'
+#' @param mat A character (or coercible) matrix of symbolic tokens.
+#' @param vec A character vector of symbolic tokens, with length equal to
+#'   `ncol(mat)`.
+#'
+#' @return A character vector of length `nrow(mat)`, each entry the
+#'   symbolic dot product of a row of `mat` with `vec`, dropping zero terms.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_mx <- function(mat, vec) {
+  mat <- as.matrix(mat)
+  mat_wrapped <- matrix(
+    paste0("(", mat, ")"),
+    nrow = nrow(mat), ncol = ncol(mat)
+  )
+  vec_wrapped <- paste0("(", as.character(vec), ")")
+
+  vapply(seq_len(nrow(mat)), function(i) {
+    terms <- kk_sym_mul(mat_wrapped[i, ], vec_wrapped)
+    terms <- terms[terms != "0"]
+    if (length(terms) == 0) "0" else paste(terms, collapse = " + ")
+  }, character(1))
+}
+
+#' Symbolic Matrix Subtraction
+#'
+#' @param num_mat A numeric matrix.
+#' @param sym_mat A character matrix of symbolic tokens, same dimensions as
+#'   `num_mat`.
+#'
+#' @return A character matrix of `num_mat - sym_mat`, computed elementwise.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_diff_mat <- function(num_mat, sym_mat) {
+  x <- as.character(num_mat)
+  y <- paste0("(", as.character(sym_mat), ")")
+  matrix(kk_sym_sub(x, y), nrow = nrow(num_mat), ncol = ncol(num_mat))
+}
+
+#' Symbolic Matrix Multiplication
+#'
+#' @param mat1,mat2 Character matrices of symbolic tokens, same dimensions.
+#'
+#' @return A character matrix of `mat1 * mat2`, computed elementwise.
+#'
+#' @keywords internal
+#' @noRd
+kk_sym_prod_mat <- function(mat1, mat2) {
+  x <- paste0("(", as.character(mat1), ")")
+  y <- paste0("(", as.character(mat2), ")")
+  matrix(kk_sym_mul(x, y), nrow = nrow(mat1), ncol = ncol(mat1))
+}
+
 #' @title Create Equations for Kishor-Koenig (KK) Models
 #'
 #' @description
@@ -1527,13 +1645,16 @@ kk_equations <- function(kk_mat_sur) {
   y_lag_names <- c(paste0("release_", e:0, "_lag_", (e + 1):1))
 
   lhs1 <- z_names
-  rhs1 <- kk_mat_sur$FF %mx% z_lag_names
+  rhs1 <- kk_sym_mx(kk_mat_sur$FF, z_lag_names)
 
   lhs2 <- (y_names)
-  rhs2 <- (
-    ((II %diff% kk_mat_sur$GG) %prod% kk_mat_sur$FF) %mx% y_lag_names
-  ) %sum%
-    (kk_mat_sur$GG %mx% z_names)
+  rhs2 <- kk_sym_add(
+    kk_sym_mx(
+      kk_sym_prod_mat(kk_sym_diff_mat(II, kk_mat_sur$GG), kk_mat_sur$FF),
+      y_lag_names
+    ),
+    kk_sym_mx(kk_mat_sur$GG, z_names)
+  )
 
   equations <- list()
   formula <- stats::as.formula(paste0(lhs1[e + 1], " ~ ", rhs1[e + 1]))

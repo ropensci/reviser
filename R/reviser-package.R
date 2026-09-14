@@ -19,7 +19,6 @@ utils::globalVariables(c(
 
 # Import from KFAS necessary to overcome a bug when defining the model
 #' @importFrom KFAS SSModel SSMcustom
-#' @importFrom calculus %mx% %diff% %sum% %prod%
 #' @importFrom pillar tbl_sum
 #' @importFrom stats coef fitted logLik nobs predict residuals vcov
 #' @srrstats {G1.4} roxygen2 is used for all documentation.

@@ -2,16 +2,23 @@
 
 0 errors | 0 warnings | 3 notes
 
-* This is a package update (previous version 0.2.0 is on CRAN, published
-  2026-08-22).
+* This is a package update (previous version 0.3.0 is on CRAN, published
+  2026-09-02).
+
+* This update removes the dependency on `calculus`, which the CRAN team has
+  scheduled for archival on 2026-10-05 due to unresolved check problems,
+  and asked us to address as a strong reverse dependency. `calculus` was
+  used only for four small symbolic-algebra operators in one internal
+  function; they have been replaced with equivalent internal helpers, with
+  no change to any user-facing behavior.
 
 * checking CRAN incoming feasibility ... NOTE
-  "Days since last update". This release is out of the usual cadence
-  because it is the version described in a manuscript under review at the
-  Journal of Statistical Software, and the reviewing editor asked for the
-  class system to be reorganized around S3 inheritance. Version 0.3.0
-  implements that change, so the software the article documents and the
-  version on CRAN need to agree. We do not expect a further update soon.
+  "Days since last update". This release follows the previous one by less
+  than two weeks because it responds to the CRAN team's notice that
+  `calculus` -- a strong dependency of this package -- is scheduled for
+  archival on 2026-10-05, and asked maintainers to negotiate the necessary
+  actions. This update removes that dependency ahead of the deadline. We do
+  not expect a further update soon.
 
 * checking installed package size ... NOTE
   Installed size is 5.1Mb, with 3.0Mb in `exdata`. This is an example
