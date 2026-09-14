@@ -17,15 +17,11 @@ dates <- seq.Date(
 )
 
 expect_revision_tbl <- function(result) {
-  expect_true(
-    inherits(result, "tbl_pubdate") || inherits(result, "tbl_revision")
-  )
+  expect_s3_class(result, c("tbl_pubdate", "tbl_revision"))
 }
 
 expect_release_tbl <- function(result) {
-  expect_true(
-    inherits(result, "tbl_pubdate") || inherits(result, "tbl_release")
-  )
+  expect_s3_class(result, c("tbl_pubdate", "tbl_release"))
 }
 
 add_test_pub_dates <- function(df) {
@@ -93,7 +89,7 @@ test_that("get_revisions default interval is 1", {
   result1 <- get_revisions(df_long_rev)
   result2 <- get_revisions(df_long_rev, interval = 1)
 
-  expect_equal(nrow(result1), nrow(result2))
+  expect_identical(nrow(result1), nrow(result2))
 })
 
 test_that("get_revisions handles interval parameter", {
@@ -156,7 +152,7 @@ test_that("get_revisions case insensitivity for nth_release", {
   result1 <- get_revisions(df_with_pub, nth_release = "latest")
   result2 <- get_revisions(df_with_pub, nth_release = "LATEST")
 
-  expect_equal(nrow(result1), nrow(result2))
+  expect_identical(nrow(result1), nrow(result2))
 })
 
 test_that("get_revisions handles wide format data", {
@@ -214,7 +210,7 @@ test_that("get_first_efficient_release with test_all = TRUE", {
 test_that("get_first_efficient_release e value is valid", {
   result <- get_first_efficient_release(df_small_rev, final_small)
 
-  expect_true(is.numeric(result$e))
+  expect_type(result$e, "double")
 
   if (!is.na(result$e)) {
     expect_true(result$e >= 0)
@@ -345,7 +341,7 @@ test_that("get_nth_release case insensitivity", {
   result1 <- get_nth_release(df_long_rev, n = "latest")
   result2 <- get_nth_release(df_long_rev, n = "LATEST")
 
-  expect_equal(nrow(result1), nrow(result2))
+  expect_identical(nrow(result1), nrow(result2))
 })
 
 test_that("get_nth_release diagonal filters historical rows", {
@@ -394,8 +390,8 @@ test_that("get_nth_release diagonal works for multiple IDs", {
     dplyr::count(id) |>
     dplyr::arrange(id)
 
-  expect_equal(counts$n[counts$id == "A"], 2)
-  expect_equal(counts$n[counts$id == "B"], 3)
+  expect_identical(counts$n[counts$id == "A"], 2L)
+  expect_identical(counts$n[counts$id == "B"], 3L)
 })
 
 # ===== Tests for get_first_release =====
@@ -416,9 +412,9 @@ test_that("get_first_release diagonal keeps the real first-release diagonal", {
 
   result <- get_first_release(vintages_long(df_single_wide), diagonal = TRUE)
 
-  expect_equal(nrow(result), 1)
-  expect_equal(result$time, as.Date("2020-03-01"))
-  expect_equal(result$pub_date, as.Date("2020-03-01"))
+  expect_identical(nrow(result), 1L)
+  expect_identical(result$time, as.Date("2020-03-01"))
+  expect_identical(result$pub_date, as.Date("2020-03-01"))
   expect_true(all(result$release == "release_0"))
 })
 
@@ -500,7 +496,7 @@ test_that("get_releases_by_date handles non-existent date", {
   non_existent <- as.Date("1900-01-01")
   result <- get_releases_by_date(df_long_rev, non_existent)
 
-  expect_equal(nrow(result), 0)
+  expect_identical(nrow(result), 0L)
 })
 
 # ===== Tests for get_days_to_release =====
@@ -544,7 +540,7 @@ test_that("nth_release functions are consistent", {
   result_first <- get_first_release(df_long_rev)
 
   # Both should have same number of rows
-  expect_equal(nrow(result_0), nrow(result_first))
+  expect_identical(nrow(result_0), nrow(result_first))
 })
 
 test_that("revision analysis handles different data frequencies", {
@@ -576,7 +572,7 @@ test_that("revision functions handle minimal time periods", {
   result <- get_nth_release(df_two_periods, n = 0)
 
   expect_release_tbl(result)
-  expect_equal(nrow(result), 2)
+  expect_identical(nrow(result), 2L)
 })
 
 test_that("get_revision_analysis handles all zero revisions", {

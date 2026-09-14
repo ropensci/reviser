@@ -584,6 +584,7 @@ get_first_efficient_release <- function(
 #' @export
 print.lst_efficient <- function(x, ...) {
   summary.lst_efficient(x, ...)
+  invisible(x)
 }
 
 #' Summary of Efficient Release Models

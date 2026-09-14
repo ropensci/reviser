@@ -303,8 +303,8 @@ test_that("jvn_nowcast handles different AR orders", {
   result_ar1 <- fit_jvn_news_fast()
   result_ar3 <- fit_jvn_ar3_fast()
 
-  expect_equal(sum(grepl("^rho_", result_ar1$params$Parameter)), 1)
-  expect_equal(sum(grepl("^rho_", result_ar3$params$Parameter)), 3)
+  expect_identical(sum(grepl("^rho_", result_ar1$params$Parameter)), 1L)
+  expect_identical(sum(grepl("^rho_", result_ar3$params$Parameter)), 3L)
 })
 
 test_that("jvn_nowcast produces forecasts when h > 0", {
@@ -315,7 +315,7 @@ test_that("jvn_nowcast produces forecasts when h > 0", {
   # Check that out-of-sample forecasts exist
   oos_data <- result$states[result$states$sample == "out_of_sample", ]
   expect_gt(nrow(oos_data), 0)
-  expect_equal(length(unique(oos_data$time)), 4)
+  expect_length(unique(oos_data$time), 4)
 })
 
 test_that("jvn_nowcast handles spillovers", {
@@ -820,7 +820,7 @@ test_that("jvn_model supports the standard extractor generics", {
 
   estimates <- coef(result)
   expect_type(estimates, "double")
-  expect_identical(names(estimates), result$params$Parameter)
+  expect_named(estimates, result$params$Parameter)
   expect_identical(unname(estimates), result$params$Estimate)
 
   covariance <- vcov(result)
@@ -836,12 +836,12 @@ test_that("logLik.jvn_model makes AIC and BIC reproduce the reported values", {
 
   ll <- logLik(result)
   expect_s3_class(ll, "logLik")
-  expect_equal(as.numeric(ll), result$loglik)
+  expect_identical(as.numeric(ll), result$loglik)
   expect_identical(attr(ll, "df"), result$n_param)
   expect_identical(attr(ll, "nobs"), result$n_ic)
 
-  expect_equal(AIC(result), result$aic)
-  expect_equal(BIC(result), result$bic)
+  expect_identical(AIC(result), result$aic)
+  expect_identical(BIC(result), result$bic)
 })
 
 test_that("fitted, residuals and predict on jvn_model are consistent", {

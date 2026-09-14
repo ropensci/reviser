@@ -83,7 +83,7 @@ test_that("vintages_long converts wide to long format", {
   expect_true("time" %in% colnames(result))
   expect_true("pub_date" %in% colnames(result))
   expect_true("value" %in% colnames(result))
-  expect_equal(nrow(result), 36) # 12 time periods * 3 vintages
+  expect_identical(nrow(result), 36L) # 12 time periods * 3 vintages
   expect_s3_class(result$pub_date, "Date")
 })
 
@@ -92,7 +92,7 @@ test_that("vintages_long handles release column", {
 
   expect_true("release" %in% colnames(result))
   expect_true("value" %in% colnames(result))
-  expect_equal(nrow(result), 36)
+  expect_identical(nrow(result), 36L)
 })
 
 test_that("vintages_long handles list input", {
@@ -100,7 +100,7 @@ test_that("vintages_long handles list input", {
 
   expect_true("id" %in% colnames(result))
   expect_true(all(c("US", "EA") %in% result$id))
-  expect_equal(nrow(result), 48) # 12 * 2 vintages * 2 ids
+  expect_identical(nrow(result), 48L) # 12 * 2 vintages * 2 ids
 })
 
 test_that("vintages_long keeps ids for long-format list input", {
@@ -109,8 +109,8 @@ test_that("vintages_long keeps ids for long-format list input", {
   result <- suppressWarnings(vintages_long(long_list, names_to = "pub_date"))
 
   expect_true("id" %in% colnames(result))
-  expect_equal(sort(unique(result$id)), c("EA", "US"))
-  expect_equal(
+  expect_identical(sort(unique(result$id)), c("EA", "US"))
+  expect_identical(
     unname(as.integer(table(result$id))),
     c(nrow(df_long), nrow(df_long))
   )
@@ -191,24 +191,24 @@ test_that("vintages_wide converts long to wide format", {
   result <- vintages_wide(df_long, names_from = "pub_date")
 
   expect_true("time" %in% colnames(result))
-  expect_equal(nrow(result), 12)
-  expect_equal(ncol(result), 4) # time + 3 vintages
+  expect_identical(nrow(result), 12L)
+  expect_identical(ncol(result), 4L) # time + 3 vintages
 })
 
 test_that("vintages_wide handles release column", {
   result <- vintages_wide(df_long_release, names_from = "release")
 
   expect_true("release_0" %in% colnames(result))
-  expect_equal(nrow(result), 12)
+  expect_identical(nrow(result), 12L)
 })
 
 test_that("vintages_wide handles id column", {
   result <- vintages_wide(df_long_id, names_from = "pub_date")
 
-  expect_true(is.list(result))
-  expect_equal(names(result), c("EA", "US"))
-  expect_equal(nrow(result$US), 12)
-  expect_equal(nrow(result$EA), 12)
+  expect_type(result, "list")
+  expect_named(result, c("EA", "US"))
+  expect_identical(nrow(result$US), 12L)
+  expect_identical(nrow(result$EA), 12L)
 })
 
 test_that("vintages_wide validates names_from parameter", {
@@ -255,27 +255,27 @@ test_that("vintages_wide handles values vs value column", {
   colnames(df_values)[colnames(df_values) == "value"] <- "values"
 
   result <- vintages_wide(df_values, names_from = "pub_date")
-  expect_equal(nrow(result), 12)
+  expect_identical(nrow(result), 12L)
 })
 
 # ===== Tests for vintages_check =====
 
 test_that("vintages_check identifies long format", {
   result <- vintages_check(df_long)
-  expect_equal(result, "long")
+  expect_identical(result, "long")
 })
 
 test_that("vintages_check identifies wide format", {
   result <- vintages_check(df_wide)
-  expect_equal(result, "wide")
+  expect_identical(result, "wide")
 })
 
 test_that("vintages_check handles release columns", {
   result_long <- vintages_check(df_long_release)
   result_wide <- vintages_check(df_wide_release)
 
-  expect_equal(result_long, "long")
-  expect_equal(result_wide, "wide")
+  expect_identical(result_long, "long")
+  expect_identical(result_wide, "wide")
 })
 
 test_that("vintages_check validates data frame input", {
@@ -319,8 +319,8 @@ test_that("vintages_check validates wide format column names", {
 test_that("vintages_check handles list of data frames", {
   result <- vintages_check(df_wide_list)
 
-  expect_true(is.list(result))
-  expect_equal(names(result), c("US", "EA"))
+  expect_type(result, "list")
+  expect_named(result, c("US", "EA"))
   expect_true(all(unlist(result) == "wide"))
 })
 
@@ -389,7 +389,7 @@ test_that("print.tbl_pubdate returns invisibly", {
 
   # Print returns the object invisibly, but removes the custom class
   expect_true("time" %in% colnames(result))
-  expect_equal(nrow(result), nrow(df_pub))
+  expect_identical(nrow(result), nrow(df_pub))
 })
 
 test_that("print.tbl_release produces output", {
@@ -683,8 +683,8 @@ test_that("tcrossprod forms match the explicit products they replace", {
   k <- matrix(rnorm(6), 3, 2)
   f <- crossprod(matrix(rnorm(4), 2, 2))
 
-  expect_equal(tcrossprod(tmat %*% p, tmat), tmat %*% p %*% t(tmat))
-  expect_equal(tcrossprod(k %*% f, k), k %*% f %*% t(k))
+  expect_identical(tcrossprod(tmat %*% p, tmat), tmat %*% p %*% t(tmat))
+  expect_identical(tcrossprod(k %*% f, k), k %*% f %*% t(k))
 })
 
 test_that("standardize_val_col renames values to value", {
@@ -717,28 +717,28 @@ test_that("round-trip conversion preserves data (pub_date)", {
   df_long_sorted <- df_long[order(df_long$time, df_long$pub_date), ]
   long_again_sorted <- long_again[order(long_again$time, long_again$pub_date), ]
 
-  expect_equal(nrow(df_long_sorted), nrow(long_again_sorted))
+  expect_identical(nrow(df_long_sorted), nrow(long_again_sorted))
 })
 
 test_that("round-trip conversion preserves data (release)", {
   wide <- vintages_wide(df_long_release, names_from = "release")
   long_again <- vintages_long(wide, names_to = "release", keep_na = TRUE)
 
-  expect_equal(nrow(df_long_release), nrow(long_again))
+  expect_identical(nrow(df_long_release), nrow(long_again))
 })
 
 test_that("conversion handles id column correctly", {
   # Convert to wide (should create list)
   wide_list <- vintages_wide(df_long_id, names_from = "pub_date")
 
-  expect_true(is.list(wide_list))
-  expect_equal(length(wide_list), 2)
+  expect_type(wide_list, "list")
+  expect_length(wide_list, 2)
 
   # Convert back to long
   long_again <- vintages_long(wide_list, names_to = "pub_date")
 
   expect_true("id" %in% colnames(long_again))
-  expect_equal(sort(unique(long_again$id)), c("EA", "US"))
+  expect_identical(sort(unique(long_again$id)), c("EA", "US"))
 })
 
 test_that("conversion handles NAs consistently", {
@@ -747,7 +747,7 @@ test_that("conversion handles NAs consistently", {
   long_drop <- vintages_long(wide, names_to = "pub_date", keep_na = FALSE)
 
   expect_gt(sum(is.na(long_keep$value)), 0)
-  expect_equal(sum(is.na(long_drop$value)), 0)
+  expect_identical(sum(is.na(long_drop$value)), 0L)
 })
 
 # ===== Edge Cases =====
@@ -760,11 +760,11 @@ test_that("functions handle minimal data", {
   )
 
   wide <- vintages_wide(df_minimal)
-  expect_equal(nrow(wide), 3)
-  expect_equal(ncol(wide), 2) # time + 1 vintage
+  expect_identical(nrow(wide), 3L)
+  expect_identical(ncol(wide), 2L) # time + 1 vintage
 
   long_again <- vintages_long(wide, names_to = "pub_date")
-  expect_equal(nrow(long_again), 3)
+  expect_identical(nrow(long_again), 3L)
 })
 
 test_that("functions handle minimal data (2 observations)", {
@@ -775,11 +775,11 @@ test_that("functions handle minimal data (2 observations)", {
   )
 
   wide <- vintages_wide(df_minimal)
-  expect_equal(nrow(wide), 2)
-  expect_equal(ncol(wide), 2) # time + 1 vintage
+  expect_identical(nrow(wide), 2L)
+  expect_identical(ncol(wide), 2L) # time + 1 vintage
 
   format <- vintages_check(wide)
-  expect_equal(format, "wide")
+  expect_identical(format, "wide")
 })
 
 test_that("functions handle many vintages", {
@@ -797,10 +797,10 @@ test_that("functions handle many vintages", {
   )
 
   wide <- vintages_wide(df_many, names_from = "pub_date")
-  expect_equal(ncol(wide), n_vintages + 1) # time + vintages
+  expect_identical(ncol(wide), as.integer(n_vintages + 1)) # time + vintages
 
   long_again <- vintages_long(wide, names_to = "pub_date")
-  expect_equal(nrow(long_again), 12 * n_vintages)
+  expect_identical(nrow(long_again), as.integer(12 * n_vintages))
 })
 
 test_that("functions handle extreme values", {
@@ -828,7 +828,7 @@ test_that("vintages_check handles quarterly data", {
   )
 
   format <- vintages_check(df_quarterly)
-  expect_equal(format, "long")
+  expect_identical(format, "long")
 })
 
 test_that("vintages_check handles annual data", {
@@ -839,7 +839,7 @@ test_that("vintages_check handles annual data", {
   )
 
   format <- vintages_check(df_annual)
-  expect_equal(format, "long")
+  expect_identical(format, "long")
 })
 
 test_that("conversion preserves date classes", {

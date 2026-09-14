@@ -159,7 +159,7 @@ test_that("kk_nowcast returns correct structure with SUR", {
   expect_true("ss_model_mat" %in% names(result))
   expect_true("fit" %in% names(result))
   expect_true("e" %in% names(result))
-  expect_equal(result$e, 1)
+  expect_identical(result$e, 1L)
 })
 
 test_that("kk_nowcast returns correct structure with OLS", {
@@ -167,16 +167,16 @@ test_that("kk_nowcast returns correct structure with OLS", {
 
   expect_s3_class(result, "kk_model")
   expect_true("params" %in% names(result))
-  expect_equal(result$convergence, 0)
+  expect_identical(result$convergence, 0)
 })
 
 test_that("kk_nowcast returns correct structure with MLE", {
   result <- fit_kk_mle()
 
   expect_s3_class(result, "kk_model")
-  expect_true(!is.null(result$loglik))
-  expect_true(!is.null(result$aic))
-  expect_true(!is.null(result$bic))
+  expect_false(is.null(result$loglik))
+  expect_false(is.null(result$aic))
+  expect_false(is.null(result$bic))
   expect_true(is.finite(result$loglik))
 })
 
@@ -261,7 +261,7 @@ test_that("kk_nowcast handles Howrey model", {
   expect_s3_class(result, "kk_model")
   # Howrey has e^2 G parameters (fewer than KK)
   n_g_params <- sum(grepl("^G", result$params$Parameter))
-  expect_equal(n_g_params, 1^2) # e=1, so 1 G parameter
+  expect_identical(n_g_params, as.integer(1^2)) # e=1, so 1 G parameter
 })
 
 test_that("kk_nowcast handles Classical model", {
@@ -270,7 +270,7 @@ test_that("kk_nowcast handles Classical model", {
   expect_s3_class(result, "kk_model")
   # Classical has no G parameters
   n_g_params <- sum(grepl("^G", result$params$Parameter))
-  expect_equal(n_g_params, 0)
+  expect_identical(n_g_params, 0L)
 })
 
 test_that("kk_nowcast handles different e values", {
@@ -286,7 +286,7 @@ test_that("kk_nowcast produces forecasts when h > 0", {
 
   oos_data <- result$states[result$states$sample == "out_of_sample", ]
   expect_gt(nrow(oos_data), 0)
-  expect_equal(length(unique(oos_data$time)), 3)
+  expect_length(unique(oos_data$time), 3)
 })
 
 test_that("kk_nowcast handles custom starting values with OLS", {
@@ -599,7 +599,7 @@ test_that("kk_nowcast case insensitivity for model parameter", {
     solver_options = list(trace = 0)
   )
 
-  expect_equal(nrow(result_lower$params), nrow(result_upper$params))
+  expect_identical(nrow(result_lower$params), nrow(result_upper$params))
 })
 
 test_that("kk_nowcast case insensitivity for method parameter", {
@@ -617,7 +617,7 @@ test_that("kk_nowcast case insensitivity for method parameter", {
     solver_options = list(trace = 0)
   )
 
-  expect_equal(nrow(result_lower$params), nrow(result_upper$params))
+  expect_identical(nrow(result_lower$params), nrow(result_upper$params))
 })
 
 # ===== Tests for kk_matrices =====
@@ -631,8 +631,8 @@ test_that("kk_matrices creates character matrices", {
   expect_true("W" %in% names(matrices))
   expect_true("params" %in% names(matrices))
 
-  expect_true(is.character(matrices$FF))
-  expect_equal(dim(matrices$FF), c(3, 3)) # e+1 x e+1
+  expect_type(matrices$FF, "character")
+  expect_identical(dim(matrices$FF), c(3L, 3L)) # e+1 x e+1
 })
 
 test_that("kk_matrices creates numeric matrices with params", {
@@ -655,8 +655,8 @@ test_that("kk_matrices creates numeric matrices with params", {
     type = "numeric"
   )
 
-  expect_true(is.numeric(matrices$FF))
-  expect_equal(matrices$FF[3, 3], 0.8) # F0 in bottom right
+  expect_type(matrices$FF, "double")
+  expect_identical(matrices$FF[3, 3], 0.8) # F0 in bottom right
 })
 
 test_that("kk_matrices validates e parameter", {
@@ -706,10 +706,10 @@ test_that("kk_matrices accepts unnamed params in canonical order", {
     type = "numeric"
   )
 
-  expect_equal(names(matrices$params), c("F0", "G0_0", "G0_1", "v0", "eps0"))
-  expect_equal(matrices$FF[2, 2], 0.8)
-  expect_equal(matrices$GG[2, 1], 0.5)
-  expect_equal(matrices$GG[2, 2], 0.4)
+  expect_named(matrices$params, c("F0", "G0_0", "G0_1", "v0", "eps0"))
+  expect_identical(matrices$FF[2, 2], 0.8)
+  expect_identical(matrices$GG[2, 1], 0.5)
+  expect_identical(matrices$GG[2, 2], 0.4)
 })
 
 test_that("kk_matrices normalizes named params to canonical order", {
@@ -728,11 +728,11 @@ test_that("kk_matrices normalizes named params to canonical order", {
     type = "numeric"
   )
 
-  expect_equal(
+  expect_identical(
     unname(matrices$params),
     c(0.8, 0.4, 0.5, 0.1, 0.05)
   )
-  expect_equal(names(matrices$params), c("F0", "G0_0", "G0_1", "v0", "eps0"))
+  expect_named(matrices$params, c("F0", "G0_0", "G0_1", "v0", "eps0"))
 })
 
 test_that("kk_matrices handles Howrey model correctly", {
@@ -740,7 +740,7 @@ test_that("kk_matrices handles Howrey model correctly", {
 
   # Howrey has e*e G parameters
   n_g_params <- sum(grepl("^G", names(matrices$params)))
-  expect_equal(n_g_params, 2^2) # e=2, so 4 G parameters
+  expect_identical(n_g_params, as.integer(2^2)) # e=2, so 4 G parameters
 })
 
 test_that("kk_matrices handles Classical model correctly", {
@@ -748,7 +748,7 @@ test_that("kk_matrices handles Classical model correctly", {
 
   # Classical has no G parameters
   n_g_params <- sum(grepl("^G", names(matrices$params)))
-  expect_equal(n_g_params, 0)
+  expect_identical(n_g_params, 0L)
 
   # GG should be identity matrix
   expect_true(all(diag(3) == as.numeric(matrices$GG)))
@@ -759,42 +759,42 @@ test_that("kk_matrices parameter sorting is consistent", {
 
   param_names <- names(matrices$params)
   # Should start with F0, then G params, then v0, then eps params
-  expect_equal(param_names[1], "F0")
+  expect_identical(param_names[1], "F0")
   expect_true(grepl("^v0$", param_names[length(param_names) - 1]))
 })
 
 # ===== Tests for kk symbolic helpers =====
 
 test_that("kk_sym_is_zero identifies zero tokens", {
-  expect_equal(
+  expect_identical(
     reviser:::kk_sym_is_zero(c("0", "(0)", "1", "(1)", "G0_0", "(0.0)")),
     c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
   )
 })
 
 test_that("kk_sym_mul drops terms with a zero operand", {
-  expect_equal(reviser:::kk_sym_mul("0", "(G0_0)"), "0")
-  expect_equal(reviser:::kk_sym_mul("(F0)", "(0)"), "0")
-  expect_equal(reviser:::kk_sym_mul("(F0)", "(x1)"), "(F0) * (x1)")
-  expect_equal(
+  expect_identical(reviser:::kk_sym_mul("0", "(G0_0)"), "0")
+  expect_identical(reviser:::kk_sym_mul("(F0)", "(0)"), "0")
+  expect_identical(reviser:::kk_sym_mul("(F0)", "(x1)"), "(F0) * (x1)")
+  expect_identical(
     reviser:::kk_sym_mul(c("0", "(F0)"), c("(x1)", "(x2)")),
     c("0", "(F0) * (x2)")
   )
 })
 
 test_that("kk_sym_add drops an identity-zero side", {
-  expect_equal(reviser:::kk_sym_add("0", "(x1)"), "(x1)")
-  expect_equal(reviser:::kk_sym_add("(x1)", "0"), "(x1)")
-  expect_equal(reviser:::kk_sym_add("(0)", "(0)"), "(0)")
-  expect_equal(reviser:::kk_sym_add("(x1)", "(x2)"), "(x1) + (x2)")
+  expect_identical(reviser:::kk_sym_add("0", "(x1)"), "(x1)")
+  expect_identical(reviser:::kk_sym_add("(x1)", "0"), "(x1)")
+  expect_identical(reviser:::kk_sym_add("(0)", "(0)"), "(0)")
+  expect_identical(reviser:::kk_sym_add("(x1)", "(x2)"), "(x1) + (x2)")
 })
 
 test_that("kk_sym_sub cancels equal operands and simplifies zeros", {
-  expect_equal(reviser:::kk_sym_sub("(x1)", "(x1)"), "0")
-  expect_equal(reviser:::kk_sym_sub("0", "(0)"), "0")
-  expect_equal(reviser:::kk_sym_sub("0", "(G0_0)"), " - (G0_0)")
-  expect_equal(reviser:::kk_sym_sub("(x1)", "0"), "(x1)")
-  expect_equal(reviser:::kk_sym_sub("(x1)", "(x2)"), "(x1) - (x2)")
+  expect_identical(reviser:::kk_sym_sub("(x1)", "(x1)"), "0")
+  expect_identical(reviser:::kk_sym_sub("0", "(0)"), "0")
+  expect_identical(reviser:::kk_sym_sub("0", "(G0_0)"), " - (G0_0)")
+  expect_identical(reviser:::kk_sym_sub("(x1)", "0"), "(x1)")
+  expect_identical(reviser:::kk_sym_sub("(x1)", "(x2)"), "(x1) - (x2)")
 })
 
 test_that("kk_sym_mx computes a symbolic matrix-vector product", {
@@ -803,20 +803,20 @@ test_that("kk_sym_mx computes a symbolic matrix-vector product", {
   )
   vec <- c("z3", "z2", "z1")
 
-  expect_equal(
+  expect_identical(
     reviser:::kk_sym_mx(mat, vec),
     c("(1) * (z2)", "(1) * (z1)", "(F0) * (z1)")
   )
 
   all_zero <- matrix("0", nrow = 1, ncol = 2)
-  expect_equal(reviser:::kk_sym_mx(all_zero, c("x1", "x2")), "0")
+  expect_identical(reviser:::kk_sym_mx(all_zero, c("x1", "x2")), "0")
 })
 
 test_that("kk_sym_diff_mat subtracts a symbolic matrix from a numeric one", {
   II <- diag(2)
   GG <- matrix(c("1", "0", "G1_0", "G0_0"), nrow = 2, byrow = TRUE)
 
-  expect_equal(
+  expect_identical(
     reviser:::kk_sym_diff_mat(II, GG),
     matrix(c("1 - (1)", "0", " - (G1_0)", "1 - (G0_0)"),
       nrow = 2, byrow = TRUE
@@ -830,7 +830,7 @@ test_that("kk_sym_prod_mat multiplies two symbolic matrices elementwise", {
   )
   m2 <- matrix(c("0", "1", "0", "F0"), nrow = 2, byrow = TRUE)
 
-  expect_equal(
+  expect_identical(
     reviser:::kk_sym_prod_mat(m1, m2),
     matrix(c("0", "0", "0", "(1 - (G0_0)) * (F0)"), nrow = 2, byrow = TRUE)
   )
@@ -840,11 +840,11 @@ test_that("kk_equations produces the expected formulas for a KK model", {
   km <- kk_matrices(e = 1, model = "KK", type = "character")
   eqs <- reviser:::kk_equations(km)
 
-  expect_equal(
+  expect_identical(
     deparse1(eqs$eq1),
     "release_1_lag_0 ~ (F0) * (release_1_lag_1)"
   )
-  expect_equal(
+  expect_identical(
     deparse1(eqs$eq2),
     paste0(
       "release_0_lag_0 ~ ((1 - (G0_0)) * (F0)) * (release_0_lag_1) + ",
@@ -857,11 +857,11 @@ test_that("kk_equations produces the expected formulas for a Classical model", {
   km <- kk_matrices(e = 1, model = "Classical", type = "character")
   eqs <- reviser:::kk_equations(km)
 
-  expect_equal(
+  expect_identical(
     deparse1(eqs$eq1),
     "release_1_lag_0 ~ (F0) * (release_1_lag_1)"
   )
-  expect_equal(
+  expect_identical(
     deparse1(eqs$eq2),
     paste0(
       "release_0_lag_0 ~ ((1 - (1)) * (F0)) * (release_0_lag_1) + ",
@@ -919,9 +919,9 @@ test_that("kk_to_ss creates correct dimensions", {
   ss_mat <- kk_to_ss(matrices$FF, matrices$GG, matrices$V, matrices$W)
 
   e <- 2
-  expect_equal(dim(ss_mat$Z), c(e + 1, 2 * (e + 1)))
-  expect_equal(dim(ss_mat$Tmat), c(2 * (e + 1), 2 * (e + 1)))
-  expect_equal(dim(ss_mat$Q), c(2 * (e + 1), 2 * (e + 1)))
+  expect_identical(dim(ss_mat$Z), as.integer(c(e + 1, 2 * (e + 1))))
+  expect_identical(dim(ss_mat$Tmat), as.integer(c(2 * (e + 1), 2 * (e + 1))))
+  expect_identical(dim(ss_mat$Q), as.integer(c(2 * (e + 1), 2 * (e + 1))))
 })
 
 # ===== Tests for print.kk_model =====
@@ -1080,7 +1080,7 @@ test_that("different methods produce consistent estimates", {
   result_sur <- fit_kk_sur()
 
   # Both should have same parameter names
-  expect_equal(
+  expect_identical(
     result_ols$params$Parameter,
     result_sur$params$Parameter
   )
@@ -1156,16 +1156,16 @@ test_that("kk_nowcast model matrices have correct properties", {
   )
 
   # Check FF is square
-  expect_equal(nrow(result$kk_model_mat$FF), ncol(result$kk_model_mat$FF))
+  expect_identical(nrow(result$kk_model_mat$FF), ncol(result$kk_model_mat$FF))
 
   # Check GG is square
-  expect_equal(nrow(result$kk_model_mat$GG), ncol(result$kk_model_mat$GG))
+  expect_identical(nrow(result$kk_model_mat$GG), ncol(result$kk_model_mat$GG))
 
   # Check V is square
-  expect_equal(nrow(result$kk_model_mat$V), ncol(result$kk_model_mat$V))
+  expect_identical(nrow(result$kk_model_mat$V), ncol(result$kk_model_mat$V))
 
   # Check W is square
-  expect_equal(nrow(result$kk_model_mat$W), ncol(result$kk_model_mat$W))
+  expect_identical(nrow(result$kk_model_mat$W), ncol(result$kk_model_mat$W))
 })
 
 test_that("kk_nowcast information criteria are calculated correctly for MLE", {
@@ -1195,7 +1195,7 @@ test_that("kk_model supports the standard extractor generics", {
 
   estimates <- coef(result)
   expect_type(estimates, "double")
-  expect_identical(names(estimates), result$params$Parameter)
+  expect_named(estimates, result$params$Parameter)
   expect_identical(unname(estimates), result$params$Estimate)
 
   covariance <- vcov(result)
@@ -1212,14 +1212,14 @@ test_that("logLik.kk_model makes AIC and BIC reproduce the reported values", {
 
   ll <- logLik(result)
   expect_s3_class(ll, "logLik")
-  expect_equal(as.numeric(ll), result$loglik)
+  expect_identical(as.numeric(ll), result$loglik)
   expect_identical(attr(ll, "df"), result$n_param)
   expect_identical(attr(ll, "nobs"), result$n_ic)
 
   # The whole point of carrying df and nobs: the stats generics must agree
   # with the numbers summary() prints.
-  expect_equal(AIC(result), result$aic)
-  expect_equal(BIC(result), result$bic)
+  expect_identical(AIC(result), result$aic)
+  expect_identical(BIC(result), result$bic)
 })
 
 test_that("fitted, residuals and predict on kk_model are consistent", {
@@ -1243,7 +1243,7 @@ test_that("fitted, residuals and predict on kk_model are consistent", {
     as.data.frame(fit_vals),
     by = "time"
   )
-  expect_equal(
+  expect_identical(
     resid$residual[order(resid$time)],
     (merged$obs - merged$estimate)[order(merged$time)]
   )

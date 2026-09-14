@@ -159,7 +159,7 @@ test_that("get_first_efficient_release returns one entry per id", {
   for (id in c("AA", "BB")) {
     expect_true(all(c("e", "data", "models", "tests") %in% names(res[[id]])))
     expect_gt(length(res[[id]]$models), 0)
-    expect_identical(length(res[[id]]$models), length(res[[id]]$tests))
+    expect_length(res[[id]]$models, length(res[[id]]$tests))
     expect_s3_class(res[[id]]$models[[1]], "lm")
     # The per-id data is a validated vintages object.
     expect_s3_class(res[[id]]$data, "tbl_vintage")
@@ -174,7 +174,7 @@ test_that("get_first_efficient_release honours test_all on a panel", {
   # With test_all every release is tested, so no id stops early.
   n_releases <- length(unique(df_panel_release$release))
   for (id in c("AA", "BB")) {
-    expect_identical(length(res[[id]]$tests), n_releases)
+    expect_length(res[[id]]$tests, n_releases)
   }
 })
 

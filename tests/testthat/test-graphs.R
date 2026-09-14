@@ -228,17 +228,17 @@ test_that("plot_vintages limits to 30 vintages when warning", {
 
 test_that("plot_vintages applies title correctly", {
   p <- plot_vintages(df_plot, title = "Test Title")
-  expect_equal(p$labels$title, "Test Title")
+  expect_identical(p$labels$title, "Test Title")
 })
 
 test_that("plot_vintages applies subtitle correctly", {
   p <- plot_vintages(df_plot, title = "Test", subtitle = "Subtitle")
-  expect_equal(p$labels$subtitle, "Subtitle")
+  expect_identical(p$labels$subtitle, "Subtitle")
 })
 
 test_that("plot_vintages applies ylab correctly", {
   p <- plot_vintages(df_plot, ylab = "Y-axis Label")
-  expect_equal(p$labels$y, "Y-axis Label")
+  expect_identical(p$labels$y, "Y-axis Label")
 })
 
 test_that("plot_vintages handles release column", {
@@ -332,24 +332,24 @@ test_that("theme_reviser has expected base size", {
 
 test_that("theme_reviser sets legend position correctly", {
   th_bottom <- theme_reviser(legend.position = "bottom")
-  expect_equal(th_bottom$legend.position, "bottom")
+  expect_identical(th_bottom$legend.position, "bottom")
 
   th_top <- theme_reviser(legend.position = "top")
-  expect_equal(th_top$legend.position, "top")
+  expect_identical(th_top$legend.position, "top")
 
   th_right <- theme_reviser(legend.position = "right")
-  expect_equal(th_right$legend.position, "right")
+  expect_identical(th_right$legend.position, "right")
 
   th_left <- theme_reviser(legend.position = "left")
-  expect_equal(th_left$legend.position, "left")
+  expect_identical(th_left$legend.position, "left")
 })
 
 test_that("theme_reviser sets legend direction correctly", {
   th_horiz <- theme_reviser(legend.direction = "horizontal")
-  expect_equal(th_horiz$legend.direction, "horizontal")
+  expect_identical(th_horiz$legend.direction, "horizontal")
 
   th_vert <- theme_reviser(legend.direction = "vertical")
-  expect_equal(th_vert$legend.direction, "vertical")
+  expect_identical(th_vert$legend.direction, "vertical")
 })
 
 test_that("theme_reviser can combine position and direction", {
@@ -357,8 +357,8 @@ test_that("theme_reviser can combine position and direction", {
     legend.position = "top",
     legend.direction = "vertical"
   )
-  expect_equal(th$legend.position, "top")
-  expect_equal(th$legend.direction, "vertical")
+  expect_identical(th$legend.position, "top")
+  expect_identical(th$legend.direction, "vertical")
 })
 
 test_that("theme_reviser removes x-axis title", {
@@ -374,7 +374,7 @@ test_that("theme_reviser has y-axis title element", {
 test_that("theme_reviser has plot title formatting", {
   th <- theme_reviser()
   expect_s3_class(th$plot.title, "element_text")
-  expect_equal(th$plot.title$face, "bold")
+  expect_identical(th$plot.title$face, "bold")
 })
 
 test_that("theme_reviser works with ggplot", {
@@ -404,7 +404,7 @@ test_that("colors_reviser returns multiple colors", {
 
 test_that("colors_reviser returns unique colors", {
   cols <- colors_reviser()
-  expect_equal(length(cols), length(unique(cols)))
+  expect_length(unique(cols), length(cols))
 })
 
 test_that("colors_reviser includes colorblind-friendly palette", {
@@ -423,7 +423,7 @@ test_that("scale_color_reviser returns a ScaleDiscrete object", {
 
 test_that("scale_color_reviser has correct aesthetic", {
   sc <- scale_color_reviser()
-  expect_equal(sc$aesthetics, "colour")
+  expect_identical(sc$aesthetics, "colour")
 })
 
 test_that("scale_color_reviser uses colors_reviser palette", {
@@ -458,7 +458,7 @@ test_that("scale_fill_reviser returns a ScaleDiscrete object", {
 
 test_that("scale_fill_reviser has correct aesthetic", {
   sf <- scale_fill_reviser()
-  expect_equal(sf$aesthetics, "fill")
+  expect_identical(sf$aesthetics, "fill")
 })
 
 test_that("scale_fill_reviser uses colors_reviser palette", {

@@ -54,7 +54,11 @@ test_that("fitted models inherit from the shared revision_model class", {
   expect_s3_class(fit, "kk_model")
   expect_s3_class(fit, "revision_model")
   # The parent must sit behind the child, so child methods would win.
-  expect_identical(class(fit), c("kk_model", "revision_model", "list"))
+  expect_s3_class(
+    fit,
+    c("kk_model", "revision_model", "list"),
+    exact = TRUE
+  )
 })
 
 test_that("the shared methods are registered on the parent, not the children", {
@@ -92,8 +96,8 @@ test_that("dispatch on a fitted object reaches the inherited methods", {
 
   mle <- fit_shared_kk_mle()
   expect_s3_class(logLik(mle), "logLik")
-  expect_equal(AIC(mle), mle$aic)
-  expect_equal(BIC(mle), mle$bic)
+  expect_identical(AIC(mle), mle$aic)
+  expect_identical(BIC(mle), mle$bic)
 })
 
 test_that("the inherited accessors fail informatively when data is absent", {
@@ -190,7 +194,7 @@ test_that("residuals are measured against the family's target release", {
   )
   merged <- merge(observed, as.data.frame(fit_vals), by = "time")
 
-  expect_equal(
+  expect_identical(
     resid$residual[order(resid$time)],
     (merged$obs - merged$estimate)[order(merged$time)]
   )

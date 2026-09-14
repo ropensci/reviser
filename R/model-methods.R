@@ -702,4 +702,5 @@ summary.revision_model <- function(object, ...) {
 #' @export
 print.revision_model <- function(x, ...) {
   summary(x, ...)
+  invisible(x)
 }
